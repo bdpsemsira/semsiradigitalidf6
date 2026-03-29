@@ -63,7 +63,7 @@
             font-weight: bold;
         }
 
-        .login-logo, .app-header-logo {
+        .login-logo {
             display: block;
             margin: 20px auto 10px;
             max-width: 80px;
@@ -71,16 +71,27 @@
             border-radius: 15px;
         }
 
-        /* 只在 Utama (tab-home) 页面缩小并靠左 */
-        #tab-home .app-header-logo {
-            margin: 10px 0; /* 取消居中，设置上下间距 */
-            max-width: 45px; /* 缩小 Logo */
-            border-radius: 10px;
+        /* 统一头部容器布局 */
+        .header-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-top: 10px;
         }
 
-        #tab-home h3 {
-            text-align: left !important; /* 标题也跟着左对齐更协调 */
-            margin-bottom: 20px;
+        .app-header-logo {
+            display: block;
+            max-width: 45px; /* App内Logo稍小一点 */
+            height: auto;
+            border-radius: 10px;
+            margin: 0; 
+        }
+
+        .header-container h3 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
         }
 
         .glass {
@@ -217,24 +228,30 @@
 
 <div id="main-app" style="display:none">
     <div id="tab-home" class="page active">
-        <img src="/semsira.png" alt="Logo" class="app-header-logo">
-        <h3>Utama</h3>
+        <div class="header-container">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>Utama</h3>
+        </div>
         <div id="poster-slider" class="glass"></div>
         <h4>Pengumuman</h4>
         <div id="announcements-list" class="glass">Memuatkan...</div>
     </div>
 
     <div id="tab-scan" class="page" style="text-align:center">
-        <img src="/semsira.png" alt="Logo" class="app-header-logo">
-        <h3>Kehadiran Digital</h3>
+        <div class="header-container" style="justify-content: flex-start; text-align: left;">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>Kehadiran Digital</h3>
+        </div>
         <p>Sila tunjukkan kod QR ini kepada guru bertugas.</p>
         <div id="qrcode"></div>
         <p id="qr-timer" style="font-size:12px; color:#888"></p>
     </div>
 
     <div id="tab-account" class="page">
-        <img src="/semsira.png" alt="Logo" class="app-header-logo">
-        <h3 style="text-align:center">Profil Pelajar</h3>
+        <div class="header-container">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>Profil Pelajar</h3>
+        </div>
         <div class="glass" style="padding:20px">
             <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
             <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
