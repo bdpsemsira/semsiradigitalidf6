@@ -29,7 +29,7 @@
             filter: blur(20px);
         }
 
-        /* 水印层样式 */
+        /* 水印层样式 - 默认隐藏 */
         #watermark-layer {
             position: fixed;
             top: 0;
@@ -38,13 +38,12 @@
             height: 100vh;
             pointer-events: none;
             z-index: 9999;
-            opacity: 0.12;
-            display: flex;
+            opacity: 0.15;
+            display: none; 
             flex-wrap: wrap;
             justify-content: space-around;
             align-content: space-around;
             overflow: hidden;
-            display: none; /* 登录后显示 */
         }
 
         .watermark-item {
@@ -52,6 +51,8 @@
             font-size: 14px;
             white-space: nowrap;
             padding: 40px;
+            color: #000;
+            font-weight: bold;
         }
 
         .login-logo {
@@ -251,19 +252,18 @@
 
     window.currentUserData = null;
 
-    // 新增：Median 原生防截屏指令
-    function triggerNativePrivacy() {
+    // Median 安全指令
+    function triggerNativePrivacy(enabled) {
         if (navigator.userAgent.includes('median')) {
-            // 尝试通过 Median Bridge 发送安全指令
-            window.location.href = 'median://security/setPrivacyScreen?enabled=true&disableScreenshots=true';
+            // 当进入 Imbas 页面时开启硬拦截策略（部分 Android 有效）
+            window.location.href = `median://security/setPrivacyScreen?enabled=${enabled}&disableScreenshots=${enabled}`;
         }
     }
 
-    // 新增：动态水印生成
+    // 动态水印生成
     function applyWatermark(info) {
         const layer = document.getElementById('watermark-layer');
         layer.innerHTML = "";
-        layer.style.display = "flex";
         for (let i = 0; i < 40; i++) {
             const item = document.createElement('div');
             item.className = 'watermark-item';
@@ -272,10 +272,26 @@
         }
     }
 
+    // 监听原生 App 截图动作 (Median 事件)
+    window.addEventListener('median_screenshot', () => {
+        if (document.getElementById('tab-scan').classList.contains('active')) {
+            const d = window.currentUserData;
+            alert(
+                "AMARAN KESELAMATAN!\n\n" +
+                "Tangkapan skrin dikesan pada halaman Kod QR.\n" +
+                "Nama: " + d.name + "\n" +
+                "IC: " + d.ic + "\n" +
+                "Kelas: " + d.className + "\n\n" +
+                "Log ini telah dirakam dan dihantar kepada guru bertugas."
+            );
+        }
+    });
+
+    // 基础键盘拦截
     document.addEventListener('keydown', (e) => {
         if (e.key === 'PrintScreen' || e.keyCode === 123 || (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
             e.preventDefault();
-            alert("Tangkapan skrin dilarang demi keselamatan.");
+            alert("Tangkapan skrin dikesan!");
         }
     });
 
@@ -339,8 +355,7 @@
                 document.getElementById('page-register').classList.remove('active');
                 document.getElementById('main-app').style.display = 'block';
                 
-                // 登录后触发安全防护
-                triggerNativePrivacy();
+                // 初始化水印内容，但不显示
                 applyWatermark(`${window.currentUserData.name} (${window.currentUserData.ic})`);
 
                 loadHomeData();
@@ -437,11 +452,23 @@
         document.getElementById(id).classList.add('active');
     }
 
+    // 改进的 Tab 切换逻辑：只有在 Imbas 页面显示水印和开启安全指令
     window.switchTab = (tabId, el) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
-        document.getElementById(tabId).classList.add('active');
+        
+        const targetPage = document.getElementById(tabId);
+        targetPage.classList.add('active');
         el.classList.add('active-nav');
+
+        const watermark = document.getElementById('watermark-layer');
+        if (tabId === 'tab-scan') {
+            watermark.style.display = "flex";  // 显示水印
+            triggerNativePrivacy(true);        // 开启原生拦截
+        } else {
+            watermark.style.display = "none";  // 隐藏水印
+            triggerNativePrivacy(false);       // 关闭原生拦截
+        }
     }
 
     lucide.createIcons();
