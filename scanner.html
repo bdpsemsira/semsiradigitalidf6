@@ -32,6 +32,23 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
+        .camera-controls {
+            width: 90%;
+            max-width: 500px;
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        select {
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #CCC;
+            font-size: 14px;
+            background: white;
+        }
+
         #reader {
             width: 90%;
             max-width: 500px;
@@ -39,6 +56,7 @@
             border-radius: 15px;
             overflow: hidden;
             border: none !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .result-card {
@@ -48,7 +66,7 @@
             padding: 20px;
             border-radius: 15px;
             margin-top: 20px;
-            display: none; /* 初始隐藏 */
+            display: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             text-align: center;
         }
@@ -65,20 +83,19 @@
 
         .success { color: var(--success); border: 2px solid var(--success); }
         .error { color: var(--error); border: 2px solid var(--error); }
-
-        #log-area {
-            width: 90%;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #666;
-        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h2 style="margin:0">Semsira Attendance Scanner</h2>
-    <p style="font-size:14px; color:#888">Sila imbas Kod QR Pelajar</p>
+    <h2 style="margin:0">Semsira Attendance</h2>
+    <p style="font-size:14px; color:#888">Sila pilih kamera dan imbas Kod QR</p>
+</div>
+
+<div class="camera-controls">
+    <select id="camera-select">
+        <option value="">Mengesan Kamera...</option>
+    </select>
 </div>
 
 <div id="reader"></div>
@@ -89,8 +106,6 @@
     <p id="res-msg" style="margin:5px 0; font-size:14px; color:#666"></p>
     <p id="res-time" style="font-size:12px; color:#999"></p>
 </div>
-
-<div id="log-area"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -109,95 +124,133 @@
     const db = getFirestore(app);
 
     const html5QrCode = new Html5Qrcode("reader");
+    const cameraSelect = document.getElementById('camera-select');
     let isProcessing = false;
+    let currentCameraId = null;
 
-    // 启动摄像头
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+    // --- 初始化相机选择 ---
+    Html5Qrcode.getCameras().then(cameras => {
+        if (cameras && cameras.length > 0) {
+            cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
+            startScanning(cameras[0].id);
+        } else {
+            cameraSelect.innerHTML = '<option value="">Tiada Kamera Dikesan</option>';
+        }
+    }).catch(err => {
+        console.error("Gagal dpt kamera", err);
+    });
+
+    cameraSelect.addEventListener('change', (e) => {
+        if (e.target.value) {
+            html5QrCode.stop().then(() => startScanning(e.target.value));
+        }
+    });
+
+    function startScanning(cameraId) {
+        currentCameraId = cameraId;
+        html5QrCode.start(
+            cameraId, 
+            { fps: 10, qrbox: { width: 250, height: 250 } }, 
+            onScanSuccess
+        );
+    }
 
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
 
-        showResult("Processing...", "Sedang mengesahkan...", "wait");
+        showResult("Processing...", "Mengesahkan QR...", "wait");
 
         try {
-            // 1. 解析数据 (格式: IC|Timestamp)
+            // 1. 解析数据 (IC|YYYYMMDDHHMMSS)
             const parts = decodedText.split('|');
-            if (parts.length < 2) throw new Error("Format QR Tidak Sah");
+            if (parts.length < 2) throw new Error("Format Kod QR Tidak Sah");
 
             const scannedIC = parts[0];
-            const scannedTime = parts[1];
+            const qrTimeStr = parts[1]; // 格式: 20260329200000
 
-            // 2. 查询学生信息
+            // 2. 验证时间误差 (5秒限制)
+            if (!validateTime(qrTimeStr, 5)) {
+                throw new Error("Kod Tamat Tempoh (Melebihi 5s). Sila guna kod baru.");
+            }
+
+            // 3. 查询数据库
             const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
-                throw new Error("Pelajar tidak dijumpai dalam sistem.");
+                throw new Error("Pelajar tidak berdaftar.");
             }
 
-            const studentDoc = querySnapshot.docs[0];
-            const studentData = studentDoc.data();
-
-            // 3. 上传出席记录 (Attendance)
+            const studentData = querySnapshot.docs[0].data();
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
             const fullTimeStr = now.toLocaleString('ms-MY');
 
-            // 检查今天是否已打卡 (可选)
-            // 你可以根据需求添加防重复打卡逻辑
-
+            // 4. 上传记录
             await addDoc(collection(db, "attendanceLogs"), {
                 studentId: studentData.studentId,
                 name: studentData.name,
                 className: studentData.className,
                 ic: studentData.ic,
                 timestamp: serverTimestamp(),
-                date: dateStr,
+                date: now.toISOString().split('T')[0],
                 timeFull: fullTimeStr,
                 status: "Hadir"
             });
 
-            showResult(studentData.name, "Kehadiran Berjaya Direkod!", "success", fullTimeStr);
+            showResult(studentData.name, "Kehadiran Berjaya!", "success", fullTimeStr);
             
-            // 3秒后恢复扫描
             setTimeout(() => {
                 isProcessing = false;
                 document.getElementById('result-card').style.display = 'none';
-            }, 3500);
+            }, 4000);
 
         } catch (error) {
-            showResult("Ralat", error.message, "error");
+            showResult("Gagal", error.message, "error");
             setTimeout(() => { isProcessing = false; }, 3000);
         }
+    }
+
+    // --- 时间验证逻辑 ---
+    function validateTime(qrTimeStr, limitSeconds) {
+        if (qrTimeStr.length !== 14) return false;
+
+        // 解析格式 2026 03 29 20 00 00
+        const year = parseInt(qrTimeStr.substring(0, 4));
+        const month = parseInt(qrTimeStr.substring(4, 6)) - 1; // JS月份从0开始
+        const day = parseInt(qrTimeStr.substring(6, 8));
+        const hour = parseInt(qrTimeStr.substring(8, 10));
+        const min = parseInt(qrTimeStr.substring(10, 12));
+        const sec = parseInt(qrTimeStr.substring(12, 14));
+
+        const qrDate = new Date(year, month, day, hour, min, sec);
+        const nowDate = new Date();
+
+        // 计算差值的绝对值 (单位: 毫秒)
+        const diff = Math.abs(nowDate.getTime() - qrDate.getTime());
+        return diff <= (limitSeconds * 1000);
     }
 
     function showResult(name, msg, type, time = "") {
         const card = document.getElementById('result-card');
         const icon = document.getElementById('status-icon');
-        const nameEl = document.getElementById('res-name');
-        const msgEl = document.getElementById('res-msg');
-        const timeEl = document.getElementById('res-time');
+        document.getElementById('res-name').innerText = name;
+        document.getElementById('res-msg').innerText = msg;
+        document.getElementById('res-time').innerText = time;
 
         card.style.display = 'block';
-        nameEl.innerText = name;
-        msgEl.innerText = msg;
-        timeEl.innerText = time;
-
         if (type === 'success') {
             icon.className = 'status-icon success';
-            icon.innerHTML = '<i data-lucide="check"></i>';
+            icon.innerHTML = '<i data-lucide="check-circle"></i>';
         } else if (type === 'error') {
             icon.className = 'status-icon error';
-            icon.innerHTML = '<i data-lucide="x"></i>';
+            icon.innerHTML = '<i data-lucide="alert-circle"></i>';
         } else {
             icon.className = 'status-icon';
             icon.innerHTML = '...';
         }
         lucide.createIcons();
     }
-
 </script>
 </body>
 </html>
