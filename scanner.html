@@ -28,28 +28,28 @@
         #start-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            backdrop-filter: blur(5px);
+            transition: opacity 0.5s ease;
         }
 
         .start-btn {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 15px 40px;
-            border-radius: 30px;
-            font-size: 18px;
+            padding: 18px 45px;
+            border-radius: 35px;
+            font-size: 20px;
             font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,122,255,0.3);
+            box-shadow: 0 6px 20px rgba(0,122,255,0.4);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .header {
@@ -67,36 +67,10 @@
             width: 45px;
             height: 45px;
             border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
         }
 
-        .header-text h2 {
-            margin: 0;
-            font-size: 18px;
-        }
-
-        .header-text p {
-            margin: 0;
-            font-size: 12px;
-            color: #888;
-        }
-
-        .camera-controls {
-            width: 90%;
-            max-width: 500px;
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        select {
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #CCC;
-            font-size: 14px;
-            background: white;
-        }
+        .header-text h2 { margin: 0; font-size: 18px; }
+        .header-text p { margin: 0; font-size: 12px; color: #888; }
 
         #reader {
             width: 90%;
@@ -104,7 +78,6 @@
             margin: 15px auto;
             border-radius: 15px;
             overflow: hidden;
-            border: none !important;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
@@ -140,23 +113,23 @@
 <body>
 
 <div id="start-overlay">
-    <img src="/semsira.png" style="width: 100px; margin-bottom: 20px; border-radius: 20px;">
+    <img src="/semsira.png" style="width: 120px; margin-bottom: 30px; border-radius: 25px;">
     <button class="start-btn" id="start-btn">
-        <i data-lucide="play-circle"></i> Mula Imbas
+        <i data-lucide="bell-ring"></i> Aktifkan Suara & Kamera
     </button>
-    <p style="margin-top:15px; color:#666; font-size:14px;">Klik untuk membolehkan audio & kamera</p>
+    <p style="margin-top:20px; color:#444; font-weight: 500;">Sila klik butang di atas</p>
 </div>
 
 <div class="header">
     <img src="/semsira.png" alt="Logo Semsira">
     <div class="header-text">
         <h2>Semsira Attendance</h2>
-        <p>Sila pilih kamera & imbas QR</p>
+        <p>Sila imbas Kod QR Pelajar</p>
     </div>
 </div>
 
-<div class="camera-controls">
-    <select id="camera-select">
+<div class="camera-controls" style="width: 90%; max-width: 500px; margin-top: 10px;">
+    <select id="camera-select" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ccc;">
         <option value="">Mengesan Kamera...</option>
     </select>
 </div>
@@ -172,7 +145,7 @@
     <p id="res-time" style="font-size:12px; color:#999"></p>
 </div>
 
-<audio id="beep-sound" src="/beep.mp3" preload="auto"></audio>
+<audio id="beep-sound" src="beep.mp3" preload="auto"></audio>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -200,19 +173,24 @@
 
     lucide.createIcons();
 
-    // 核心修改：点击按钮才初始化
-    startBtn.addEventListener('click', () => {
-        startOverlay.style.display = 'none'; // 隐藏遮罩
-        
-        // 1. 解锁音频
+    // 核心改进：在按钮点击中执行多重解锁
+    startBtn.addEventListener('click', function() {
+        // 1. 尝试播放并立即暂停来“骗过”浏览器锁定
         beepSound.play().then(() => {
-            beepSound.pause(); 
+            beepSound.pause();
             beepSound.currentTime = 0;
-        }).catch(e => console.log("Audio prep failed"));
+            console.log("Audio Unlocked Successfully");
+        }).catch(err => console.log("Audio fail:", err));
 
-        // 2. 初始化摄像头
+        // 2. 强制预加载
+        beepSound.load();
+
+        // 3. UI 交互
+        startOverlay.style.opacity = '0';
+        setTimeout(() => startOverlay.style.display = 'none', 500);
+
         initCamera();
-    });
+    }, { once: true });
 
     function initCamera() {
         Html5Qrcode.getCameras().then(cameras => {
@@ -222,30 +200,19 @@
             } else {
                 cameraSelect.innerHTML = '<option value="">Tiada Kamera Dikesan</option>';
             }
-        }).catch(err => {
-            console.error("Gagal dpt kamera", err);
-        });
+        }).catch(err => console.error("Camera fail", err));
     }
 
-    cameraSelect.addEventListener('change', (e) => {
-        if (e.target.value) {
-            html5QrCode.stop().then(() => startScanning(e.target.value));
-        }
-    });
-
     function startScanning(cameraId) {
-        html5QrCode.start(
-            cameraId, 
-            { fps: 10, qrbox: { width: 250, height: 250 } }, 
-            onScanSuccess
-        );
+        html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess);
     }
 
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
 
-        playBeep(); // 触发声音
+        // 在这里立即播放声音
+        playBeep();
 
         showResult("Processing...", "Mengesahkan QR...", "wait");
 
@@ -272,33 +239,20 @@
             const now = new Date();
             const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-            if (currentTimeStr > absentThreshold) {
-                throw new Error(`Masa tamat (${absentThreshold}). Anda dikira Tidak Hadir.`);
-            }
+            if (currentTimeStr > absentThreshold) throw new Error(`Masa tamat (${absentThreshold}). Anda dikira Tidak Hadir.`);
 
             let attendanceStatus = "Hadir";
-            if (currentTimeStr > lateThreshold) {
-                attendanceStatus = "Lewat";
-            }
+            if (currentTimeStr > lateThreshold) attendanceStatus = "Lewat";
 
             const todayStr = now.toISOString().split('T')[0];
-            const checkQuery = query(
-                collection(db, "attendanceLogs"), 
-                where("ic", "==", scannedIC),
-                where("date", "==", todayStr)
-            );
+            const checkQuery = query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", todayStr));
             
             const existingDocs = await getDocs(checkQuery);
-            if (!existingDocs.empty) {
-                throw new Error("Anda sudah melakukan pendaftaran masuk hari ini.");
-            }
+            if (!existingDocs.empty) throw new Error("Anda sudah mendaftar hari ini.");
 
             const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
             const querySnapshot = await getDocs(q);
-
-            if (querySnapshot.empty) {
-                throw new Error("Pelajar tidak berdaftar.");
-            }
+            if (querySnapshot.empty) throw new Error("Pelajar tidak berdaftar.");
 
             const studentData = querySnapshot.docs[0].data();
             const fullTimeStr = now.toLocaleString('ms-MY');
@@ -316,7 +270,6 @@
 
             const successMsg = attendanceStatus === "Lewat" ? "Kehadiran Berjaya (Lewat)" : "Kehadiran Berjaya!";
             showResult(studentData.name, successMsg, "success", fullTimeStr);
-            
             setTimeout(resetResultPanel, 2000);
 
         } catch (error) {
@@ -325,10 +278,19 @@
         }
     }
 
+    // 强化版播放函数
     function playBeep() {
         if (beepSound) {
+            // 解决连续播放问题
+            beepSound.pause();
             beepSound.currentTime = 0;
-            beepSound.play().catch(e => console.log("Audio blocked: User interaction required"));
+            const playPromise = beepSound.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.error("Audio playback was prevented:", e);
+                });
+            }
         }
     }
 
@@ -352,11 +314,9 @@
         const hour = parseInt(qrTimeStr.substring(8, 10));
         const min = parseInt(qrTimeStr.substring(10, 12));
         const sec = parseInt(qrTimeStr.substring(12, 14));
-
         const qrDate = new Date(year, month, day, hour, min, sec);
         const nowDate = new Date();
-        const diff = Math.abs(nowDate.getTime() - qrDate.getTime());
-        return diff <= (limitSeconds * 1000);
+        return Math.abs(nowDate.getTime() - qrDate.getTime()) <= (limitSeconds * 1000);
     }
 
     function showResult(name, msg, type, time = "") {
@@ -366,7 +326,6 @@
         nameEl.style.color = "#333";
         document.getElementById('res-msg').innerText = msg;
         document.getElementById('res-time').innerText = time;
-
         if (type === 'success') {
             icon.className = 'status-icon success';
             icon.innerHTML = '<i data-lucide="check-circle"></i>';
