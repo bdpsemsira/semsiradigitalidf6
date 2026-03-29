@@ -71,7 +71,6 @@
             border-radius: 15px;
         }
 
-        /* 统一头部容器布局 */
         .header-container {
             display: flex;
             align-items: center;
@@ -82,7 +81,7 @@
 
         .app-header-logo {
             display: block;
-            max-width: 45px; /* App内Logo稍小一点 */
+            max-width: 45px;
             height: auto;
             border-radius: 10px;
             margin: 0; 
@@ -184,6 +183,23 @@
 
         .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
         .profile-label b { color: var(--primary); }
+
+        /* 新增：出席状况面板样式 */
+        .attendance-panel {
+            margin: 20px auto;
+            padding: 15px;
+            max-width: 280px;
+            text-align: center;
+        }
+        .status-text {
+            font-size: 20px;
+            font-weight: 800;
+            margin: 5px 0;
+        }
+        .status-tidak-hadir { color: #FF3B30; } /* 红色 */
+        .status-hadir { color: #34C759; }       /* 绿色 */
+        .status-lewat { color: #FF9500; }       /* 橘色 */
+        .status-time { font-size: 13px; color: #666; font-family: monospace; }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -245,6 +261,12 @@
         <p>Sila tunjukkan kod QR ini kepada guru bertugas.</p>
         <div id="qrcode"></div>
         <p id="qr-timer" style="font-size:12px; color:#888"></p>
+
+        <div class="attendance-panel glass">
+            <div style="font-size: 12px; color: #888;">STATUS KEHADIRAN HARI INI</div>
+            <div id="attendance-status" class="status-text status-tidak-hadir">TIDAK HADIR</div>
+            <div id="attendance-time" class="status-time">-- : -- : --</div>
+        </div>
     </div>
 
     <div id="tab-account" class="page">
@@ -284,7 +306,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -301,8 +323,11 @@
 
     const COLLECTION_NAME = "studentInform";
     const SETTINGS_COLLECTION = "systemSettings";
+    const ATTENDANCE_LOGS = "attendanceLogs"; // 假设签到记录存放在这里
 
     window.currentUserData = null;
+    let qrUpdateInterval = null; // 用于控制二维码刷新
+    let isAttendedToday = false; // 今日是否已签到标记
 
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
@@ -428,12 +453,56 @@
                 loadHomeData();
                 setupAccountPage();
                 startQRGenerator();
+                listenToAttendance(userData.ic); // 开始实时监听出席
             }
         } else {
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('page-login').classList.add('active');
         }
     });
+
+    // 新增：实时监听今日出席状况
+    function listenToAttendance(studentIc) {
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const statusEl = document.getElementById('attendance-status');
+        const timeEl = document.getElementById('attendance-time');
+
+        // 查询今日该IC的签到记录
+        const q = query(
+            collection(db, ATTENDANCE_LOGS),
+            where("ic", "==", studentIc),
+            where("date", "==", todayStr)
+        );
+
+        onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const data = snapshot.docs[0].data();
+                const status = data.status; // 假设字段名为 status (hadir/lewat)
+                const timestamp = data.timestamp; // 假设是 Firestore Timestamp 或字符串
+
+                isAttendedToday = true; // 标记已签到
+                if(qrUpdateInterval) clearInterval(qrUpdateInterval); // 停止二维码刷新
+
+                // 更新UI
+                statusEl.innerText = status.toUpperCase();
+                statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
+                
+                // 处理显示时间
+                if (timestamp) {
+                    const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                    timeEl.innerText = d.toLocaleString('ms-MY', { 
+                        year:'numeric', month:'2-digit', day:'2-digit', 
+                        hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false 
+                    });
+                }
+            } else {
+                isAttendedToday = false;
+                statusEl.innerText = "TIDAK HADIR";
+                statusEl.className = "status-text status-tidak-hadir";
+                timeEl.innerText = "-- : -- : --";
+            }
+        });
+    }
 
     async function loadHomeData() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
@@ -474,13 +543,18 @@
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = "";
         qr = new QRCode(qrContainer, { width: 200, height: 200 });
+        
         const updateQR = () => {
+            if (isAttendedToday) return; // 如果签到成功，不再执行逻辑刷新
+
             const now = new Date();
             const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
             qr.makeCode(`${window.currentUserData.ic}|${timestamp}`);
             document.getElementById('qr-timer').innerText = "Update: " + now.toLocaleTimeString('ms-MY');
         };
-        updateQR(); setInterval(updateQR, 5000);
+
+        updateQR();
+        qrUpdateInterval = setInterval(updateQR, 5000);
     }
 
     function setupAccountPage() {
