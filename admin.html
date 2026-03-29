@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semsira Admin Panel</title>
+    <title>Panel Admin Semsira</title>
+    <link rel="icon" type="image/png" href="/semsira.png">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --primary: #007AFF; --bg: #F2F2F7; }
@@ -14,6 +15,12 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: white; display: flex; flex-direction: column; 
             justify-content: center; align-items: center; z-index: 1000; 
+        }
+        #login-overlay img {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            border-radius: 20px;
         }
         input { padding: 12px; margin: 10px; border: 1px solid #ccc; border-radius: 8px; width: 250px; }
         button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; }
@@ -27,6 +34,16 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px; border: 1px solid #eee; text-align: left; font-size: 14px; }
         th { background: #f9f9f9; }
+        
+        /* Clickable style */
+        .clickable { 
+            cursor: pointer; 
+            color: var(--primary);
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        .clickable:hover { background: #f0f7ff; }
+
         .btn-small { padding: 5px 10px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
         .btn-danger { color: #FF3B30; border-color: #FF3B30; }
     </style>
@@ -34,48 +51,52 @@
 <body>
 
 <div id="login-overlay">
-    <h2>Semsira Admin Login</h2>
-    <input type="text" id="admin-user" placeholder="Username">
-    <input type="password" id="admin-pass" placeholder="Password">
-    <button onclick="checkLogin()">Login</button>
+    <img src="/semsira.png" alt="Logo Semsira">
+    <h2>Log Masuk Admin Semsira</h2>
+    <input type="text" id="admin-user" placeholder="Nama Pengguna">
+    <input type="password" id="admin-pass" placeholder="Kata Laluan">
+    <button onclick="checkLogin()">Log Masuk</button>
 </div>
 
 <div id="admin-content">
     <div class="nav-btns">
         <button onclick="location.href='dashboard.html'"><i data-lucide="layout-dashboard"></i> Ke Dashboard</button>
-        <button style="background:#555" onclick="logout()">Logout</button>
+        <button style="background:#555" onclick="logout()">Log Keluar</button>
     </div>
 
     <div class="card">
         <h3><i data-lucide="settings"></i> Tetapan Semester Kumpulan</h3>
         <div class="group-box">
-            <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, etc.)</span>
+            <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, dll.)</span>
             <select id="sem-k1">
                 <option value="1">Semester 1</option>
                 <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
             </select>
         </div>
         <div class="group-box">
-            <span><strong>Kumpulan 2:</strong> (Al Farabi, Al Ghazali, etc.)</span>
+            <span><strong>Kumpulan 2:</strong> (Al Farabi, Al Ghazali, dll.)</span>
             <select id="sem-k2">
                 <option value="1">Semester 1</option>
                 <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
             </select>
         </div>
         <button style="margin-top:15px; width:100%" onclick="saveSemSettings()">Simpan Tetapan Semester</button>
     </div>
 
     <div class="card">
-        <h3><i data-lucide="users"></i> Pengurusan Pelajar</h3>
-        <input type="text" id="search-box" placeholder="Cari Nama atau IC..." oninput="filterStudents()" style="width:95%">
+        <h3><i data-lucide="users"></i> Pengurusan Maklumat Pelajar</h3>
+        <p style="font-size: 12px; color: #666;">* Klik pada mana-mana data pelajar untuk mengemaskini secara individu.</p>
+        <input type="text" id="search-box" placeholder="Cari Nama atau No. IC..." oninput="filterStudents()" style="width:95%">
         <table id="student-table">
             <thead>
                 <tr>
                     <th>Nama</th>
                     <th>Kelas</th>
-                    <th>IC</th>
+                    <th>No. IC</th>
                     <th>ID Pelajar</th>
-                    <th>Device ID</th>
+                    <th>ID Peranti</th>
                     <th>Tindakan</th>
                 </tr>
             </thead>
@@ -86,7 +107,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -99,11 +120,9 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    window.db = db; // Expose for functions
 
     let allStudents = [];
 
-    // --- Authentication ---
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
@@ -113,13 +132,20 @@
             loadStudents();
             lucide.createIcons();
         } else {
-            alert("Salah username atau password!");
+            alert("Nama pengguna atau kata laluan salah!");
         }
     };
 
+    document.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            if (document.getElementById('login-overlay').style.display !== 'none') {
+                checkLogin();
+            }
+        }
+    });
+
     window.logout = () => location.reload();
 
-    // --- Load Data ---
     async function loadStudents() {
         const snap = await getDocs(collection(db, "studentInform"));
         allStudents = [];
@@ -131,64 +157,66 @@
         const container = document.getElementById('student-list');
         container.innerHTML = list.map(s => `
             <tr>
-                <td>${s.name}</td>
-                <td>${s.className}</td>
-                <td>${s.ic}</td>
-                <td>${s.studentId}</td>
-                <td><small>${s.registeredDeviceId || 'None'}</small></td>
+                <td class="clickable" onclick="updateField('${s.id}', 'name', 'Nama', '${s.name}')">${s.name}</td>
+                <td class="clickable" onclick="updateField('${s.id}', 'className', 'Kelas', '${s.className}')">${s.className}</td>
+                <td class="clickable" onclick="updateField('${s.id}', 'ic', 'No. IC', '${s.ic}')">${s.ic}</td>
+                <td class="clickable" onclick="updateField('${s.id}', 'studentId', 'ID Pelajar', '${s.studentId}')">${s.studentId}</td>
+                <td><small>${s.registeredDeviceId || 'Tiada'}</small></td>
                 <td>
-                    <button class="btn-small" onclick="editStudent('${s.id}')">Edit</button>
-                    <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Device</button>
+                    <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Peranti</button>
                 </td>
             </tr>
         `).join('');
     }
 
-    // --- Search ---
+    // --- Dynamic Field Update ---
+    window.updateField = async (docId, fieldKey, fieldLabel, currentVal) => {
+        const newVal = prompt(`Kemaskini ${fieldLabel}:`, currentVal);
+        if (newVal !== null && newVal !== currentVal && newVal.trim() !== "") {
+            try {
+                const data = {};
+                data[fieldKey] = newVal;
+                await updateDoc(doc(db, "studentInform", docId), data);
+                alert(`Berjaya dikemaskini: ${fieldLabel}`);
+                loadStudents();
+            } catch (e) {
+                alert("Ralat semasa mengemaskini data.");
+            }
+        }
+    };
+
     window.filterStudents = () => {
         const val = document.getElementById('search-box').value.toLowerCase();
         const filtered = allStudents.filter(s => s.name.toLowerCase().includes(val) || s.ic.includes(val));
         renderStudents(filtered);
     };
 
-    // --- Actions ---
     window.resetDevice = async (docId) => {
-        if(confirm("Padam registeredDeviceId? Pelajar perlu login semula.")) {
+        if(confirm("Padam registeredDeviceId? Pelajar perlu log masuk semula.")) {
             await updateDoc(doc(db, "studentInform", docId), { registeredDeviceId: "" });
-            alert("Device ID telah dipadam!");
+            alert("ID Peranti telah dipadam!");
             loadStudents();
         }
     };
 
-    window.editStudent = async (docId) => {
-        const s = allStudents.find(x => x.id === docId);
-        const newIC = prompt("Masukkan IC baru:", s.ic);
-        const newSID = prompt("Masukkan ID Pelajar baru:", s.studentId);
-        
-        if(newIC && newSID) {
-            await updateDoc(doc(db, "studentInform", docId), { ic: newIC, studentId: newSID });
-            alert("Data dikemaskini!");
-            loadStudents();
-        }
-    };
-
-    // --- Grouping Logic ---
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
     window.saveSemSettings = async () => {
         const sem1 = document.getElementById('sem-k1').value;
         const sem2 = document.getElementById('sem-k2').value;
-        
         const btn = event.target;
-        btn.innerText = "Processing...";
+        btn.innerText = "Sedang diproses...";
         
-        for (let s of allStudents) {
-            let classNameLower = s.className.toLowerCase();
-            let newSem = K1_CLASSES.some(k => classNameLower.includes(k)) ? sem1 : sem2;
-            await updateDoc(doc(db, "studentInform", s.id), { semester: newSem });
+        try {
+            for (let s of allStudents) {
+                let classNameLower = s.className.toLowerCase();
+                let newSem = K1_CLASSES.some(k => classNameLower.includes(k)) ? sem1 : sem2;
+                await updateDoc(doc(db, "studentInform", s.id), { semester: newSem });
+            }
+            alert("Semua semester kelas telah dikemaskini!");
+        } catch (e) {
+            alert("Ralat semasa menyimpan tetapan semester.");
         }
-        
-        alert("Semua班级学期已更新!");
         btn.innerText = "Simpan Tetapan Semester";
     };
 
