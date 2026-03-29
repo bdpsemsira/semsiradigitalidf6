@@ -258,8 +258,26 @@
     const db = getFirestore(app);
 
     const COLLECTION_NAME = "studentInform";
+    const SETTINGS_COLLECTION = "systemSettings"; // Admin settings storage
 
     window.currentUserData = null;
+
+    // --- Logik Pengumpulan Kelas (K1 & K2) ---
+    const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+
+    async function getSemesterForClass(className) {
+        // Ambil tetapan semester semasa dari Firestore (yang diset oleh Admin)
+        const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
+        const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
+        
+        let semK1 = k1Snap.exists() ? k1Snap.data().semester : "1";
+        let semK2 = k2Snap.exists() ? k2Snap.data().semester : "1";
+
+        let classNameLower = className.toLowerCase();
+        let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
+        
+        return isK1 ? semK1 : semK2;
+    }
 
     async function sendTelegramAlert(userData) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
@@ -361,17 +379,24 @@
         const pw1 = document.getElementById('reg-pw1').value;
         const pw2 = document.getElementById('reg-pw2').value;
         const ic = document.getElementById('reg-ic').value;
+        const className = document.getElementById('reg-class').value;
+        
         const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
         if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
         if(!pwRegex.test(pw1)) return alert("Kata laluan mesti mengandungi Huruf Besar, Kecil, Nombor dan Simbol Khas.");
+        
         try {
+            // Tentukan semester secara automatik berdasarkan kelas semasa mendaftar
+            const assignedSemester = await getSemesterForClass(className);
+            
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
             const uid = userCredential.user.uid;
             await setDoc(doc(db, COLLECTION_NAME, uid), {
                 studentId: document.getElementById('reg-id').value,
                 ic: ic,
                 name: document.getElementById('reg-name').value,
-                className: document.getElementById('reg-class').value,
+                className: className,
+                semester: assignedSemester, // Auto semester
                 dob: document.getElementById('reg-dob').value,
                 gender: document.getElementById('reg-gender').value,
                 address: document.getElementById('reg-address').value,
@@ -383,39 +408,20 @@
         } catch (e) { alert(e.message); }
     }
 
-    // --- 已更新：添加错误弹窗通知 ---
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
-
-        if(!email || !pw) {
-            return alert("Sila masukkan Gmail dan Kata Laluan.");
-        }
-
+        if(!email || !pw) return alert("Sila masukkan Gmail dan Kata Laluan.");
         try { 
             await signInWithEmailAndPassword(auth, email, pw); 
         } catch (e) { 
-            console.error("Login Error Code:", e.code);
-            // 处理常见的 Firebase Auth 错误代码
             let errorMsg = "Gagal Log Masuk: ";
             switch (e.code) {
-                case 'auth/invalid-email':
-                    errorMsg += "Format Gmail tidak sah.";
-                    break;
-                case 'auth/user-not-found':
-                    errorMsg += "Akaun tidak dijumpai. Sila daftar terlebih dahulu.";
-                    break;
-                case 'auth/wrong-password':
-                    errorMsg += "Kata laluan salah. Sila cuba lagi.";
-                    break;
-                case 'auth/invalid-credential':
-                    errorMsg += "Gmail atau Kata laluan salah.";
-                    break;
-                case 'auth/too-many-requests':
-                    errorMsg += "Terlalu banyak percubaan. Sila cuba sebentar lagi.";
-                    break;
-                default:
-                    errorMsg += "Sila pastikan maklumat anda betul.";
+                case 'auth/invalid-email': errorMsg += "Format Gmail tidak sah."; break;
+                case 'auth/user-not-found': errorMsg += "Akaun tidak dijumpai."; break;
+                case 'auth/wrong-password': errorMsg += "Kata laluan salah."; break;
+                case 'auth/invalid-credential': errorMsg += "Gmail atau Kata laluan salah."; break;
+                default: errorMsg += "Sila pastikan maklumat anda betul.";
             }
             alert(errorMsg); 
         }
@@ -437,7 +443,6 @@
                 document.getElementById('main-app').style.display = 'block';
                 
                 applyWatermark(`${window.currentUserData.name} (${window.currentUserData.ic})`);
-
                 loadHomeData();
                 setupAccountPage();
                 startQRGenerator();
@@ -461,15 +466,11 @@
             issues.forEach(issue => {
                 const labels = issue.labels.map(l => l.name);
                 const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/) || issue.body.match(/src="(.*?)"/);
-                
-                if(labels.includes('poster')) {
-                    if(imgMatch && imgMatch[1]) {
-                        const img = document.createElement('img');
-                        img.src = imgMatch[1];
-                        slider.appendChild(img);
-                    }
+                if(labels.includes('poster') && imgMatch && imgMatch[1]) {
+                    const img = document.createElement('img');
+                    img.src = imgMatch[1];
+                    slider.appendChild(img);
                 }
-
                 if(labels.includes('post')) {
                     let contentHtml = issue.body.replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">');
                     list.innerHTML += `<div class="post-card"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
@@ -518,12 +519,22 @@
 
     window.updateProfile = async () => {
         const user = auth.currentUser;
+        const newClass = document.getElementById('upd-class').value;
         try {
+            // Jika tukar kelas, semester juga perlu dikemas kini mengikut logik kumpulan
+            const newSemester = await getSemesterForClass(newClass);
+            
             await updateDoc(doc(db, COLLECTION_NAME, user.uid), {
                 address: document.getElementById('upd-address').value,
-                className: document.getElementById('upd-class').value
+                className: newClass,
+                semester: newSemester // Kemas kini semester juga
             });
-            alert("Profil dikemas kini!");
+            
+            // Kemaskini data tempatan
+            window.currentUserData.className = newClass;
+            window.currentUserData.semester = newSemester;
+            
+            alert("Profil dan Semester dikemas kini!");
         } catch(e) { alert("Ralat: " + e.message); }
     }
 
@@ -535,11 +546,9 @@
     window.switchTab = (tabId, el) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
-        
         const targetPage = document.getElementById(tabId);
         targetPage.classList.add('active');
         el.classList.add('active-nav');
-
         const watermark = document.getElementById('watermark-layer');
         if (tabId === 'tab-scan') {
             watermark.style.display = "flex"; 
