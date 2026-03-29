@@ -352,31 +352,37 @@
         return isK1 ? semK1 : semK2;
     }
 
+    // --- 增强版警报系统 ---
     async function sendTelegramAlert(userData, currentUid) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
         const chatId = "@semsirasecurity29482910472"; 
         let currentDeviceId = localStorage.getItem('semsira_device_id');
         
-        // --- 核心修改部分：对接 Firestore 记录代领设备 ---
+        // 查找是谁拥有这个设备
+        let intruderData = { name: "Tidak Dikenali", studentId: "Unknown", ic: "Unknown", className: "Unknown", phone: "undefined" };
         try {
-            const studentRef = doc(db, COLLECTION_NAME, currentUid);
-            await updateDoc(studentRef, {
-                unauthorizedAttemptDeviceId: currentDeviceId,
-                lastUnauthorizedAttemptAt: new Date()
-            });
-        } catch (dbErr) {
-            console.error("Gagal mengemaskini database pencerobohan:", dbErr);
-        }
-        // ----------------------------------------------
+            const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
+            const intruderSnap = await getDocs(qIntruder);
+            if (!intruderSnap.empty) {
+                intruderData = intruderSnap.docs[0].data();
+            }
+        } catch (e) { console.error("Error identifying intruder:", e); }
 
         const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan Peranti)*\n\n` +
-                        `👤 Pelajar: *${userData.name}*\n` +
-                        `🆔 No. Matrik: \`${userData.studentId}\`\n` +
-                        `🪪 IC: \`${userData.ic}\`\n` +
-                        `🏫 Kelas: *${userData.className}*\n` +
-                        `📞 Hubungi: [${userData.phone}](tel:${userData.phone})\n` +
-                        `📱 Device ID Asal: \`${userData.registeredDeviceId}\`\n` +
-                        `🚫 Device ID Baru (Penceroboh): \`${currentDeviceId}\`\n\n` +
+                        `🚨 *${intruderData.name}* sedang mencuba menceroboh akaun *${userData.name}*!\n\n` +
+                        `👤 *PEMILIK AKAUN (MANGSA):*\n` +
+                        `• Nama: ${userData.name}\n` +
+                        `• No. Matrik: \`${userData.studentId}\`\n` +
+                        `• IC: \`${userData.ic}\`\n` +
+                        `• Kelas: ${userData.className}\n` +
+                        `• No. Tel: [${userData.phone}](tel:${userData.phone})\n\n` +
+                        `🚫 *IDENTITI PENCEROBOH:*\n` +
+                        `• Nama: ${intruderData.name}\n` +
+                        `• No. Matrik: \`${intruderData.studentId}\`\n` +
+                        `• IC: \`${intruderData.ic}\`\n` +
+                        `• Kelas: ${intruderData.className}\n` +
+                        `• No. Tel: [${intruderData.phone}](tel:${intruderData.phone})\n\n` +
+                        `📱 Device ID Penceroboh: \`${currentDeviceId}\`\n\n` +
                         `_Akses telah disekat secara automatik._`;
 
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
