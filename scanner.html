@@ -24,33 +24,47 @@
             min-height: 100vh;
         }
 
+        /* 紧凑型 Header 样式 */
         .header {
             width: 100%;
-            padding: 20px 0;
-            text-align: center;
+            padding: 10px 0; /* 缩小高度 */
             background: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
         }
 
         .header img {
-            width: 80px;
-            height: 80px;
-            border-radius: 15px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 45px; /* 缩小 Logo */
+            height: 45px;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        .header-text h2 {
+            margin: 0;
+            font-size: 18px; /* 略微缩小字号 */
+        }
+
+        .header-text p {
+            margin: 0;
+            font-size: 12px;
+            color: #888;
         }
 
         .camera-controls {
             width: 90%;
             max-width: 500px;
-            margin-top: 15px;
+            margin-top: 10px;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
         select {
-            padding: 12px;
+            padding: 10px;
             border-radius: 10px;
             border: 1px solid #CCC;
             font-size: 14px;
@@ -60,7 +74,7 @@
         #reader {
             width: 90%;
             max-width: 500px;
-            margin: 20px auto;
+            margin: 15px auto;
             border-radius: 15px;
             overflow: hidden;
             border: none !important;
@@ -71,11 +85,10 @@
             width: 85%;
             max-width: 400px;
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 15px;
-            margin-top: 20px;
-            /* 修改这里：预留空间，初始不消失 */
-            min-height: 150px; 
+            margin-top: 5px;
+            min-height: 120px; 
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -84,9 +97,9 @@
         }
 
         .status-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 10px;
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 5px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -101,8 +114,10 @@
 
 <div class="header">
     <img src="/semsira.png" alt="Logo Semsira">
-    <h2 style="margin:0">Semsira Attendance</h2>
-    <p style="font-size:14px; color:#888">Sila pilih kamera dan imbas Kod QR</p>
+    <div class="header-text">
+        <h2>Semsira Attendance</h2>
+        <p>Sila pilih kamera & imbas QR</p>
+    </div>
 </div>
 
 <div class="camera-controls">
@@ -117,8 +132,8 @@
     <div id="status-icon" class="status-icon">
         <i data-lucide="qr-code" style="color:#ccc"></i>
     </div>
-    <h3 id="res-name" style="margin:5px 0; color:#888">Menunggu imbasan...</h3>
-    <p id="res-msg" style="margin:5px 0; font-size:14px; color:#666"></p>
+    <h3 id="res-name" style="margin:5px 0; color:#888; font-size: 16px;">Menunggu imbasan...</h3>
+    <p id="res-msg" style="margin:2px 0; font-size:14px; color:#666"></p>
     <p id="res-time" style="font-size:12px; color:#999"></p>
 </div>
 
@@ -146,7 +161,6 @@
     let isProcessing = false;
     let currentCameraId = null;
 
-    // 初始加载 Lucide 图标
     lucide.createIcons();
 
     Html5Qrcode.getCameras().then(cameras => {
@@ -246,18 +260,15 @@
                 status: attendanceStatus 
             });
 
-            // 播放扫码成功声音
-            beepSound.play().catch(e => console.log("Audio play blocked by browser"));
+            beepSound.play().catch(e => console.log("Audio play blocked"));
 
             const successMsg = attendanceStatus === "Lewat" ? "Kehadiran Berjaya (Lewat)" : "Kehadiran Berjaya!";
             showResult(studentData.name, successMsg, "success", fullTimeStr);
             
-            // 2秒后清空
             setTimeout(resetResultPanel, 2000);
 
         } catch (error) {
             showResult("Gagal", error.message, "error");
-            // 失败也清空，以便下一位尝试
             setTimeout(resetResultPanel, 2000);
         }
     }
