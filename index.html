@@ -37,7 +37,6 @@
             filter: blur(20px);
         }
 
-        /* 水印层样式 - 默认隐藏 */
         #watermark-layer {
             position: fixed;
             top: 0;
@@ -258,43 +257,39 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // 统一集合名称变量，方便以后维护
+    const COLLECTION_NAME = "studentInform";
+
     window.currentUserData = null;
 
-    // --- 新增功能：设备指纹校验 ---
     async function verifyDevice(user, userData) {
-        // 生成或获取本地设备 ID (利用 localStorage)
         let deviceId = localStorage.getItem('semsira_device_id');
         if (!deviceId) {
             deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now();
             localStorage.setItem('semsira_device_id', deviceId);
         }
 
-        const studentRef = doc(db, "students", user.uid);
+        const studentRef = doc(db, COLLECTION_NAME, user.uid);
 
-        // 如果数据库还没有绑定设备，则进行初次绑定
         if (!userData.registeredDeviceId) {
             await updateDoc(studentRef, { registeredDeviceId: deviceId });
             return true; 
         } 
         
-        // 如果数据库已有绑定设备，对比是否一致
         if (userData.registeredDeviceId !== deviceId) {
             alert("AMARAN KESELAMATAN:\nAkaun ini telah terikat pada peranti lain.\n\nSila gunakan peranti asal anda atau hubungi guru untuk reset.");
-            handleLogout(); // 强制登出
+            handleLogout();
             return false;
         }
-
         return true;
     }
 
-    // Median 安全指令
     function triggerNativePrivacy(enabled) {
         if (navigator.userAgent.includes('median')) {
             window.location.href = `median://security/setPrivacyScreen?enabled=${enabled}&disableScreenshots=${enabled}`;
         }
     }
 
-    // 动态水印生成
     function applyWatermark(info) {
         const layer = document.getElementById('watermark-layer');
         layer.innerHTML = "";
@@ -306,22 +301,13 @@
         }
     }
 
-    // 监听原生 App 截图动作
     window.addEventListener('median_screenshot', () => {
         if (document.getElementById('tab-scan').classList.contains('active')) {
             const d = window.currentUserData;
-            alert(
-                "AMARAN KESELAMATAN!\n\n" +
-                "Tangkapan skrin dikesan pada halaman Kod QR.\n" +
-                "Nama: " + d.name + "\n" +
-                "IC: " + d.ic + "\n" +
-                "Kelas: " + d.className + "\n\n" +
-                "Log ini telah dirakam and dihantar kepada guru bertugas."
-            );
+            alert("AMARAN KESELAMATAN!\n\nTangkapan skrin dikesan pada halaman Kod QR.");
         }
     });
 
-    // 基础键盘拦截
     document.addEventListener('keydown', (e) => {
         if (e.key === 'PrintScreen' || e.keyCode === 123 || (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
             e.preventDefault();
@@ -355,7 +341,8 @@
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
             const uid = userCredential.user.uid;
-            await setDoc(doc(db, "students", uid), {
+            // 存储到 studentInform 集合
+            await setDoc(doc(db, COLLECTION_NAME, uid), {
                 studentId: document.getElementById('reg-id').value,
                 ic: ic,
                 name: document.getElementById('reg-name').value,
@@ -382,11 +369,10 @@
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const snap = await getDoc(doc(db, "students", user.uid));
+            // 从 studentInform 集合获取资料
+            const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
             if (snap.exists()) {
                 const userData = snap.data();
-                
-                // 执行设备指纹校验，校验失败会直接 handleLogout
                 const isVerified = await verifyDevice(user, userData);
                 if (!isVerified) return;
 
@@ -478,7 +464,8 @@
     window.updateProfile = async () => {
         const user = auth.currentUser;
         try {
-            await updateDoc(doc(db, "students", user.uid), {
+            // 更新 studentInform 集合
+            await updateDoc(doc(db, COLLECTION_NAME, user.uid), {
                 address: document.getElementById('upd-address').value,
                 className: document.getElementById('upd-class').value
             });
