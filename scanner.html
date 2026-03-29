@@ -109,7 +109,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, and } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -128,7 +128,6 @@
     let isProcessing = false;
     let currentCameraId = null;
 
-    // --- 初始化相机选择 ---
     Html5Qrcode.getCameras().then(cameras => {
         if (cameras && cameras.length > 0) {
             cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
@@ -162,19 +161,34 @@
         showResult("Processing...", "Mengesahkan QR...", "wait");
 
         try {
-            // 1. 解析数据 (IC|YYYYMMDDHHMMSS)
             const parts = decodedText.split('|');
             if (parts.length < 2) throw new Error("Format Kod QR Tidak Sah");
 
             const scannedIC = parts[0];
-            const qrTimeStr = parts[1]; // 格式: 20260329200000
+            const qrTimeStr = parts[1];
 
-            // 2. 验证时间误差 (5秒限制)
             if (!validateTime(qrTimeStr, 5)) {
                 throw new Error("Kod Tamat Tempoh (Melebihi 5s). Sila guna kod baru.");
             }
 
-            // 3. 查询数据库
+            // 1. 获取今日日期字符串 (YYYY-MM-DD)
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+
+            // 2. 检查今天是否已经签到过
+            // 查询条件：IC 匹配 且 日期匹配
+            const checkQuery = query(
+                collection(db, "attendanceLogs"), 
+                where("ic", "==", scannedIC),
+                where("date", "==", todayStr)
+            );
+            
+            const existingDocs = await getDocs(checkQuery);
+            if (!existingDocs.empty) {
+                throw new Error("Anda sudah melakukan pendaftaran masuk untuk hari ini.");
+            }
+
+            // 3. 查询学生基本信息
             const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
             const querySnapshot = await getDocs(q);
 
@@ -183,17 +197,16 @@
             }
 
             const studentData = querySnapshot.docs[0].data();
-            const now = new Date();
             const fullTimeStr = now.toLocaleString('ms-MY');
 
-            // 4. 上传记录
+            // 4. 上传新记录
             await addDoc(collection(db, "attendanceLogs"), {
                 studentId: studentData.studentId,
                 name: studentData.name,
                 className: studentData.className,
                 ic: studentData.ic,
                 timestamp: serverTimestamp(),
-                date: now.toISOString().split('T')[0],
+                date: todayStr,
                 timeFull: fullTimeStr,
                 status: "Hadir"
             });
@@ -211,13 +224,10 @@
         }
     }
 
-    // --- 时间验证逻辑 ---
     function validateTime(qrTimeStr, limitSeconds) {
         if (qrTimeStr.length !== 14) return false;
-
-        // 解析格式 2026 03 29 20 00 00
         const year = parseInt(qrTimeStr.substring(0, 4));
-        const month = parseInt(qrTimeStr.substring(4, 6)) - 1; // JS月份从0开始
+        const month = parseInt(qrTimeStr.substring(4, 6)) - 1;
         const day = parseInt(qrTimeStr.substring(6, 8));
         const hour = parseInt(qrTimeStr.substring(8, 10));
         const min = parseInt(qrTimeStr.substring(10, 12));
@@ -225,8 +235,6 @@
 
         const qrDate = new Date(year, month, day, hour, min, sec);
         const nowDate = new Date();
-
-        // 计算差值的绝对值 (单位: 毫秒)
         const diff = Math.abs(nowDate.getTime() - qrDate.getTime());
         return diff <= (limitSeconds * 1000);
     }
