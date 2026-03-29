@@ -352,11 +352,23 @@
         return isK1 ? semK1 : semK2;
     }
 
-    async function sendTelegramAlert(userData) {
+    async function sendTelegramAlert(userData, currentUid) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
         const chatId = "@semsirasecurity29482910472"; 
         let currentDeviceId = localStorage.getItem('semsira_device_id');
         
+        // --- 核心修改部分：对接 Firestore 记录代领设备 ---
+        try {
+            const studentRef = doc(db, COLLECTION_NAME, currentUid);
+            await updateDoc(studentRef, {
+                unauthorizedAttemptDeviceId: currentDeviceId,
+                lastUnauthorizedAttemptAt: new Date()
+            });
+        } catch (dbErr) {
+            console.error("Gagal mengemaskini database pencerobohan:", dbErr);
+        }
+        // ----------------------------------------------
+
         const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan Peranti)*\n\n` +
                         `👤 Pelajar: *${userData.name}*\n` +
                         `🆔 No. Matrik: \`${userData.studentId}\`\n` +
@@ -364,7 +376,7 @@
                         `🏫 Kelas: *${userData.className}*\n` +
                         `📞 Hubungi: [${userData.phone}](tel:${userData.phone})\n` +
                         `📱 Device ID Asal: \`${userData.registeredDeviceId}\`\n` +
-                        `🚫 Device ID Baru: \`${currentDeviceId}\`\n\n` +
+                        `🚫 Device ID Baru (Penceroboh): \`${currentDeviceId}\`\n\n` +
                         `_Akses telah disekat secara automatik._`;
 
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -385,7 +397,7 @@
             return true; 
         } 
         if (userData.registeredDeviceId !== deviceId) {
-            await sendTelegramAlert(userData);
+            await sendTelegramAlert(userData, user.uid);
             alert("Akaun ini terikat pada peranti lain. Sila hubungi Admin.");
             handleLogout();
             return false;
@@ -434,7 +446,6 @@
         if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
 
         try {
-            // 检查 IC 是否已经存在
             const q = query(collection(db, COLLECTION_NAME), where("ic", "==", ic));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
@@ -585,7 +596,6 @@
         document.getElementById('prof-ic').innerText = d.ic;
         document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
         
-        // 填充可修改字段
         document.getElementById('upd-name').value = d.name || "";
         document.getElementById('upd-id').value = d.studentId || "";
         document.getElementById('upd-phone').value = d.phone || "";
@@ -613,7 +623,6 @@
                 semester: newSemester
             });
             
-            // 更新本地数据
             window.currentUserData.name = newName;
             window.currentUserData.studentId = newId;
             window.currentUserData.phone = newPhone;
