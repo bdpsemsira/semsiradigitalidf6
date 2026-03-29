@@ -32,7 +32,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        /* 新增 Logo 样式 */
         .header img {
             width: 80px;
             height: 80px;
@@ -75,7 +74,11 @@
             padding: 20px;
             border-radius: 15px;
             margin-top: 20px;
-            display: none;
+            /* 修改这里：预留空间，初始不消失 */
+            min-height: 150px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             text-align: center;
         }
@@ -111,11 +114,15 @@
 <div id="reader"></div>
 
 <div id="result-card" class="result-card">
-    <div id="status-icon" class="status-icon"></div>
-    <h3 id="res-name" style="margin:5px 0"></h3>
+    <div id="status-icon" class="status-icon">
+        <i data-lucide="qr-code" style="color:#ccc"></i>
+    </div>
+    <h3 id="res-name" style="margin:5px 0; color:#888">Menunggu imbasan...</h3>
     <p id="res-msg" style="margin:5px 0; font-size:14px; color:#666"></p>
     <p id="res-time" style="font-size:12px; color:#999"></p>
 </div>
+
+<audio id="beep-sound" src="/beep.mp3" preload="auto"></audio>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -135,8 +142,12 @@
 
     const html5QrCode = new Html5Qrcode("reader");
     const cameraSelect = document.getElementById('camera-select');
+    const beepSound = document.getElementById('beep-sound');
     let isProcessing = false;
     let currentCameraId = null;
+
+    // 初始加载 Lucide 图标
+    lucide.createIcons();
 
     Html5Qrcode.getCameras().then(cameras => {
         if (cameras && cameras.length > 0) {
@@ -235,18 +246,32 @@
                 status: attendanceStatus 
             });
 
+            // 播放扫码成功声音
+            beepSound.play().catch(e => console.log("Audio play blocked by browser"));
+
             const successMsg = attendanceStatus === "Lewat" ? "Kehadiran Berjaya (Lewat)" : "Kehadiran Berjaya!";
             showResult(studentData.name, successMsg, "success", fullTimeStr);
             
-            setTimeout(() => {
-                isProcessing = false;
-                document.getElementById('result-card').style.display = 'none';
-            }, 4000);
+            // 2秒后清空
+            setTimeout(resetResultPanel, 2000);
 
         } catch (error) {
             showResult("Gagal", error.message, "error");
-            setTimeout(() => { isProcessing = false; }, 3000);
+            // 失败也清空，以便下一位尝试
+            setTimeout(resetResultPanel, 2000);
         }
+    }
+
+    function resetResultPanel() {
+        isProcessing = false;
+        const icon = document.getElementById('status-icon');
+        icon.className = 'status-icon';
+        icon.innerHTML = '<i data-lucide="qr-code" style="color:#ccc"></i>';
+        document.getElementById('res-name').innerText = "Menunggu imbasan...";
+        document.getElementById('res-name').style.color = "#888";
+        document.getElementById('res-msg').innerText = "";
+        document.getElementById('res-time').innerText = "";
+        lucide.createIcons();
     }
 
     function validateTime(qrTimeStr, limitSeconds) {
@@ -265,13 +290,13 @@
     }
 
     function showResult(name, msg, type, time = "") {
-        const card = document.getElementById('result-card');
         const icon = document.getElementById('status-icon');
-        document.getElementById('res-name').innerText = name;
+        const nameEl = document.getElementById('res-name');
+        nameEl.innerText = name;
+        nameEl.style.color = "#333";
         document.getElementById('res-msg').innerText = msg;
         document.getElementById('res-time').innerText = time;
 
-        card.style.display = 'block';
         if (type === 'success') {
             icon.className = 'status-icon success';
             icon.innerHTML = '<i data-lucide="check-circle"></i>';
