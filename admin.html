@@ -69,6 +69,7 @@
 
     <div class="card">
         <h3><i data-lucide="settings"></i> Tetapan Semester Kumpulan</h3>
+        <p style="font-size: 12px; color: #666;">Tetapan ini akan disimpan ke database dan menjadi rujukan utama untuk semua pelajar (termasuk pendaftaran baru).</p>
         <div class="group-box">
             <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, Khadijah, Ruqayyah, Sarah, Summayah, Ummukalthom, Zainab)</span>
             <select id="sem-k1">
@@ -85,7 +86,7 @@
                 <option value="3">Semester 3</option>
             </select>
         </div>
-        <button style="margin-top:15px; width:100%" id="save-sem-btn" onclick="saveSemSettings()">Simpan Tetapan Semester</button>
+        <button style="margin-top:15px; width:100%" id="save-sem-btn" onclick="saveSemSettings()">Simpan & Kemaskini Semua Pelajar</button>
     </div>
 
     <div class="card">
@@ -99,8 +100,8 @@
                     <th>Kelas</th>
                     <th>No. IC</th>
                     <th>ID Pelajar</th>
+                    <th>Sem</th>
                     <th>Alamat</th>
-                    <th>ID Peranti</th>
                     <th>Tindakan</th>
                 </tr>
             </thead>
@@ -111,7 +112,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -126,6 +127,8 @@
     const db = getFirestore(app);
 
     let allStudents = [];
+    const SETTINGS_COLLECTION = "systemSettings";
+    const STUDENT_COLLECTION = "studentInform";
 
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
@@ -133,25 +136,29 @@
         if(u === "semsiraadmin" && p === "排位23") {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
-            loadStudents();
+            loadInitialData();
             lucide.createIcons();
         } else {
             alert("Nama pengguna atau kata laluan salah!");
         }
     };
 
-    document.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            if (document.getElementById('login-overlay').style.display !== 'none') {
-                checkLogin();
-            }
-        }
-    });
+    async function loadInitialData() {
+        await loadSemesterSettings(); // Muat turun tetapan semasa dari DB
+        await loadStudents();
+    }
 
-    window.logout = () => location.reload();
+    // Memuatkan tetapan semester yang tersimpan di DB ke dalam dropdown
+    async function loadSemesterSettings() {
+        const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
+        const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
+        
+        if (k1Snap.exists()) document.getElementById('sem-k1').value = k1Snap.data().semester;
+        if (k2Snap.exists()) document.getElementById('sem-k2').value = k2Snap.data().semester;
+    }
 
     async function loadStudents() {
-        const snap = await getDocs(collection(db, "studentInform"));
+        const snap = await getDocs(collection(db, STUDENT_COLLECTION));
         allStudents = [];
         snap.forEach(d => allStudents.push({ id: d.id, ...d.data() }));
         renderStudents(allStudents);
@@ -165,10 +172,10 @@
                 <td class="clickable" onclick="updateField('${s.id}', 'className', 'Kelas', '${s.className || ''}')">${s.className || '-'}</td>
                 <td class="clickable" onclick="updateField('${s.id}', 'ic', 'No. IC', '${s.ic || ''}')">${s.ic || '-'}</td>
                 <td class="clickable" onclick="updateField('${s.id}', 'studentId', 'ID Pelajar', '${s.studentId || ''}')">${s.studentId || '-'}</td>
+                <td><b>Sem ${s.semester || '1'}</b></td>
                 <td class="clickable address-cell" onclick="updateField('${s.id}', 'address', 'Alamat', '${s.address || ''}')" title="${s.address || 'Tiada Alamat'}">
                     ${s.address || 'Klik untuk tambah alamat'}
                 </td>
-                <td><small>${s.registeredDeviceId || 'Tiada'}</small></td>
                 <td>
                     <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Peranti</button>
                 </td>
@@ -182,7 +189,7 @@
             try {
                 const data = {};
                 data[fieldKey] = newVal.trim();
-                await updateDoc(doc(db, "studentInform", docId), data);
+                await updateDoc(doc(db, STUDENT_COLLECTION, docId), data);
                 alert(`Berjaya dikemaskini: ${fieldLabel}`);
                 loadStudents();
             } catch (e) {
@@ -202,46 +209,47 @@
 
     window.resetDevice = async (docId) => {
         if(confirm("Padam registeredDeviceId? Pelajar perlu log masuk semula.")) {
-            await updateDoc(doc(db, "studentInform", docId), { registeredDeviceId: "" });
+            await updateDoc(doc(db, STUDENT_COLLECTION, docId), { registeredDeviceId: "" });
             alert("ID Peranti telah dipadam!");
             loadStudents();
         }
     };
 
-    // --- Pembaikan Logik Kumpulan ---
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
-    const K2_CLASSES = ['farabi', 'ghazali', 'khawarizmi']; // Tambah keyword K2 di sini
 
     window.saveSemSettings = async () => {
         const sem1 = document.getElementById('sem-k1').value;
         const sem2 = document.getElementById('sem-k2').value;
         const btn = document.getElementById('save-sem-btn');
-        btn.innerText = "Sedang diproses...";
+        btn.innerText = "Menyimpan ke Database...";
         btn.disabled = true;
         
         try {
+            // STEP 1: Simpan sebagai tetapan GLOBAL (Supaya index.html boleh baca)
+            await setDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"), { semester: sem1, updatedBy: "admin" });
+            await setDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"), { semester: sem2, updatedBy: "admin" });
+
+            // STEP 2: Kemaskini semua pelajar yang sedia ada
             const promises = allStudents.map(s => {
                 let classNameLower = (s.className || "").toLowerCase();
-                
-                // Jika dalam senarai K1, guna sem1. Jika dalam senarai K2 (atau selain K1), guna sem2.
                 let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
                 let newSem = isK1 ? sem1 : sem2;
-                
-                return updateDoc(doc(db, "studentInform", s.id), { semester: newSem });
+                return updateDoc(doc(db, STUDENT_COLLECTION, s.id), { semester: newSem });
             });
 
             await Promise.all(promises);
-            alert("Berjaya! Semua semester Kumpulan 1 dan Kumpulan 2 telah dikemaskini.");
+            alert("Berjaya! Tetapan sistem telah disimpan dan semua pelajar telah dikemaskini.");
             loadStudents();
         } catch (e) {
             console.error(e);
-            alert("Ralat semasa menyimpan tetapan semester.");
+            alert("Ralat semasa menyimpan tetapan.");
         } finally {
-            btn.innerText = "Simpan Tetapan Semester";
+            btn.innerText = "Simpan & Kemaskini Semua Pelajar";
             btn.disabled = false;
         }
     };
 
+    window.logout = () => location.reload();
 </script>
 </body>
 </html>
