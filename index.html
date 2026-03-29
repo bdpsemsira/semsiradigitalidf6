@@ -257,10 +257,37 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 统一集合名称变量，方便以后维护
     const COLLECTION_NAME = "studentInform";
 
     window.currentUserData = null;
+
+    // --- 新增：Telegram 报警函数 ---
+    async function sendTelegramAlert(userData) {
+        const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
+        const chatId = "@semsirasecurity29482910472"; // 请确保机器人已被添加至此频道并设为管理员
+        
+        const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan)*\n\n` +
+                        `Pelajar: *${userData.name}*\n` +
+                        `IC: \`${userData.ic}\`\n` +
+                        `ID: \`${userData.studentId}\`\n` +
+                        `Status: Percubaan log masuk dari peranti tidak dikenali.`;
+
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        
+        try {
+            await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: "Markdown"
+                })
+            });
+        } catch (e) {
+            console.error("Gagal hantar Telegram alert:", e);
+        }
+    }
 
     async function verifyDevice(user, userData) {
         let deviceId = localStorage.getItem('semsira_device_id');
@@ -277,6 +304,9 @@
         } 
         
         if (userData.registeredDeviceId !== deviceId) {
+            // 在警告并退出前发送通知
+            await sendTelegramAlert(userData);
+            
             alert("AMARAN KESELAMATAN:\nAkaun ini telah terikat pada peranti lain.\n\nSila gunakan peranti asal anda atau hubungi guru untuk reset.");
             handleLogout();
             return false;
@@ -341,7 +371,6 @@
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
             const uid = userCredential.user.uid;
-            // 存储到 studentInform 集合
             await setDoc(doc(db, COLLECTION_NAME, uid), {
                 studentId: document.getElementById('reg-id').value,
                 ic: ic,
@@ -369,7 +398,6 @@
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // 从 studentInform 集合获取资料
             const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
             if (snap.exists()) {
                 const userData = snap.data();
@@ -464,7 +492,6 @@
     window.updateProfile = async () => {
         const user = auth.currentUser;
         try {
-            // 更新 studentInform 集合
             await updateDoc(doc(db, COLLECTION_NAME, user.uid), {
                 address: document.getElementById('upd-address').value,
                 className: document.getElementById('upd-class').value
