@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Semsira Mobile</title>
 
+    <link rel="icon" type="image/png" href="/semsira.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/semsira.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -62,11 +63,12 @@
             font-weight: bold;
         }
 
-        .login-logo {
+        .login-logo, .app-header-logo {
             display: block;
             margin: 20px auto 10px;
-            max-width: 120px;
+            max-width: 80px;
             height: auto;
+            border-radius: 15px;
         }
 
         .glass {
@@ -114,6 +116,7 @@
             align-items: center;
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-top: 1px solid var(--border);
             z-index: 1000;
         }
@@ -152,9 +155,12 @@
             background: white;
             padding: 20px;
             border-radius: 20px;
-            margin: 40px auto;
+            margin: 20px auto;
             display: inline-block;
         }
+
+        .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .profile-label b { color: var(--primary); }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -183,7 +189,7 @@
             <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
             <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
             <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
-            <option>6 AL GHAZALI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
+            <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
             <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
         </select>
         <input type="text" id="reg-dob" placeholder="Tarikh Lahir" readonly>
@@ -199,13 +205,15 @@
 
 <div id="main-app" style="display:none">
     <div id="tab-home" class="page active">
-        <h3>Utama</h3>
+        <img src="/semsira.png" alt="Logo" class="app-header-logo">
+        <h3 style="text-align:center">Utama</h3>
         <div id="poster-slider" class="glass"></div>
         <h4>Pengumuman</h4>
         <div id="announcements-list" class="glass">Memuatkan...</div>
     </div>
 
     <div id="tab-scan" class="page" style="text-align:center">
+        <img src="/semsira.png" alt="Logo" class="app-header-logo">
         <h3>Kehadiran Digital</h3>
         <p>Sila tunjukkan kod QR ini kepada guru bertugas.</p>
         <div id="qrcode"></div>
@@ -213,18 +221,23 @@
     </div>
 
     <div id="tab-account" class="page">
-        <h3>Profil Saya</h3>
+        <img src="/semsira.png" alt="Logo" class="app-header-logo">
+        <h3 style="text-align:center">Profil Pelajar</h3>
         <div class="glass" style="padding:20px">
-            <label>No. Matrik: <b id="prof-id"></b></label><br><br>
-            <label>Nama: <b id="prof-name"></b></label><br><br>
-            <label>IC: <b id="prof-ic"></b></label><hr>
-            <p>Kemas kini maklumat:</p>
+            <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
+            <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
+            <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
+            <div class="profile-label"><span>Semester Semasa:</span> <b id="prof-sem" style="font-size: 1.2em;">-</b></div>
+            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
+            <p style="font-weight: bold; font-size: 14px;">Kemas kini maklumat:</p>
+            <label style="font-size: 12px; color: #666;">Alamat Rumah:</label>
             <input type="text" id="upd-address" placeholder="Alamat Baru">
+            <label style="font-size: 12px; color: #666;">Kelas:</label>
             <select id="upd-class">
                 <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
                 <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
                 <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
-                <option>6 AL GHAZALI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
+                <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
                 <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
             </select>
             <button onclick="updateProfile()">Simpan Perubahan</button>
@@ -258,15 +271,13 @@
     const db = getFirestore(app);
 
     const COLLECTION_NAME = "studentInform";
-    const SETTINGS_COLLECTION = "systemSettings"; // Admin settings storage
+    const SETTINGS_COLLECTION = "systemSettings";
 
     window.currentUserData = null;
 
-    // --- Logik Pengumpulan Kelas (K1 & K2) ---
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
     async function getSemesterForClass(className) {
-        // Ambil tetapan semester semasa dari Firestore (yang diset oleh Admin)
         const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
         const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
         
@@ -282,28 +293,11 @@
     async function sendTelegramAlert(userData) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
         const chatId = "@semsirasecurity29482910472"; 
-        
-        const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan)*\n\n` +
-                        `Pelajar: *${userData.name}*\n` +
-                        `IC: \`${userData.ic}\`\n` +
-                        `ID: \`${userData.studentId}\`\n` +
-                        `Status: Percubaan log masuk dari peranti tidak dikenali.`;
-
+        const message = `⚠️ *AMARAN KESELAMATAN*\n\nPelajar: *${userData.name}*\nIC: \`${userData.ic}\`\nStatus: Peranti tidak dikenali dikesan.`;
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        
         try {
-            await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: message,
-                    parse_mode: "Markdown"
-                })
-            });
-        } catch (e) {
-            console.error("Gagal hantar Telegram alert:", e);
-        }
+            await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }) });
+        } catch (e) { console.error(e); }
     }
 
     async function verifyDevice(user, userData) {
@@ -312,17 +306,14 @@
             deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now();
             localStorage.setItem('semsira_device_id', deviceId);
         }
-
         const studentRef = doc(db, COLLECTION_NAME, user.uid);
-
         if (!userData.registeredDeviceId) {
             await updateDoc(studentRef, { registeredDeviceId: deviceId });
             return true; 
         } 
-        
         if (userData.registeredDeviceId !== deviceId) {
             await sendTelegramAlert(userData);
-            alert("AMARAN KESELAMATAN:\nAkaun ini telah terikat pada peranti lain.\n\nSila gunakan peranti asal anda atau hubungi guru untuk reset.");
+            alert("Akaun ini terikat pada peranti lain.");
             handleLogout();
             return false;
         }
@@ -346,22 +337,6 @@
         }
     }
 
-    window.addEventListener('median_screenshot', () => {
-        if (document.getElementById('tab-scan').classList.contains('active')) {
-            alert("AMARAN KESELAMATAN!\n\nTangkapan skrin dikesan pada halaman Kod QR.");
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'PrintScreen' || e.keyCode === 123 || (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
-            e.preventDefault();
-            alert("Tangkapan skrin dikesan!");
-        }
-    });
-
-    window.addEventListener('blur', () => { document.body.classList.add('blur-content'); });
-    window.addEventListener('focus', () => { document.body.classList.remove('blur-content'); });
-
     window.autoFillIC = (ic) => {
         if(ic.length >= 12) {
             const yy = ic.substring(0,2);
@@ -380,23 +355,16 @@
         const pw2 = document.getElementById('reg-pw2').value;
         const ic = document.getElementById('reg-ic').value;
         const className = document.getElementById('reg-class').value;
-        
-        const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
         if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
-        if(!pwRegex.test(pw1)) return alert("Kata laluan mesti mengandungi Huruf Besar, Kecil, Nombor dan Simbol Khas.");
-        
         try {
-            // Tentukan semester secara automatik berdasarkan kelas semasa mendaftar
             const assignedSemester = await getSemesterForClass(className);
-            
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
-            const uid = userCredential.user.uid;
-            await setDoc(doc(db, COLLECTION_NAME, uid), {
+            await setDoc(doc(db, COLLECTION_NAME, userCredential.user.uid), {
                 studentId: document.getElementById('reg-id').value,
                 ic: ic,
                 name: document.getElementById('reg-name').value,
                 className: className,
-                semester: assignedSemester, // Auto semester
+                semester: assignedSemester,
                 dob: document.getElementById('reg-dob').value,
                 gender: document.getElementById('reg-gender').value,
                 address: document.getElementById('reg-address').value,
@@ -411,20 +379,8 @@
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
-        if(!email || !pw) return alert("Sila masukkan Gmail dan Kata Laluan.");
-        try { 
-            await signInWithEmailAndPassword(auth, email, pw); 
-        } catch (e) { 
-            let errorMsg = "Gagal Log Masuk: ";
-            switch (e.code) {
-                case 'auth/invalid-email': errorMsg += "Format Gmail tidak sah."; break;
-                case 'auth/user-not-found': errorMsg += "Akaun tidak dijumpai."; break;
-                case 'auth/wrong-password': errorMsg += "Kata laluan salah."; break;
-                case 'auth/invalid-credential': errorMsg += "Gmail atau Kata laluan salah."; break;
-                default: errorMsg += "Sila pastikan maklumat anda betul.";
-            }
-            alert(errorMsg); 
-        }
+        try { await signInWithEmailAndPassword(auth, email, pw); } 
+        catch (e) { alert("Log Masuk Gagal: " + e.message); }
     }
 
     window.handleLogout = () => signOut(auth).then(() => location.reload());
@@ -434,15 +390,12 @@
             const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
             if (snap.exists()) {
                 const userData = snap.data();
-                const isVerified = await verifyDevice(user, userData);
-                if (!isVerified) return;
-
+                if (!(await verifyDevice(user, userData))) return;
                 window.currentUserData = userData;
                 document.getElementById('page-login').classList.remove('active');
                 document.getElementById('page-register').classList.remove('active');
                 document.getElementById('main-app').style.display = 'block';
-                
-                applyWatermark(`${window.currentUserData.name} (${window.currentUserData.ic})`);
+                applyWatermark(`${userData.name} (${userData.ic})`);
                 loadHomeData();
                 setupAccountPage();
                 startQRGenerator();
@@ -450,7 +403,6 @@
         } else {
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('page-login').classList.add('active');
-            document.getElementById('watermark-layer').style.display = "none";
         }
     });
 
@@ -462,11 +414,10 @@
             const slider = document.getElementById('poster-slider');
             const list = document.getElementById('announcements-list');
             slider.innerHTML = ""; list.innerHTML = "";
-
             issues.forEach(issue => {
                 const labels = issue.labels.map(l => l.name);
                 const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/) || issue.body.match(/src="(.*?)"/);
-                if(labels.includes('poster') && imgMatch && imgMatch[1]) {
+                if(labels.includes('poster') && imgMatch) {
                     const img = document.createElement('img');
                     img.src = imgMatch[1];
                     slider.appendChild(img);
@@ -476,20 +427,17 @@
                     list.innerHTML += `<div class="post-card"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
                 }
             });
-
             let current = 0;
             const imgs = slider.querySelectorAll('img');
             if(imgs.length > 0) {
                 imgs[0].classList.add('show');
-                if(imgs.length > 1) {
-                    setInterval(() => {
-                        imgs[current].classList.remove('show');
-                        current = (current + 1) % imgs.length;
-                        imgs[current].classList.add('show');
-                    }, 5000);
-                }
-            } else { slider.innerHTML = "<p style='color:white; text-align:center; padding-top:20%'>Tiada Poster</p>"; }
-        } catch (e) { document.getElementById('announcements-list').innerText = "Gagal memuatkan data."; }
+                setInterval(() => {
+                    imgs[current].classList.remove('show');
+                    current = (current + 1) % imgs.length;
+                    imgs[current].classList.add('show');
+                }, 5000);
+            }
+        } catch (e) { console.error(e); }
     }
 
     let qr;
@@ -500,12 +448,10 @@
         const updateQR = () => {
             const now = new Date();
             const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
-            const codeData = `${window.currentUserData.ic}|${timestamp}`;
-            qr.makeCode(codeData);
-            document.getElementById('qr-timer').innerText = "Dikemas kini pada: " + now.toLocaleTimeString('ms-MY');
+            qr.makeCode(`${window.currentUserData.ic}|${timestamp}`);
+            document.getElementById('qr-timer').innerText = "Update: " + now.toLocaleTimeString('ms-MY');
         };
-        updateQR();
-        setInterval(updateQR, 5000);
+        updateQR(); setInterval(updateQR, 5000);
     }
 
     function setupAccountPage() {
@@ -513,29 +459,27 @@
         document.getElementById('prof-id').innerText = d.studentId;
         document.getElementById('prof-name').innerText = d.name;
         document.getElementById('prof-ic').innerText = d.ic;
-        document.getElementById('upd-address').value = d.address;
+        document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
+        document.getElementById('upd-address').value = d.address || "";
         document.getElementById('upd-class').value = d.className;
     }
 
     window.updateProfile = async () => {
-        const user = auth.currentUser;
         const newClass = document.getElementById('upd-class').value;
+        const newAddress = document.getElementById('upd-address').value;
         try {
-            // Jika tukar kelas, semester juga perlu dikemas kini mengikut logik kumpulan
             const newSemester = await getSemesterForClass(newClass);
-            
-            await updateDoc(doc(db, COLLECTION_NAME, user.uid), {
-                address: document.getElementById('upd-address').value,
+            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), {
+                address: newAddress,
                 className: newClass,
-                semester: newSemester // Kemas kini semester juga
+                semester: newSemester
             });
-            
-            // Kemaskini data tempatan
             window.currentUserData.className = newClass;
             window.currentUserData.semester = newSemester;
-            
-            alert("Profil dan Semester dikemas kini!");
-        } catch(e) { alert("Ralat: " + e.message); }
+            window.currentUserData.address = newAddress;
+            setupAccountPage();
+            alert("Berjaya dikemaskini!");
+        } catch(e) { alert(e.message); }
     }
 
     window.showPage = (id) => {
@@ -546,16 +490,13 @@
     window.switchTab = (tabId, el) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
-        const targetPage = document.getElementById(tabId);
-        targetPage.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
         el.classList.add('active-nav');
         const watermark = document.getElementById('watermark-layer');
         if (tabId === 'tab-scan') {
-            watermark.style.display = "flex"; 
-            triggerNativePrivacy(true); 
+            watermark.style.display = "flex"; triggerNativePrivacy(true); 
         } else {
-            watermark.style.display = "none"; 
-            triggerNativePrivacy(false);
+            watermark.style.display = "none"; triggerNativePrivacy(false);
         }
     }
 
