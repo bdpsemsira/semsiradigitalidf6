@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Semsira Mobile</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/semsira.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SEMSIRA">
+    
+    <link rel="manifest" href="/manifest.json">
+
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -255,7 +263,6 @@
     // Median 安全指令
     function triggerNativePrivacy(enabled) {
         if (navigator.userAgent.includes('median')) {
-            // 当进入 Imbas 页面时开启硬拦截策略（部分 Android 有效）
             window.location.href = `median://security/setPrivacyScreen?enabled=${enabled}&disableScreenshots=${enabled}`;
         }
     }
@@ -272,7 +279,7 @@
         }
     }
 
-    // 监听原生 App 截图动作 (Median 事件)
+    // 监听原生 App 截图动作
     window.addEventListener('median_screenshot', () => {
         if (document.getElementById('tab-scan').classList.contains('active')) {
             const d = window.currentUserData;
@@ -282,7 +289,7 @@
                 "Nama: " + d.name + "\n" +
                 "IC: " + d.ic + "\n" +
                 "Kelas: " + d.className + "\n\n" +
-                "Log ini telah dirakam dan dihantar kepada guru bertugas."
+                "Log ini telah dirakam and dihantar kepada guru bertugas."
             );
         }
     });
@@ -355,7 +362,6 @@
                 document.getElementById('page-register').classList.remove('active');
                 document.getElementById('main-app').style.display = 'block';
                 
-                // 初始化水印内容，但不显示
                 applyWatermark(`${window.currentUserData.name} (${window.currentUserData.ic})`);
 
                 loadHomeData();
@@ -452,7 +458,6 @@
         document.getElementById(id).classList.add('active');
     }
 
-    // 改进的 Tab 切换逻辑：只有在 Imbas 页面显示水印和开启安全指令
     window.switchTab = (tabId, el) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
@@ -463,11 +468,11 @@
 
         const watermark = document.getElementById('watermark-layer');
         if (tabId === 'tab-scan') {
-            watermark.style.display = "flex";  // 显示水印
-            triggerNativePrivacy(true);        // 开启原生拦截
+            watermark.style.display = "flex"; 
+            triggerNativePrivacy(true); 
         } else {
-            watermark.style.display = "none";  // 隐藏水印
-            triggerNativePrivacy(false);       // 关闭原生拦截
+            watermark.style.display = "none"; 
+            triggerNativePrivacy(false);
         }
     }
 
