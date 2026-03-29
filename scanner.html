@@ -24,6 +24,34 @@
             min-height: 100vh;
         }
 
+        /* 启动遮罩层 */
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .start-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,122,255,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .header {
             width: 100%;
             padding: 10px 0;
@@ -111,6 +139,14 @@
 </head>
 <body>
 
+<div id="start-overlay">
+    <img src="/semsira.png" style="width: 100px; margin-bottom: 20px; border-radius: 20px;">
+    <button class="start-btn" id="start-btn">
+        <i data-lucide="play-circle"></i> Mula Imbas
+    </button>
+    <p style="margin-top:15px; color:#666; font-size:14px;">Klik untuk membolehkan audio & kamera</p>
+</div>
+
 <div class="header">
     <img src="/semsira.png" alt="Logo Semsira">
     <div class="header-text">
@@ -157,26 +193,39 @@
     const html5QrCode = new Html5Qrcode("reader");
     const cameraSelect = document.getElementById('camera-select');
     const beepSound = document.getElementById('beep-sound');
+    const startBtn = document.getElementById('start-btn');
+    const startOverlay = document.getElementById('start-overlay');
+    
     let isProcessing = false;
 
     lucide.createIcons();
 
-    // 解决浏览器拦截：监听第一次点击页面时加载音频
-    document.body.addEventListener('click', () => {
-        beepSound.load();
-        console.log("Audio context initialized");
-    }, { once: true });
+    // 核心修改：点击按钮才初始化
+    startBtn.addEventListener('click', () => {
+        startOverlay.style.display = 'none'; // 隐藏遮罩
+        
+        // 1. 解锁音频
+        beepSound.play().then(() => {
+            beepSound.pause(); 
+            beepSound.currentTime = 0;
+        }).catch(e => console.log("Audio prep failed"));
 
-    Html5Qrcode.getCameras().then(cameras => {
-        if (cameras && cameras.length > 0) {
-            cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
-            startScanning(cameras[0].id);
-        } else {
-            cameraSelect.innerHTML = '<option value="">Tiada Kamera Dikesan</option>';
-        }
-    }).catch(err => {
-        console.error("Gagal dpt kamera", err);
+        // 2. 初始化摄像头
+        initCamera();
     });
+
+    function initCamera() {
+        Html5Qrcode.getCameras().then(cameras => {
+            if (cameras && cameras.length > 0) {
+                cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
+                startScanning(cameras[0].id);
+            } else {
+                cameraSelect.innerHTML = '<option value="">Tiada Kamera Dikesan</option>';
+            }
+        }).catch(err => {
+            console.error("Gagal dpt kamera", err);
+        });
+    }
 
     cameraSelect.addEventListener('change', (e) => {
         if (e.target.value) {
@@ -196,8 +245,7 @@
         if (isProcessing) return;
         isProcessing = true;
 
-        // 无论成功失败立即播放
-        playBeep();
+        playBeep(); // 触发声音
 
         showResult("Processing...", "Mengesahkan QR...", "wait");
 
@@ -279,15 +327,8 @@
 
     function playBeep() {
         if (beepSound) {
-            beepSound.pause(); // 停止当前
-            beepSound.currentTime = 0; // 回到起点
-            const playPromise = beepSound.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.log("Audio block active. Please click anywhere on the page once.");
-                });
-            }
+            beepSound.currentTime = 0;
+            beepSound.play().catch(e => console.log("Audio blocked: User interaction required"));
         }
     }
 
