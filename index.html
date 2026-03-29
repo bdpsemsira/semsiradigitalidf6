@@ -21,17 +21,14 @@
             padding: 0;
             color: #000;
             overflow-x: hidden;
-            /* 禁用选中 */
             user-select: none;
             -webkit-user-select: none;
         }
 
-        /* 禁止截图/录屏保护层：当页面失去焦点时模糊 */
         body.blur-content {
             filter: blur(20px);
         }
 
-        /* Logo 样式 */
         .login-logo {
             display: block;
             margin: 20px auto 10px;
@@ -39,7 +36,6 @@
             height: auto;
         }
 
-        /* Frosted Glass Effect */
         .glass {
             background: var(--card);
             backdrop-filter: blur(15px);
@@ -53,7 +49,6 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Forms */
         input, select {
             width: 100%;
             padding: 12px;
@@ -76,7 +71,6 @@
             margin-top: 10px;
         }
 
-        /* Bottom Nav */
         .nav-bar {
             position: fixed;
             bottom: 0;
@@ -94,7 +88,6 @@
         .nav-item { text-align: center; color: #8E8E93; font-size: 12px; cursor: pointer; }
         .nav-item.active-nav { color: var(--primary); }
 
-        /* Home Components */
         #poster-slider {
             width: 100%;
             aspect-ratio: 16/9;
@@ -107,13 +100,22 @@
         #poster-slider img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 0.8s; }
         #poster-slider img.show { opacity: 1; }
 
+        /* 修复：确保 Pengumuman 内的图片不超出边框 */
         .post-card {
             margin-top: 15px;
             padding: 15px;
             border-bottom: 1px solid #EEE;
+            word-wrap: break-word;
         }
 
-        /* QR Page */
+        .post-card img {
+            max-width: 100% !important;
+            height: auto !important;
+            border-radius: 10px;
+            margin-top: 8px;
+            display: block;
+        }
+
         #qrcode {
             background: white;
             padding: 20px;
@@ -123,7 +125,9 @@
         }
     </style>
 </head>
-<body oncontextmenu="return false;"> <div id="page-login" class="page active">
+<body oncontextmenu="return false;">
+
+<div id="page-login" class="page active">
     <img src="/semsira.png" alt="Logo" class="login-logo">
     <h2 style="text-align:center">Log Masuk</h2>
     <div class="glass" style="padding:20px">
@@ -183,11 +187,11 @@
             <p>Kemas kini maklumat:</p>
             <input type="text" id="upd-address" placeholder="Alamat Baru">
             <select id="upd-class">
-                 <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
-                 <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
-                 <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
-                 <option>6 AL GHAZALI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
-                 <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
+                <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+                <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
+                <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
+                <option>6 AL GHAZALI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
+                <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
             </select>
             <button onclick="updateProfile()">Simpan Perubahan</button>
             <button style="background:#FF3B30; margin-top:20px" onclick="handleLogout()">Log Keluar</button>
@@ -221,23 +225,16 @@
 
     window.currentUserData = null;
 
-    // ----- 禁止截图录屏逻辑 -----
     document.addEventListener('keydown', (e) => {
-        // 禁止 PrintScreen, F12, Ctrl+Shift+I 等
         if (e.key === 'PrintScreen' || e.keyCode === 123 || (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
             e.preventDefault();
             alert("Tangkapan skrin dilarang demi keselamatan.");
         }
     });
 
-    window.addEventListener('blur', () => {
-        document.body.classList.add('blur-content');
-    });
-    window.addEventListener('focus', () => {
-        document.body.classList.remove('blur-content');
-    });
+    window.addEventListener('blur', () => { document.body.classList.add('blur-content'); });
+    window.addEventListener('focus', () => { document.body.classList.remove('blur-content'); });
 
-    // Logic: Auto-fill IC Data
     window.autoFillIC = (ic) => {
         if(ic.length >= 12) {
             const yy = ic.substring(0,2);
@@ -245,28 +242,22 @@
             const dd = ic.substring(4,6);
             const year = parseInt(yy) > 26 ? "19"+yy : "20"+yy;
             document.getElementById('reg-dob').value = `${year}/${mm}/${dd}`;
-            
             const lastDigit = parseInt(ic.charAt(11));
             document.getElementById('reg-gender').value = (lastDigit % 2 === 0) ? "PEREMPUAN" : "LELAKI";
         }
     }
 
-    // Auth Handling
     window.handleRegister = async () => {
         const email = document.getElementById('reg-email').value;
         const pw1 = document.getElementById('reg-pw1').value;
         const pw2 = document.getElementById('reg-pw2').value;
         const ic = document.getElementById('reg-ic').value;
-        
         const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
         if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
         if(!pwRegex.test(pw1)) return alert("Kata laluan mesti mengandungi Huruf Besar, Kecil, Nombor dan Simbol Khas.");
-
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
             const uid = userCredential.user.uid;
-            
             await setDoc(doc(db, "students", uid), {
                 studentId: document.getElementById('reg-id').value,
                 ic: ic,
@@ -278,7 +269,6 @@
                 email: email,
                 createdAt: new Date()
             });
-
             alert("Pendaftaran Berjaya!");
             location.reload();
         } catch (e) { alert(e.message); }
@@ -287,14 +277,12 @@
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
-        try {
-            await signInWithEmailAndPassword(auth, email, pw);
-        } catch (e) { alert("Gagal Log Masuk: " + e.message); }
+        try { await signInWithEmailAndPassword(auth, email, pw); } 
+        catch (e) { alert("Gagal Log Masuk: " + e.message); }
     }
 
     window.handleLogout = () => signOut(auth).then(() => location.reload());
 
-    // State Observer
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             const snap = await getDoc(doc(db, "students", user.uid));
@@ -313,25 +301,20 @@
         }
     });
 
-    // GitHub Integration 优化
     async function loadHomeData() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
         try {
-            // 添加时间戳防止缓存
             const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&t=${new Date().getTime()}`);
             const issues = await res.json();
-
             const slider = document.getElementById('poster-slider');
             const list = document.getElementById('announcements-list');
-            slider.innerHTML = ""; 
-            list.innerHTML = "";
+            slider.innerHTML = ""; list.innerHTML = "";
 
             issues.forEach(issue => {
                 const labels = issue.labels.map(l => l.name);
+                const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/) || issue.body.match(/src="(.*?)"/);
                 
-                // 优化图片匹配正则：匹配 ![]() 或 <img> 标签
                 if(labels.includes('poster')) {
-                    const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/) || issue.body.match(/src="(.*?)"/);
                     if(imgMatch && imgMatch[1]) {
                         const img = document.createElement('img');
                         img.src = imgMatch[1];
@@ -340,11 +323,11 @@
                 }
 
                 if(labels.includes('post')) {
-                    list.innerHTML += `<div class="post-card"><b>${issue.title}</b><p style="font-size:13px">${issue.body.replace(/!\[.*?\]\(.*?\)/g, '').substring(0,150)}...</p></div>`;
+                    let contentHtml = issue.body.replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">');
+                    list.innerHTML += `<div class="post-card"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
                 }
             });
 
-            // Slider 轮播逻辑优化
             let current = 0;
             const imgs = slider.querySelectorAll('img');
             if(imgs.length > 0) {
@@ -356,41 +339,26 @@
                         imgs[current].classList.add('show');
                     }, 5000);
                 }
-            } else {
-                slider.innerHTML = "<p style='color:white; text-align:center; padding-top:20%'>Tiada Poster</p>";
-            }
-        } catch (e) { 
-            console.error("GitHub Error", e);
-            document.getElementById('announcements-list').innerText = "Gagal memuatkan data.";
-        }
+            } else { slider.innerHTML = "<p style='color:white; text-align:center; padding-top:20%'>Tiada Poster</p>"; }
+        } catch (e) { document.getElementById('announcements-list').innerText = "Gagal memuatkan data."; }
     }
 
-    // QR Code Generator
     let qr;
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
-        qrContainer.innerHTML = ""; // 清空
+        qrContainer.innerHTML = "";
         qr = new QRCode(qrContainer, { width: 200, height: 200 });
-        
         const updateQR = () => {
             const now = new Date();
-            const timestamp = now.getFullYear() + 
-                String(now.getMonth() + 1).padStart(2, '0') + 
-                String(now.getDate()).padStart(2, '0') + 
-                String(now.getHours()).padStart(2, '0') + 
-                String(now.getMinutes()).padStart(2, '0') + 
-                String(now.getSeconds()).padStart(2, '0');
-            
+            const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
             const codeData = `${window.currentUserData.ic}|${timestamp}`;
             qr.makeCode(codeData);
             document.getElementById('qr-timer').innerText = "Dikemas kini pada: " + now.toLocaleTimeString('ms-MY');
         };
-
         updateQR();
         setInterval(updateQR, 5000);
     }
 
-    // Profile & UI Updates
     function setupAccountPage() {
         const d = window.currentUserData;
         document.getElementById('prof-id').innerText = d.studentId;
