@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semsira Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --success: #34C759;
+            --error: #FF3B30;
+            --bg: #F2F2F7;
+        }
+
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #reader {
+            width: 90%;
+            max-width: 500px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            border: none !important;
+        }
+
+        .result-card {
+            width: 85%;
+            max-width: 400px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none; /* 初始隐藏 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .status-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .success { color: var(--success); border: 2px solid var(--success); }
+        .error { color: var(--error); border: 2px solid var(--error); }
+
+        #log-area {
+            width: 90%;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2 style="margin:0">Semsira Attendance Scanner</h2>
+    <p style="font-size:14px; color:#888">Sila imbas Kod QR Pelajar</p>
+</div>
+
+<div id="reader"></div>
+
+<div id="result-card" class="result-card">
+    <div id="status-icon" class="status-icon"></div>
+    <h3 id="res-name" style="margin:5px 0"></h3>
+    <p id="res-msg" style="margin:5px 0; font-size:14px; color:#666"></p>
+    <p id="res-time" style="font-size:12px; color:#999"></p>
+</div>
+
+<div id="log-area"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+        authDomain: "bdpsemsira-5c274.firebaseapp.com",
+        projectId: "bdpsemsira-5c274",
+        storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+        messagingSenderId: "176946808975",
+        appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const html5QrCode = new Html5Qrcode("reader");
+    let isProcessing = false;
+
+    // 启动摄像头
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+
+    async function onScanSuccess(decodedText) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        showResult("Processing...", "Sedang mengesahkan...", "wait");
+
+        try {
+            // 1. 解析数据 (格式: IC|Timestamp)
+            const parts = decodedText.split('|');
+            if (parts.length < 2) throw new Error("Format QR Tidak Sah");
+
+            const scannedIC = parts[0];
+            const scannedTime = parts[1];
+
+            // 2. 查询学生信息
+            const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                throw new Error("Pelajar tidak dijumpai dalam sistem.");
+            }
+
+            const studentDoc = querySnapshot.docs[0];
+            const studentData = studentDoc.data();
+
+            // 3. 上传出席记录 (Attendance)
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const fullTimeStr = now.toLocaleString('ms-MY');
+
+            // 检查今天是否已打卡 (可选)
+            // 你可以根据需求添加防重复打卡逻辑
+
+            await addDoc(collection(db, "attendanceLogs"), {
+                studentId: studentData.studentId,
+                name: studentData.name,
+                className: studentData.className,
+                ic: studentData.ic,
+                timestamp: serverTimestamp(),
+                date: dateStr,
+                timeFull: fullTimeStr,
+                status: "Hadir"
+            });
+
+            showResult(studentData.name, "Kehadiran Berjaya Direkod!", "success", fullTimeStr);
+            
+            // 3秒后恢复扫描
+            setTimeout(() => {
+                isProcessing = false;
+                document.getElementById('result-card').style.display = 'none';
+            }, 3500);
+
+        } catch (error) {
+            showResult("Ralat", error.message, "error");
+            setTimeout(() => { isProcessing = false; }, 3000);
+        }
+    }
+
+    function showResult(name, msg, type, time = "") {
+        const card = document.getElementById('result-card');
+        const icon = document.getElementById('status-icon');
+        const nameEl = document.getElementById('res-name');
+        const msgEl = document.getElementById('res-msg');
+        const timeEl = document.getElementById('res-time');
+
+        card.style.display = 'block';
+        nameEl.innerText = name;
+        msgEl.innerText = msg;
+        timeEl.innerText = time;
+
+        if (type === 'success') {
+            icon.className = 'status-icon success';
+            icon.innerHTML = '<i data-lucide="check"></i>';
+        } else if (type === 'error') {
+            icon.className = 'status-icon error';
+            icon.innerHTML = '<i data-lucide="x"></i>';
+        } else {
+            icon.className = 'status-icon';
+            icon.innerHTML = '...';
+        }
+        lucide.createIcons();
+    }
+
+</script>
+</body>
+</html>
