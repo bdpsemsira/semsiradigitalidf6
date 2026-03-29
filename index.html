@@ -182,9 +182,8 @@
         }
 
         .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
-        .profile-label b { color: var(--primary); }
+        .profile-label b { color: var(--primary); text-align: right; }
 
-        /* 新增：出席状况面板样式 */
         .attendance-panel {
             margin: 20px auto;
             padding: 15px;
@@ -196,9 +195,9 @@
             font-weight: 800;
             margin: 5px 0;
         }
-        .status-tidak-hadir { color: #FF3B30; } /* 红色 */
-        .status-hadir { color: #34C759; }       /* 绿色 */
-        .status-lewat { color: #FF9500; }       /* 橘色 */
+        .status-tidak-hadir { color: #FF3B30; }
+        .status-hadir { color: #34C759; }
+        .status-lewat { color: #FF9500; }
         .status-time { font-size: 13px; color: #666; font-family: monospace; }
     </style>
 </head>
@@ -213,7 +212,7 @@
         <input type="email" id="login-email" placeholder="Gmail">
         <input type="password" id="login-pw" placeholder="Kata Laluan">
         <button onclick="handleLogin()">Log Masuk</button>
-        <p style="text-align:center; font-size:14px" onclick="showPage('page-register')">Tiada akaun? Daftar sekarang</p>
+        <p style="text-align:center; font-size:14px; color: var(--primary); cursor: pointer;" onclick="showPage('page-register')">Tiada akaun? Daftar sekarang</p>
     </div>
 </div>
 
@@ -223,6 +222,7 @@
         <input type="text" id="reg-id" placeholder="No. Matrik (Student ID)*">
         <input type="number" id="reg-ic" placeholder="No. Kad Pengenalan (IC)*" oninput="autoFillIC(this.value)">
         <input type="text" id="reg-name" placeholder="Nama Penuh">
+        <input type="tel" id="reg-phone" placeholder="No. Telefon (601xxxxxxxxx)*">
         <select id="reg-class">
             <option value="">Pilih Kelas</option>
             <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
@@ -280,9 +280,20 @@
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
             <div class="profile-label"><span>Semester Semasa:</span> <b id="prof-sem" style="font-size: 1.2em;">-</b></div>
             <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
-            <p style="font-weight: bold; font-size: 14px;">Kemas kini maklumat:</p>
+            <p style="font-weight: bold; font-size: 14px;">Kemaskini maklumat:</p>
+            
+            <label style="font-size: 12px; color: #666;">Nama Penuh:</label>
+            <input type="text" id="upd-name" placeholder="Nama Baru">
+
+            <label style="font-size: 12px; color: #666;">No. Matrik:</label>
+            <input type="text" id="upd-id" placeholder="No. Matrik Baru">
+
+            <label style="font-size: 12px; color: #666;">No. Telefon:</label>
+            <input type="tel" id="upd-phone" placeholder="No. Telefon Baru">
+
             <label style="font-size: 12px; color: #666;">Alamat Rumah:</label>
             <input type="text" id="upd-address" placeholder="Alamat Baru">
+
             <label style="font-size: 12px; color: #666;">Kelas:</label>
             <select id="upd-class">
                 <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
@@ -306,7 +317,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -323,31 +334,39 @@
 
     const COLLECTION_NAME = "studentInform";
     const SETTINGS_COLLECTION = "systemSettings";
-    const ATTENDANCE_LOGS = "attendanceLogs"; // 假设签到记录存放在这里
+    const ATTENDANCE_LOGS = "attendanceLogs";
 
     window.currentUserData = null;
-    let qrUpdateInterval = null; // 用于控制二维码刷新
-    let isAttendedToday = false; // 今日是否已签到标记
+    let qrUpdateInterval = null;
+    let isAttendedToday = false;
 
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
     async function getSemesterForClass(className) {
         const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
         const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
-        
         let semK1 = k1Snap.exists() ? k1Snap.data().semester : "1";
         let semK2 = k2Snap.exists() ? k2Snap.data().semester : "1";
-
         let classNameLower = className.toLowerCase();
         let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
-        
         return isK1 ? semK1 : semK2;
     }
 
     async function sendTelegramAlert(userData) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
         const chatId = "@semsirasecurity29482910472"; 
-        const message = `⚠️ *AMARAN KESELAMATAN*\n\nPelajar: *${userData.name}*\nIC: \`${userData.ic}\`\nStatus: Peranti tidak dikenali dikesan.`;
+        let currentDeviceId = localStorage.getItem('semsira_device_id');
+        
+        const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan Peranti)*\n\n` +
+                        `👤 Pelajar: *${userData.name}*\n` +
+                        `🆔 No. Matrik: \`${userData.studentId}\`\n` +
+                        `🪪 IC: \`${userData.ic}\`\n` +
+                        `🏫 Kelas: *${userData.className}*\n` +
+                        `📞 Hubungi: [${userData.phone}](tel:${userData.phone})\n` +
+                        `📱 Device ID Asal: \`${userData.registeredDeviceId}\`\n` +
+                        `🚫 Device ID Baru: \`${currentDeviceId}\`\n\n` +
+                        `_Akses telah disekat secara automatik._`;
+
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
         try {
             await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }) });
@@ -367,7 +386,7 @@
         } 
         if (userData.registeredDeviceId !== deviceId) {
             await sendTelegramAlert(userData);
-            alert("Akaun ini terikat pada peranti lain.");
+            alert("Akaun ini terikat pada peranti lain. Sila hubungi Admin.");
             handleLogout();
             return false;
         }
@@ -408,15 +427,27 @@
         const pw1 = document.getElementById('reg-pw1').value;
         const pw2 = document.getElementById('reg-pw2').value;
         const ic = document.getElementById('reg-ic').value;
+        const phone = document.getElementById('reg-phone').value;
         const className = document.getElementById('reg-class').value;
+        
+        if(!email || !pw1 || !ic || !phone || !className) return alert("Sila isi semua maklumat bertanda *");
         if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
+
         try {
+            // 检查 IC 是否已经存在
+            const q = query(collection(db, COLLECTION_NAME), where("ic", "==", ic));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                return alert("No. IC ini telah didaftarkan!");
+            }
+
             const assignedSemester = await getSemesterForClass(className);
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
             await setDoc(doc(db, COLLECTION_NAME, userCredential.user.uid), {
                 studentId: document.getElementById('reg-id').value,
                 ic: ic,
                 name: document.getElementById('reg-name').value,
+                phone: phone,
                 className: className,
                 semester: assignedSemester,
                 dob: document.getElementById('reg-dob').value,
@@ -453,7 +484,7 @@
                 loadHomeData();
                 setupAccountPage();
                 startQRGenerator();
-                listenToAttendance(userData.ic); // 开始实时监听出席
+                listenToAttendance(userData.ic);
             }
         } else {
             document.getElementById('main-app').style.display = 'none';
@@ -461,13 +492,11 @@
         }
     });
 
-    // 新增：实时监听今日出席状况
     function listenToAttendance(studentIc) {
-        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const todayStr = new Date().toLocaleDateString('en-CA');
         const statusEl = document.getElementById('attendance-status');
         const timeEl = document.getElementById('attendance-time');
 
-        // 查询今日该IC的签到记录
         const q = query(
             collection(db, ATTENDANCE_LOGS),
             where("ic", "==", studentIc),
@@ -477,17 +506,12 @@
         onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
                 const data = snapshot.docs[0].data();
-                const status = data.status; // 假设字段名为 status (hadir/lewat)
-                const timestamp = data.timestamp; // 假设是 Firestore Timestamp 或字符串
-
-                isAttendedToday = true; // 标记已签到
-                if(qrUpdateInterval) clearInterval(qrUpdateInterval); // 停止二维码刷新
-
-                // 更新UI
+                const status = data.status;
+                const timestamp = data.timestamp;
+                isAttendedToday = true;
+                if(qrUpdateInterval) clearInterval(qrUpdateInterval);
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
-                
-                // 处理显示时间
                 if (timestamp) {
                     const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
                     timeEl.innerText = d.toLocaleString('ms-MY', { 
@@ -543,16 +567,13 @@
         const qrContainer = document.getElementById('qrcode');
         qrContainer.innerHTML = "";
         qr = new QRCode(qrContainer, { width: 200, height: 200 });
-        
         const updateQR = () => {
-            if (isAttendedToday) return; // 如果签到成功，不再执行逻辑刷新
-
+            if (isAttendedToday) return;
             const now = new Date();
             const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
             qr.makeCode(`${window.currentUserData.ic}|${timestamp}`);
             document.getElementById('qr-timer').innerText = "Update: " + now.toLocaleTimeString('ms-MY');
         };
-
         updateQR();
         qrUpdateInterval = setInterval(updateQR, 5000);
     }
@@ -563,24 +584,45 @@
         document.getElementById('prof-name').innerText = d.name;
         document.getElementById('prof-ic').innerText = d.ic;
         document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
+        
+        // 填充可修改字段
+        document.getElementById('upd-name').value = d.name || "";
+        document.getElementById('upd-id').value = d.studentId || "";
+        document.getElementById('upd-phone').value = d.phone || "";
         document.getElementById('upd-address').value = d.address || "";
         document.getElementById('upd-class').value = d.className;
     }
 
     window.updateProfile = async () => {
+        const newName = document.getElementById('upd-name').value;
+        const newId = document.getElementById('upd-id').value;
+        const newPhone = document.getElementById('upd-phone').value;
         const newClass = document.getElementById('upd-class').value;
         const newAddress = document.getElementById('upd-address').value;
+
+        if(!newName || !newId || !newPhone) return alert("Nama, No. Matrik dan No. Telefon tidak boleh kosong!");
+
         try {
             const newSemester = await getSemesterForClass(newClass);
             await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), {
+                name: newName,
+                studentId: newId,
+                phone: newPhone,
                 address: newAddress,
                 className: newClass,
                 semester: newSemester
             });
+            
+            // 更新本地数据
+            window.currentUserData.name = newName;
+            window.currentUserData.studentId = newId;
+            window.currentUserData.phone = newPhone;
             window.currentUserData.className = newClass;
             window.currentUserData.semester = newSemester;
             window.currentUserData.address = newAddress;
+            
             setupAccountPage();
+            applyWatermark(`${newName} (${window.currentUserData.ic})`);
             alert("Berjaya dikemaskini!");
         } catch(e) { alert(e.message); }
     }
