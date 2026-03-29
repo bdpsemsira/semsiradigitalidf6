@@ -167,8 +167,9 @@
             const scannedIC = parts[0];
             const qrTimeStr = parts[1];
 
-            if (!validateTime(qrTimeStr, 5)) {
-                throw new Error("Kod Tamat Tempoh (Melebihi 5s). Sila guna kod baru.");
+            // 实际上给予 10 秒的时间容错
+            if (!validateTime(qrTimeStr, 10)) {
+                throw new Error("Kod Tamat Tempoh (Melebihi 10s). Sila guna kod baru.");
             }
 
             // 1. 获取今日日期字符串 (YYYY-MM-DD)
@@ -176,7 +177,6 @@
             const todayStr = now.toISOString().split('T')[0];
 
             // 2. 检查今天是否已经签到过
-            // 查询条件：IC 匹配 且 日期匹配
             const checkQuery = query(
                 collection(db, "attendanceLogs"), 
                 where("ic", "==", scannedIC),
@@ -235,6 +235,8 @@
 
         const qrDate = new Date(year, month, day, hour, min, sec);
         const nowDate = new Date();
+        
+        // 计算扫描时间与二维码生成时间之间的绝对差值
         const diff = Math.abs(nowDate.getTime() - qrDate.getTime());
         return diff <= (limitSeconds * 1000);
     }
