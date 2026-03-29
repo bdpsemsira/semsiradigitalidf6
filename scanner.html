@@ -24,10 +24,9 @@
             min-height: 100vh;
         }
 
-        /* 紧凑型 Header 样式 */
         .header {
             width: 100%;
-            padding: 10px 0; /* 缩小高度 */
+            padding: 10px 0;
             background: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             display: flex;
@@ -37,7 +36,7 @@
         }
 
         .header img {
-            width: 45px; /* 缩小 Logo */
+            width: 45px;
             height: 45px;
             border-radius: 8px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.1);
@@ -45,7 +44,7 @@
 
         .header-text h2 {
             margin: 0;
-            font-size: 18px; /* 略微缩小字号 */
+            font-size: 18px;
         }
 
         .header-text p {
@@ -193,6 +192,9 @@
         if (isProcessing) return;
         isProcessing = true;
 
+        // 每次扫码立即尝试播放声音
+        playBeep();
+
         showResult("Processing...", "Mengesahkan QR...", "wait");
 
         try {
@@ -260,8 +262,6 @@
                 status: attendanceStatus 
             });
 
-            beepSound.play().catch(e => console.log("Audio play blocked"));
-
             const successMsg = attendanceStatus === "Lewat" ? "Kehadiran Berjaya (Lewat)" : "Kehadiran Berjaya!";
             showResult(studentData.name, successMsg, "success", fullTimeStr);
             
@@ -270,6 +270,13 @@
         } catch (error) {
             showResult("Gagal", error.message, "error");
             setTimeout(resetResultPanel, 2000);
+        }
+    }
+
+    function playBeep() {
+        if (beepSound) {
+            beepSound.currentTime = 0; // 重置进度，防止连扫时没声音
+            beepSound.play().catch(e => console.log("Audio play blocked"));
         }
     }
 
