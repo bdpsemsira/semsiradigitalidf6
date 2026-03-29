@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Semsira Mobile</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --bg: #F2F2F7;
+            --card: rgba(255, 255, 255, 0.8);
+            --border: rgba(200, 200, 200, 0.3);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: #000;
+            overflow-x: hidden;
+        }
+
+        /* Frosted Glass Effect */
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+        }
+
+        .page { display: none; padding: 20px; padding-bottom: 100px; min-height: 100vh; box-sizing: border-box; }
+        .active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Forms */
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid #DDD;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        /* Bottom Nav */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 70px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .nav-item { text-align: center; color: #8E8E93; font-size: 12px; cursor: pointer; }
+        .nav-item.active-nav { color: var(--primary); }
+
+        /* Home Components */
+        #poster-slider {
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+
+        #poster-slider img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 0.8s; }
+        #poster-slider img.show { opacity: 1; }
+
+        .post-card {
+            margin-top: 15px;
+            padding: 15px;
+            border-bottom: 1px solid #EEE;
+        }
+
+        /* QR Page */
+        #qrcode {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            margin: 40px auto;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="page-login" class="page active">
+    <h2 style="text-align:center">Log Masuk</h2>
+    <div class="glass" style="padding:20px">
+        <input type="email" id="login-email" placeholder="Gmail">
+        <input type="password" id="login-pw" placeholder="Kata Laluan">
+        <button onclick="handleLogin()">Log Masuk</button>
+        <p style="text-align:center; font-size:14px" onclick="showPage('page-register')">Tiada akaun? Daftar sekarang</p>
+    </div>
+</div>
+
+<div id="page-register" class="page">
+    <h2>Pendaftaran Pelajar</h2>
+    <div class="glass" style="padding:20px">
+        <input type="text" id="reg-id" placeholder="No. Matrik (Student ID)*">
+        <input type="number" id="reg-ic" placeholder="No. Kad Pengenalan (IC)*" oninput="autoFillIC(this.value)">
+        <input type="text" id="reg-name" placeholder="Nama Penuh">
+        <select id="reg-class">
+            <option value="">Pilih Kelas</option>
+            <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+            <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
+            <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
+            <option>6 AL GHAZALI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
+            <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
+        </select>
+        <input type="text" id="reg-dob" placeholder="Tarikh Lahir" readonly>
+        <input type="text" id="reg-gender" placeholder="Jantina" readonly>
+        <input type="text" id="reg-address" placeholder="Alamat Rumah">
+        <input type="email" id="reg-email" placeholder="Gmail">
+        <input type="password" id="reg-pw1" placeholder="Kata Laluan">
+        <input type="password" id="reg-pw2" placeholder="Sahkan Kata Laluan">
+        <button onclick="handleRegister()">Daftar</button>
+        <button style="background:#8E8E93" onclick="showPage('page-login')">Kembali</button>
+    </div>
+</div>
+
+<div id="main-app" style="display:none">
+    <div id="tab-home" class="page active">
+        <h3>Utama</h3>
+        <div id="poster-slider" class="glass"></div>
+        <h4>Pengumuman</h4>
+        <div id="announcements-list" class="glass">Memuatkan...</div>
+    </div>
+
+    <div id="tab-scan" class="page" style="text-align:center">
+        <h3>Kehadiran Digital</h3>
+        <p>Sila tunjukkan kod QR ini kepada guru bertugas.</p>
+        <div id="qrcode"></div>
+        <p id="qr-timer" style="font-size:12px; color:#888"></p>
+    </div>
+
+    <div id="tab-account" class="page">
+        <h3>Profil Saya</h3>
+        <div class="glass" style="padding:20px">
+            <label>No. Matrik: <b id="prof-id"></b></label><br><br>
+            <label>Nama: <b id="prof-name"></b></label><br><br>
+            <label>IC: <b id="prof-ic"></b></label><hr>
+            <p>Kemas kini maklumat:</p>
+            <input type="text" id="upd-address" placeholder="Alamat Baru">
+            <select id="upd-class">
+                 <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+                 <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
+                 <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
+                 <option>6 AL GHAZALI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
+                 <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
+            </select>
+            <button onclick="updateProfile()">Simpan Perubahan</button>
+            <button style="background:#FF3B30; margin-top:20px" onclick="handleLogout()">Log Keluar</button>
+        </div>
+    </div>
+
+    <nav class="nav-bar">
+        <div class="nav-item active-nav" onclick="switchTab('tab-home', this)"><i data-lucide="home"></i><div>Utama</div></div>
+        <div class="nav-item" onclick="switchTab('tab-scan', this)"><i data-lucide="qr-code"></i><div>Imbas</div></div>
+        <div class="nav-item" onclick="switchTab('tab-account', this)"><i data-lucide="user"></i><div>Akaun</div></div>
+    </nav>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+        authDomain: "bdpsemsira-5c274.firebaseapp.com",
+        projectId: "bdpsemsira-5c274",
+        storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+        messagingSenderId: "176946808975",
+        appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.currentUserData = null;
+
+    // Logic: Auto-fill IC Data
+    window.autoFillIC = (ic) => {
+        if(ic.length >= 12) {
+            const yy = ic.substring(0,2);
+            const mm = ic.substring(2,4);
+            const dd = ic.substring(4,6);
+            const year = parseInt(yy) > 26 ? "19"+yy : "20"+yy;
+            document.getElementById('reg-dob').value = `${year}/${mm}/${dd}`;
+            
+            const lastDigit = parseInt(ic.charAt(11));
+            document.getElementById('reg-gender').value = (lastDigit % 2 === 0) ? "PEREMPUAN" : "LELAKI";
+        }
+    }
+
+    // Auth Handling
+    window.handleRegister = async () => {
+        const email = document.getElementById('reg-email').value;
+        const pw1 = document.getElementById('reg-pw1').value;
+        const pw2 = document.getElementById('reg-pw2').value;
+        const ic = document.getElementById('reg-ic').value;
+        
+        const pwRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+        if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
+        if(!pwRegex.test(pw1)) return alert("Kata laluan mesti mengandungi Huruf Besar, Kecil, Nombor dan Simbol Khas.");
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
+            const uid = userCredential.user.uid;
+            
+            await setDoc(doc(db, "students", uid), {
+                studentId: document.getElementById('reg-id').value,
+                ic: ic,
+                name: document.getElementById('reg-name').value,
+                className: document.getElementById('reg-class').value,
+                dob: document.getElementById('reg-dob').value,
+                gender: document.getElementById('reg-gender').value,
+                address: document.getElementById('reg-address').value,
+                email: email,
+                createdAt: new Date()
+            });
+
+            alert("Pendaftaran Berjaya!");
+            location.reload();
+        } catch (e) { alert(e.message); }
+    }
+
+    window.handleLogin = async () => {
+        const email = document.getElementById('login-email').value;
+        const pw = document.getElementById('login-pw').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pw);
+        } catch (e) { alert("Gagal Log Masuk: " + e.message); }
+    }
+
+    window.handleLogout = () => signOut(auth).then(() => location.reload());
+
+    // State Observer
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const snap = await getDoc(doc(db, "students", user.uid));
+            if (snap.exists()) {
+                window.currentUserData = snap.data();
+                document.getElementById('page-login').classList.remove('active');
+                document.getElementById('page-register').classList.remove('active');
+                document.getElementById('main-app').style.display = 'block';
+                loadHomeData();
+                setupAccountPage();
+                startQRGenerator();
+            }
+        } else {
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('page-login').classList.add('active');
+        }
+    });
+
+    // GitHub Integration
+    async function loadHomeData() {
+        const repo = "bdpsemsira/bdpsemsira.github.io";
+        try {
+            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all`);
+            const issues = await res.json();
+
+            const slider = document.getElementById('poster-slider');
+            const list = document.getElementById('announcements-list');
+            slider.innerHTML = ""; list.innerHTML = "";
+
+            issues.forEach(issue => {
+                const labels = issue.labels.map(l => l.name);
+                
+                if(labels.includes('poster')) {
+                    const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/);
+                    if(imgMatch) {
+                        const img = document.createElement('img');
+                        img.src = imgMatch[1];
+                        slider.appendChild(img);
+                    }
+                }
+
+                if(labels.includes('post')) {
+                    list.innerHTML += `<div class="post-card"><b>${issue.title}</b><p style="font-size:13px">${issue.body.substring(0,100)}...</p></div>`;
+                }
+            });
+
+            // Slider Logic
+            let current = 0;
+            const imgs = slider.querySelectorAll('img');
+            if(imgs.length > 0) {
+                imgs[0].classList.add('show');
+                setInterval(() => {
+                    imgs[current].classList.remove('show');
+                    current = (current + 1) % imgs.length;
+                    imgs[current].classList.add('show');
+                }, 5000);
+            }
+        } catch (e) { console.error("GitHub Error", e); }
+    }
+
+    // QR Code Generator
+    let qr;
+    function startQRGenerator() {
+        const qrContainer = document.getElementById('qrcode');
+        qr = new QRCode(qrContainer, { width: 200, height: 200 });
+        
+        setInterval(() => {
+            const now = new Date();
+            const timestamp = now.getFullYear() + 
+                String(now.getMonth() + 1).padStart(2, '0') + 
+                String(now.getDate()).padStart(2, '0') + 
+                String(now.getHours()).padStart(2, '0') + 
+                String(now.getMinutes()).padStart(2, '0') + 
+                String(now.getSeconds()).padStart(2, '0');
+            
+            const codeData = `${window.currentUserData.ic}|${timestamp}`;
+            qr.makeCode(codeData);
+            document.getElementById('qr-timer').innerText = "Dikemas kini pada: " + now.toLocaleTimeString();
+        }, 5000);
+    }
+
+    // Profile & UI Updates
+    function setupAccountPage() {
+        const d = window.currentUserData;
+        document.getElementById('prof-id').innerText = d.studentId;
+        document.getElementById('prof-name').innerText = d.name;
+        document.getElementById('prof-ic').innerText = d.ic;
+        document.getElementById('upd-address').value = d.address;
+        document.getElementById('upd-class').value = d.className;
+    }
+
+    window.updateProfile = async () => {
+        const user = auth.currentUser;
+        await updateDoc(doc(db, "students", user.uid), {
+            address: document.getElementById('upd-address').value,
+            className: document.getElementById('upd-class').value
+        });
+        alert("Profil dikemas kini!");
+    }
+
+    window.showPage = (id) => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    window.switchTab = (tabId, el) => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+        document.getElementById(tabId).classList.add('active');
+        el.classList.add('active-nav');
+    }
+
+    lucide.createIcons();
+</script>
+</body>
+</html>
