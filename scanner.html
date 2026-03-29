@@ -26,10 +26,19 @@
 
         .header {
             width: 100%;
-            padding: 20px;
+            padding: 20px 0;
             text-align: center;
             background: white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 新增 Logo 样式 */
+        .header img {
+            width: 80px;
+            height: 80px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .camera-controls {
@@ -88,6 +97,7 @@
 <body>
 
 <div class="header">
+    <img src="/semsira.png" alt="Logo Semsira">
     <h2 style="margin:0">Semsira Attendance</h2>
     <p style="font-size:14px; color:#888">Sila pilih kamera dan imbas Kod QR</p>
 </div>
@@ -167,15 +177,13 @@
             const scannedIC = parts[0];
             const qrTimeStr = parts[1];
 
-            // 1. 验证二维码是否在 10s 内生成 (防作弊)
             if (!validateTime(qrTimeStr, 10)) {
                 throw new Error("Kod Tamat Tempoh. Sila guna kod baru.");
             }
 
-            // 2. 获取考勤设置 (Late Time & Absent Time)
             const timeSettingsSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
-            let lateThreshold = "07:30"; // 默认
-            let absentThreshold = "08:30"; // 默认
+            let lateThreshold = "07:30"; 
+            let absentThreshold = "08:30"; 
 
             if (timeSettingsSnap.exists()) {
                 lateThreshold = timeSettingsSnap.data().lateTime;
@@ -185,18 +193,15 @@
             const now = new Date();
             const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-            // 3. 判断是否已经超过“不出席”时间
             if (currentTimeStr > absentThreshold) {
                 throw new Error(`Masa tamat (${absentThreshold}). Anda dikira Tidak Hadir.`);
             }
 
-            // 4. 判断是 Hadir 还是 Lewat
             let attendanceStatus = "Hadir";
             if (currentTimeStr > lateThreshold) {
                 attendanceStatus = "Lewat";
             }
 
-            // 5. 获取今日日期并检查重复
             const todayStr = now.toISOString().split('T')[0];
             const checkQuery = query(
                 collection(db, "attendanceLogs"), 
@@ -209,7 +214,6 @@
                 throw new Error("Anda sudah melakukan pendaftaran masuk hari ini.");
             }
 
-            // 6. 获取学生信息并保存记录
             const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
             const querySnapshot = await getDocs(q);
 
@@ -228,7 +232,7 @@
                 timestamp: serverTimestamp(),
                 date: todayStr,
                 timeFull: fullTimeStr,
-                status: attendanceStatus // "Hadir" 或 "Lewat"
+                status: attendanceStatus 
             });
 
             const successMsg = attendanceStatus === "Lewat" ? "Kehadiran Berjaya (Lewat)" : "Kehadiran Berjaya!";
