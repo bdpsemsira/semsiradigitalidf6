@@ -1,7 +1,7 @@
 {
   "name": "Semsira Attendance",
   "short_name": "SEMSIRA DigitalID",
-  "start_url": "/index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F2F2F7",
@@ -9,13 +9,13 @@
   "description": "Sistem Kehadiran Digital SMK Syed Sirajuddin",
   "icons": [
     {
-      "src": "/semsiraicon.png",
+      "src": "semsiraicon.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/semsiraicon.png",
+      "src": "semsiraicon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
