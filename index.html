@@ -261,10 +261,9 @@
 
     window.currentUserData = null;
 
-    // --- 新增：Telegram 报警函数 ---
     async function sendTelegramAlert(userData) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
-        const chatId = "@semsirasecurity29482910472"; // 请确保机器人已被添加至此频道并设为管理员
+        const chatId = "@semsirasecurity29482910472"; 
         
         const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan)*\n\n` +
                         `Pelajar: *${userData.name}*\n` +
@@ -304,9 +303,7 @@
         } 
         
         if (userData.registeredDeviceId !== deviceId) {
-            // 在警告并退出前发送通知
             await sendTelegramAlert(userData);
-            
             alert("AMARAN KESELAMATAN:\nAkaun ini telah terikat pada peranti lain.\n\nSila gunakan peranti asal anda atau hubungi guru untuk reset.");
             handleLogout();
             return false;
@@ -333,7 +330,6 @@
 
     window.addEventListener('median_screenshot', () => {
         if (document.getElementById('tab-scan').classList.contains('active')) {
-            const d = window.currentUserData;
             alert("AMARAN KESELAMATAN!\n\nTangkapan skrin dikesan pada halaman Kod QR.");
         }
     });
@@ -387,11 +383,42 @@
         } catch (e) { alert(e.message); }
     }
 
+    // --- 已更新：添加错误弹窗通知 ---
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
-        try { await signInWithEmailAndPassword(auth, email, pw); } 
-        catch (e) { alert("Gagal Log Masuk: " + e.message); }
+
+        if(!email || !pw) {
+            return alert("Sila masukkan Gmail dan Kata Laluan.");
+        }
+
+        try { 
+            await signInWithEmailAndPassword(auth, email, pw); 
+        } catch (e) { 
+            console.error("Login Error Code:", e.code);
+            // 处理常见的 Firebase Auth 错误代码
+            let errorMsg = "Gagal Log Masuk: ";
+            switch (e.code) {
+                case 'auth/invalid-email':
+                    errorMsg += "Format Gmail tidak sah.";
+                    break;
+                case 'auth/user-not-found':
+                    errorMsg += "Akaun tidak dijumpai. Sila daftar terlebih dahulu.";
+                    break;
+                case 'auth/wrong-password':
+                    errorMsg += "Kata laluan salah. Sila cuba lagi.";
+                    break;
+                case 'auth/invalid-credential':
+                    errorMsg += "Gmail atau Kata laluan salah.";
+                    break;
+                case 'auth/too-many-requests':
+                    errorMsg += "Terlalu banyak percubaan. Sila cuba sebentar lagi.";
+                    break;
+                default:
+                    errorMsg += "Sila pastikan maklumat anda betul.";
+            }
+            alert(errorMsg); 
+        }
     }
 
     window.handleLogout = () => signOut(auth).then(() => location.reload());
