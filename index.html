@@ -260,6 +260,33 @@
 
     window.currentUserData = null;
 
+    // --- 新增功能：设备指纹校验 ---
+    async function verifyDevice(user, userData) {
+        // 生成或获取本地设备 ID (利用 localStorage)
+        let deviceId = localStorage.getItem('semsira_device_id');
+        if (!deviceId) {
+            deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now();
+            localStorage.setItem('semsira_device_id', deviceId);
+        }
+
+        const studentRef = doc(db, "students", user.uid);
+
+        // 如果数据库还没有绑定设备，则进行初次绑定
+        if (!userData.registeredDeviceId) {
+            await updateDoc(studentRef, { registeredDeviceId: deviceId });
+            return true; 
+        } 
+        
+        // 如果数据库已有绑定设备，对比是否一致
+        if (userData.registeredDeviceId !== deviceId) {
+            alert("AMARAN KESELAMATAN:\nAkaun ini telah terikat pada peranti lain.\n\nSila gunakan peranti asal anda atau hubungi guru untuk reset.");
+            handleLogout(); // 强制登出
+            return false;
+        }
+
+        return true;
+    }
+
     // Median 安全指令
     function triggerNativePrivacy(enabled) {
         if (navigator.userAgent.includes('median')) {
@@ -357,7 +384,13 @@
         if (user) {
             const snap = await getDoc(doc(db, "students", user.uid));
             if (snap.exists()) {
-                window.currentUserData = snap.data();
+                const userData = snap.data();
+                
+                // 执行设备指纹校验，校验失败会直接 handleLogout
+                const isVerified = await verifyDevice(user, userData);
+                if (!isVerified) return;
+
+                window.currentUserData = userData;
                 document.getElementById('page-login').classList.remove('active');
                 document.getElementById('page-register').classList.remove('active');
                 document.getElementById('main-app').style.display = 'block';
