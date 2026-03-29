@@ -47,6 +47,11 @@
         .btn-small { padding: 5px 10px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
         .btn-danger { color: #FF3B30; border-color: #FF3B30; }
 
+        /* Time Setup Style */
+        .time-setting-item { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
+        .time-setting-item label { font-size: 14px; font-weight: 500; min-width: 150px; }
+        .time-setting-item input[type="time"] { width: auto; padding: 8px; }
+
         /* Prevent address cell from being too wide */
         .address-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
@@ -69,7 +74,7 @@
 
     <div class="card">
         <h3><i data-lucide="settings"></i> Tetapan Semester Kumpulan</h3>
-        <p style="font-size: 12px; color: #666;">Tetapan ini akan disimpan ke database dan menjadi rujukan utama untuk semua pelajar (termasuk pendaftaran baru).</p>
+        <p style="font-size: 12px; color: #666;">Tetapan ini akan disimpan ke database dan menjadi rujukan utama untuk semua pelajar.</p>
         <div class="group-box">
             <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, Khadijah, Ruqayyah, Sarah, Summayah, Ummukalthom, Zainab)</span>
             <select id="sem-k1">
@@ -90,8 +95,27 @@
     </div>
 
     <div class="card">
+        <h3><i data-lucide="clock"></i> Tetapan Waktu Kehadiran (Global)</h3>
+        <p style="font-size: 12px; color: #666;">Sila tetapkan waktu untuk menentukan status kehadiran pelajar secara automatik.</p>
+        
+        <div class="time-setting-item">
+            <label>Waktu Mula Lewat (Lewat):</label>
+            <input type="time" id="late-time">
+        </div>
+        <p style="font-size: 11px; color: #888; margin: -5px 0 10px 165px;">Pelajar yang scan selepas waktu ini akan ditanda "Lewat".</p>
+
+        <div class="time-setting-item">
+            <label>Waktu Tamat (Tidak Hadir):</label>
+            <input type="time" id="absent-time">
+        </div>
+        <p style="font-size: 11px; color: #888; margin: -5px 0 20px 165px;">Pelajar yang tidak scan sebelum waktu ini dikira "Tidak Hadir".</p>
+
+        <button style="width:100%; background: #34C759;" id="save-time-btn" onclick="saveTimeSettings()">Simpan Tetapan Waktu</button>
+    </div>
+
+    <div class="card">
         <h3><i data-lucide="users"></i> Pengurusan Maklumat Pelajar</h3>
-        <p style="font-size: 12px; color: #666;">* Klik pada mana-mana data pelajar (termasuk Alamat) untuk mengemaskini.</p>
+        <p style="font-size: 12px; color: #666;">* Klik pada mana-mana data pelajar untuk mengemaskini.</p>
         <input type="text" id="search-box" placeholder="Cari Nama atau No. IC..." oninput="filterStudents()" style="width:95%">
         <table id="student-table">
             <thead>
@@ -133,7 +157,8 @@
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
-        if(u === "semsiraadmin" && p === "排位23") {
+        // 已更正密码为 pw123
+        if(u === "semsiraadmin" && p === "pw123") {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
             loadInitialData();
@@ -144,11 +169,11 @@
     };
 
     async function loadInitialData() {
-        await loadSemesterSettings(); // Muat turun tetapan semasa dari DB
+        await loadSemesterSettings(); 
+        await loadTimeSettings(); // 加载考勤时间设置
         await loadStudents();
     }
 
-    // Memuatkan tetapan semester yang tersimpan di DB ke dalam dropdown
     async function loadSemesterSettings() {
         const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
         const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
@@ -156,6 +181,42 @@
         if (k1Snap.exists()) document.getElementById('sem-k1').value = k1Snap.data().semester;
         if (k2Snap.exists()) document.getElementById('sem-k2').value = k2Snap.data().semester;
     }
+
+    // NEW: Load Attendance Time Settings
+    async function loadTimeSettings() {
+        const timeSnap = await getDoc(doc(db, SETTINGS_COLLECTION, "attendance_time"));
+        if (timeSnap.exists()) {
+            const data = timeSnap.data();
+            document.getElementById('late-time').value = data.lateTime || "07:30";
+            document.getElementById('absent-time').value = data.absentTime || "08:30";
+        }
+    }
+
+    // NEW: Save Attendance Time Settings
+    window.saveTimeSettings = async () => {
+        const late = document.getElementById('late-time').value;
+        const absent = document.getElementById('absent-time').value;
+        const btn = document.getElementById('save-time-btn');
+
+        if(!late || !absent) return alert("Sila isi kedua-dua waktu!");
+
+        btn.innerText = "Menyimpan...";
+        btn.disabled = true;
+
+        try {
+            await setDoc(doc(db, SETTINGS_COLLECTION, "attendance_time"), {
+                lateTime: late,
+                absentTime: absent,
+                updatedAt: new Date().toISOString()
+            });
+            alert("Berjaya! Waktu kehadiran global telah dikemaskini.");
+        } catch (e) {
+            alert("Ralat: " + e.message);
+        } finally {
+            btn.innerText = "Simpan Tetapan Waktu";
+            btn.disabled = false;
+        }
+    };
 
     async function loadStudents() {
         const snap = await getDocs(collection(db, STUDENT_COLLECTION));
@@ -225,11 +286,9 @@
         btn.disabled = true;
         
         try {
-            // STEP 1: Simpan sebagai tetapan GLOBAL (Supaya index.html boleh baca)
             await setDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"), { semester: sem1, updatedBy: "admin" });
             await setDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"), { semester: sem2, updatedBy: "admin" });
 
-            // STEP 2: Kemaskini semua pelajar yang sedia ada
             const promises = allStudents.map(s => {
                 let classNameLower = (s.className || "").toLowerCase();
                 let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
