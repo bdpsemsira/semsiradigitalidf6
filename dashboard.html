@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semsira Attendance Dashboard</title>
+    <title>Dashboard Kehadiran Semsira</title>
+    <link rel="icon" type="image/png" href="/semsira.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -20,7 +21,25 @@
             padding: 20px;
         }
 
-        .no-print { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        /* Header Styling with Logo */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-logo img {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+        }
 
         .btn-print {
             background: var(--primary);
@@ -32,6 +51,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: bold;
         }
 
         .dashboard-container {
@@ -56,24 +76,59 @@
             text-align: center;
         }
 
-        th { background-color: #D0E1F9; font-weight: bold; }
-        .summary-row { background-color: #FFEB3B; font-weight: bold; }
-        .footer-row { background-color: #FF9800; color: white; font-weight: bold; }
+        /* Table Coloring */
+        th { 
+            background-color: #D0E1F9 !important; 
+            color: #000;
+            font-weight: bold; 
+            -webkit-print-color-adjust: exact;
+        }
+        .summary-row { 
+            background-color: #FFEB3B !important; 
+            font-weight: bold; 
+            -webkit-print-color-adjust: exact;
+        }
+        .total-label {
+            background-color: #FF9800 !important;
+            color: white !important;
+            -webkit-print-color-adjust: exact;
+        }
 
-        /* 打印样式优化 */
+        /* Print Optimization */
         @media print {
-            .no-print { display: none; }
-            body { padding: 0; background: white; }
-            .dashboard-container { box-shadow: none; }
-            table { font-size: 12px; }
+            @page {
+                margin: 0.5cm; /* 设置页边距，去除浏览器默认Header/Footer */
+            }
+            body { 
+                padding: 20px; 
+                background: white; 
+            }
+            .no-print { 
+                display: none !important; 
+            }
+            .dashboard-container { 
+                box-shadow: none; 
+                padding: 0;
+            }
+            table { 
+                font-size: 11px; 
+            }
+            /* 确保打印时保留颜色 */
+            th, .summary-row, .total-label {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="no-print">
-    <h2>Analisis Kehadiran Murid (Harian)</h2>
-    <button class="btn-print" onclick="window.print()">
+<div class="header-container">
+    <div class="header-logo">
+        <img src="/semsira.png" alt="Logo Semsira">
+        <h2>Analisis Kehadiran Murid (Harian)</h2>
+    </div>
+    <button class="btn-print no-print" onclick="window.print()">
         <i data-lucide="printer"></i> Cetak Laporan
     </button>
 </div>
@@ -93,7 +148,8 @@
         <tbody id="tableBody">
             </tbody>
         <tfoot>
-            <tr id="totalRow" class="summary-row"></tr>
+            <tr id="totalRow" class="summary-row">
+                </tr>
         </tfoot>
     </table>
 </div>
@@ -115,9 +171,8 @@
     const db = getFirestore(app);
 
     async function loadDashboard() {
-        // 1. 获取所有学生以计算每班总人数 (Bilangan Murid)
         const studentSnap = await getDocs(collection(db, "studentInform"));
-        let classMasterData = {}; // { "6 AISHAH": { total: 0, present: 0 } }
+        let classMasterData = {}; 
 
         studentSnap.forEach(doc => {
             const data = doc.data();
@@ -128,7 +183,6 @@
             classMasterData[className].total++;
         });
 
-        // 2. 获取今天的出席记录 (Bil. Hadir)
         const todayStr = new Date().toISOString().split('T')[0];
         const attendQuery = query(collection(db, "attendanceLogs"), where("date", "==", todayStr));
         const attendSnap = await getDocs(attendQuery);
@@ -154,12 +208,11 @@
 
         tableBody.innerHTML = "";
 
-        // 按班级名称排序
         const sortedClasses = Object.keys(data).sort();
 
         sortedClasses.forEach(className => {
             const item = data[className];
-            const percent = ((item.present / item.total) * 100).toFixed(2);
+            const percent = item.total > 0 ? ((item.present / item.total) * 100).toFixed(2) : "0.00";
             
             grandTotalMurid += item.total;
             grandTotalHadir += item.present;
@@ -178,10 +231,9 @@
             tableBody.innerHTML += row;
         });
 
-        // 计算总结行
-        const grandPercent = ((grandTotalHadir / grandTotalMurid) * 100).toFixed(2);
+        const grandPercent = grandTotalMurid > 0 ? ((grandTotalHadir / grandTotalMurid) * 100).toFixed(2) : "0.00";
         totalRow.innerHTML = `
-            <td>JUMLAH KESELURUHAN</td>
+            <td class="total-label">JUMLAH KESELURUHAN</td>
             <td>${grandTotalMurid}</td>
             <td>${grandTotalHadir}</td>
             <td>${grandPercent}%</td>
@@ -206,6 +258,11 @@
             },
             options: {
                 responsive: true,
+                animation: {
+                    onComplete: function () {
+                        // 确保图表加载后再打印时可见
+                    }
+                },
                 scales: {
                     y: { beginAtZero: true, max: 100 }
                 }
