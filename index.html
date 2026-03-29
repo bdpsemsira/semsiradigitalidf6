@@ -21,6 +21,22 @@
             padding: 0;
             color: #000;
             overflow-x: hidden;
+            /* 禁用选中 */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 禁止截图/录屏保护层：当页面失去焦点时模糊 */
+        body.blur-content {
+            filter: blur(20px);
+        }
+
+        /* Logo 样式 */
+        .login-logo {
+            display: block;
+            margin: 20px auto 10px;
+            max-width: 120px;
+            height: auto;
         }
 
         /* Frosted Glass Effect */
@@ -107,9 +123,8 @@
         }
     </style>
 </head>
-<body>
-
-<div id="page-login" class="page active">
+<body oncontextmenu="return false;"> <div id="page-login" class="page active">
+    <img src="/semsira.png" alt="Logo" class="login-logo">
     <h2 style="text-align:center">Log Masuk</h2>
     <div class="glass" style="padding:20px">
         <input type="email" id="login-email" placeholder="Gmail">
@@ -206,6 +221,22 @@
 
     window.currentUserData = null;
 
+    // ----- 禁止截图录屏逻辑 -----
+    document.addEventListener('keydown', (e) => {
+        // 禁止 PrintScreen, F12, Ctrl+Shift+I 等
+        if (e.key === 'PrintScreen' || e.keyCode === 123 || (e.ctrlKey && e.shiftKey && e.keyCode === 73)) {
+            e.preventDefault();
+            alert("Tangkapan skrin dilarang demi keselamatan.");
+        }
+    });
+
+    window.addEventListener('blur', () => {
+        document.body.classList.add('blur-content');
+    });
+    window.addEventListener('focus', () => {
+        document.body.classList.remove('blur-content');
+    });
+
     // Logic: Auto-fill IC Data
     window.autoFillIC = (ic) => {
         if(ic.length >= 12) {
@@ -282,23 +313,26 @@
         }
     });
 
-    // GitHub Integration
+    // GitHub Integration 优化
     async function loadHomeData() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
         try {
-            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all`);
+            // 添加时间戳防止缓存
+            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&t=${new Date().getTime()}`);
             const issues = await res.json();
 
             const slider = document.getElementById('poster-slider');
             const list = document.getElementById('announcements-list');
-            slider.innerHTML = ""; list.innerHTML = "";
+            slider.innerHTML = ""; 
+            list.innerHTML = "";
 
             issues.forEach(issue => {
                 const labels = issue.labels.map(l => l.name);
                 
+                // 优化图片匹配正则：匹配 ![]() 或 <img> 标签
                 if(labels.includes('poster')) {
-                    const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/);
-                    if(imgMatch) {
+                    const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/) || issue.body.match(/src="(.*?)"/);
+                    if(imgMatch && imgMatch[1]) {
                         const img = document.createElement('img');
                         img.src = imgMatch[1];
                         slider.appendChild(img);
@@ -306,31 +340,39 @@
                 }
 
                 if(labels.includes('post')) {
-                    list.innerHTML += `<div class="post-card"><b>${issue.title}</b><p style="font-size:13px">${issue.body.substring(0,100)}...</p></div>`;
+                    list.innerHTML += `<div class="post-card"><b>${issue.title}</b><p style="font-size:13px">${issue.body.replace(/!\[.*?\]\(.*?\)/g, '').substring(0,150)}...</p></div>`;
                 }
             });
 
-            // Slider Logic
+            // Slider 轮播逻辑优化
             let current = 0;
             const imgs = slider.querySelectorAll('img');
             if(imgs.length > 0) {
                 imgs[0].classList.add('show');
-                setInterval(() => {
-                    imgs[current].classList.remove('show');
-                    current = (current + 1) % imgs.length;
-                    imgs[current].classList.add('show');
-                }, 5000);
+                if(imgs.length > 1) {
+                    setInterval(() => {
+                        imgs[current].classList.remove('show');
+                        current = (current + 1) % imgs.length;
+                        imgs[current].classList.add('show');
+                    }, 5000);
+                }
+            } else {
+                slider.innerHTML = "<p style='color:white; text-align:center; padding-top:20%'>Tiada Poster</p>";
             }
-        } catch (e) { console.error("GitHub Error", e); }
+        } catch (e) { 
+            console.error("GitHub Error", e);
+            document.getElementById('announcements-list').innerText = "Gagal memuatkan data.";
+        }
     }
 
     // QR Code Generator
     let qr;
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
+        qrContainer.innerHTML = ""; // 清空
         qr = new QRCode(qrContainer, { width: 200, height: 200 });
         
-        setInterval(() => {
+        const updateQR = () => {
             const now = new Date();
             const timestamp = now.getFullYear() + 
                 String(now.getMonth() + 1).padStart(2, '0') + 
@@ -341,8 +383,11 @@
             
             const codeData = `${window.currentUserData.ic}|${timestamp}`;
             qr.makeCode(codeData);
-            document.getElementById('qr-timer').innerText = "Dikemas kini pada: " + now.toLocaleTimeString();
-        }, 5000);
+            document.getElementById('qr-timer').innerText = "Dikemas kini pada: " + now.toLocaleTimeString('ms-MY');
+        };
+
+        updateQR();
+        setInterval(updateQR, 5000);
     }
 
     // Profile & UI Updates
@@ -357,11 +402,13 @@
 
     window.updateProfile = async () => {
         const user = auth.currentUser;
-        await updateDoc(doc(db, "students", user.uid), {
-            address: document.getElementById('upd-address').value,
-            className: document.getElementById('upd-class').value
-        });
-        alert("Profil dikemas kini!");
+        try {
+            await updateDoc(doc(db, "students", user.uid), {
+                address: document.getElementById('upd-address').value,
+                className: document.getElementById('upd-class').value
+            });
+            alert("Profil dikemas kini!");
+        } catch(e) { alert("Ralat: " + e.message); }
     }
 
     window.showPage = (id) => {
