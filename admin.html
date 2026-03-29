@@ -26,13 +26,13 @@
         button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; }
 
         /* Main Content */
-        #admin-content { display: none; max-width: 1000px; margin: 0 auto; }
+        #admin-content { display: none; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .nav-btns { display: flex; gap: 10px; margin-bottom: 20px; }
         .group-box { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; border: 1px solid #eee; text-align: left; font-size: 14px; }
+        th, td { padding: 12px; border: 1px solid #eee; text-align: left; font-size: 13px; }
         th { background: #f9f9f9; }
         
         /* Clickable style */
@@ -46,6 +46,9 @@
 
         .btn-small { padding: 5px 10px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
         .btn-danger { color: #FF3B30; border-color: #FF3B30; }
+
+        /* Prevent address cell from being too wide */
+        .address-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -87,7 +90,7 @@
 
     <div class="card">
         <h3><i data-lucide="users"></i> Pengurusan Maklumat Pelajar</h3>
-        <p style="font-size: 12px; color: #666;">* Klik pada mana-mana data pelajar untuk mengemaskini secara individu.</p>
+        <p style="font-size: 12px; color: #666;">* Klik pada mana-mana data pelajar (termasuk Alamat) untuk mengemaskini.</p>
         <input type="text" id="search-box" placeholder="Cari Nama atau No. IC..." oninput="filterStudents()" style="width:95%">
         <table id="student-table">
             <thead>
@@ -96,6 +99,7 @@
                     <th>Kelas</th>
                     <th>No. IC</th>
                     <th>ID Pelajar</th>
+                    <th>Alamat</th>
                     <th>ID Peranti</th>
                     <th>Tindakan</th>
                 </tr>
@@ -126,7 +130,7 @@
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
-        if(u === "semsiraadmin" && p === "pw123") {
+        if(u === "semsiraadmin" && p === "排位23") {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
             loadStudents();
@@ -157,10 +161,13 @@
         const container = document.getElementById('student-list');
         container.innerHTML = list.map(s => `
             <tr>
-                <td class="clickable" onclick="updateField('${s.id}', 'name', 'Nama', '${s.name}')">${s.name}</td>
-                <td class="clickable" onclick="updateField('${s.id}', 'className', 'Kelas', '${s.className}')">${s.className}</td>
-                <td class="clickable" onclick="updateField('${s.id}', 'ic', 'No. IC', '${s.ic}')">${s.ic}</td>
-                <td class="clickable" onclick="updateField('${s.id}', 'studentId', 'ID Pelajar', '${s.studentId}')">${s.studentId}</td>
+                <td class="clickable" onclick="updateField('${s.id}', 'name', 'Nama', '${s.name || ''}')">${s.name || '-'}</td>
+                <td class="clickable" onclick="updateField('${s.id}', 'className', 'Kelas', '${s.className || ''}')">${s.className || '-'}</td>
+                <td class="clickable" onclick="updateField('${s.id}', 'ic', 'No. IC', '${s.ic || ''}')">${s.ic || '-'}</td>
+                <td class="clickable" onclick="updateField('${s.id}', 'studentId', 'ID Pelajar', '${s.studentId || ''}')">${s.studentId || '-'}</td>
+                <td class="clickable address-cell" onclick="updateField('${s.id}', 'address', 'Alamat', '${s.address || ''}')" title="${s.address || 'Tiada Alamat'}">
+                    ${s.address || 'Klik untuk tambah alamat'}
+                </td>
                 <td><small>${s.registeredDeviceId || 'Tiada'}</small></td>
                 <td>
                     <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Peranti</button>
@@ -169,13 +176,12 @@
         `).join('');
     }
 
-    // --- Dynamic Field Update ---
     window.updateField = async (docId, fieldKey, fieldLabel, currentVal) => {
         const newVal = prompt(`Kemaskini ${fieldLabel}:`, currentVal);
-        if (newVal !== null && newVal !== currentVal && newVal.trim() !== "") {
+        if (newVal !== null && newVal !== currentVal) {
             try {
                 const data = {};
-                data[fieldKey] = newVal;
+                data[fieldKey] = newVal.trim();
                 await updateDoc(doc(db, "studentInform", docId), data);
                 alert(`Berjaya dikemaskini: ${fieldLabel}`);
                 loadStudents();
@@ -187,7 +193,10 @@
 
     window.filterStudents = () => {
         const val = document.getElementById('search-box').value.toLowerCase();
-        const filtered = allStudents.filter(s => s.name.toLowerCase().includes(val) || s.ic.includes(val));
+        const filtered = allStudents.filter(s => 
+            (s.name && s.name.toLowerCase().includes(val)) || 
+            (s.ic && s.ic.includes(val))
+        );
         renderStudents(filtered);
     };
 
@@ -209,7 +218,7 @@
         
         try {
             for (let s of allStudents) {
-                let classNameLower = s.className.toLowerCase();
+                let classNameLower = (s.className || "").toLowerCase();
                 let newSem = K1_CLASSES.some(k => classNameLower.includes(k)) ? sem1 : sem2;
                 await updateDoc(doc(db, "studentInform", s.id), { semester: newSem });
             }
