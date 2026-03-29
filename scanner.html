@@ -158,9 +158,14 @@
     const cameraSelect = document.getElementById('camera-select');
     const beepSound = document.getElementById('beep-sound');
     let isProcessing = false;
-    let currentCameraId = null;
 
     lucide.createIcons();
+
+    // 解决浏览器拦截：监听第一次点击页面时加载音频
+    document.body.addEventListener('click', () => {
+        beepSound.load();
+        console.log("Audio context initialized");
+    }, { once: true });
 
     Html5Qrcode.getCameras().then(cameras => {
         if (cameras && cameras.length > 0) {
@@ -180,7 +185,6 @@
     });
 
     function startScanning(cameraId) {
-        currentCameraId = cameraId;
         html5QrCode.start(
             cameraId, 
             { fps: 10, qrbox: { width: 250, height: 250 } }, 
@@ -192,7 +196,7 @@
         if (isProcessing) return;
         isProcessing = true;
 
-        // 每次扫码立即尝试播放声音
+        // 无论成功失败立即播放
         playBeep();
 
         showResult("Processing...", "Mengesahkan QR...", "wait");
@@ -275,8 +279,15 @@
 
     function playBeep() {
         if (beepSound) {
-            beepSound.currentTime = 0; // 重置进度，防止连扫时没声音
-            beepSound.play().catch(e => console.log("Audio play blocked"));
+            beepSound.pause(); // 停止当前
+            beepSound.currentTime = 0; // 回到起点
+            const playPromise = beepSound.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Audio block active. Please click anywhere on the page once.");
+                });
+            }
         }
     }
 
