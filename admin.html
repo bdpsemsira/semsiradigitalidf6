@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semsira Admin Panel</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --primary: #007AFF; --bg: #F2F2F7; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        
+        /* Login Overlay */
+        #login-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: white; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 1000; 
+        }
+        input { padding: 12px; margin: 10px; border: 1px solid #ccc; border-radius: 8px; width: 250px; }
+        button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; }
+
+        /* Main Content */
+        #admin-content { display: none; max-width: 1000px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .nav-btns { display: flex; gap: 10px; margin-bottom: 20px; }
+        .group-box { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #eee; text-align: left; font-size: 14px; }
+        th { background: #f9f9f9; }
+        .btn-small { padding: 5px 10px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
+        .btn-danger { color: #FF3B30; border-color: #FF3B30; }
+    </style>
+</head>
+<body>
+
+<div id="login-overlay">
+    <h2>Semsira Admin Login</h2>
+    <input type="text" id="admin-user" placeholder="Username">
+    <input type="password" id="admin-pass" placeholder="Password">
+    <button onclick="checkLogin()">Login</button>
+</div>
+
+<div id="admin-content">
+    <div class="nav-btns">
+        <button onclick="location.href='dashboard.html'"><i data-lucide="layout-dashboard"></i> Ke Dashboard</button>
+        <button style="background:#555" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="card">
+        <h3><i data-lucide="settings"></i> Tetapan Semester Kumpulan</h3>
+        <div class="group-box">
+            <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, etc.)</span>
+            <select id="sem-k1">
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+            </select>
+        </div>
+        <div class="group-box">
+            <span><strong>Kumpulan 2:</strong> (Al Farabi, Al Ghazali, etc.)</span>
+            <select id="sem-k2">
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+            </select>
+        </div>
+        <button style="margin-top:15px; width:100%" onclick="saveSemSettings()">Simpan Tetapan Semester</button>
+    </div>
+
+    <div class="card">
+        <h3><i data-lucide="users"></i> Pengurusan Pelajar</h3>
+        <input type="text" id="search-box" placeholder="Cari Nama atau IC..." oninput="filterStudents()" style="width:95%">
+        <table id="student-table">
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Kelas</th>
+                    <th>IC</th>
+                    <th>ID Pelajar</th>
+                    <th>Device ID</th>
+                    <th>Tindakan</th>
+                </tr>
+            </thead>
+            <tbody id="student-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+        authDomain: "bdpsemsira-5c274.firebaseapp.com",
+        projectId: "bdpsemsira-5c274",
+        storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+        messagingSenderId: "176946808975",
+        appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window.db = db; // Expose for functions
+
+    let allStudents = [];
+
+    // --- Authentication ---
+    window.checkLogin = () => {
+        const u = document.getElementById('admin-user').value;
+        const p = document.getElementById('admin-pass').value;
+        if(u === "semsiraadmin" && p === "排位23") {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadStudents();
+            lucide.createIcons();
+        } else {
+            alert("Salah username atau password!");
+        }
+    };
+
+    window.logout = () => location.reload();
+
+    // --- Load Data ---
+    async function loadStudents() {
+        const snap = await getDocs(collection(db, "studentInform"));
+        allStudents = [];
+        snap.forEach(d => allStudents.push({ id: d.id, ...d.data() }));
+        renderStudents(allStudents);
+    }
+
+    function renderStudents(list) {
+        const container = document.getElementById('student-list');
+        container.innerHTML = list.map(s => `
+            <tr>
+                <td>${s.name}</td>
+                <td>${s.className}</td>
+                <td>${s.ic}</td>
+                <td>${s.studentId}</td>
+                <td><small>${s.registeredDeviceId || 'None'}</small></td>
+                <td>
+                    <button class="btn-small" onclick="editStudent('${s.id}')">Edit</button>
+                    <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Device</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // --- Search ---
+    window.filterStudents = () => {
+        const val = document.getElementById('search-box').value.toLowerCase();
+        const filtered = allStudents.filter(s => s.name.toLowerCase().includes(val) || s.ic.includes(val));
+        renderStudents(filtered);
+    };
+
+    // --- Actions ---
+    window.resetDevice = async (docId) => {
+        if(confirm("Padam registeredDeviceId? Pelajar perlu login semula.")) {
+            await updateDoc(doc(db, "studentInform", docId), { registeredDeviceId: "" });
+            alert("Device ID telah dipadam!");
+            loadStudents();
+        }
+    };
+
+    window.editStudent = async (docId) => {
+        const s = allStudents.find(x => x.id === docId);
+        const newIC = prompt("Masukkan IC baru:", s.ic);
+        const newSID = prompt("Masukkan ID Pelajar baru:", s.studentId);
+        
+        if(newIC && newSID) {
+            await updateDoc(doc(db, "studentInform", docId), { ic: newIC, studentId: newSID });
+            alert("Data dikemaskini!");
+            loadStudents();
+        }
+    };
+
+    // --- Grouping Logic ---
+    const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+
+    window.saveSemSettings = async () => {
+        const sem1 = document.getElementById('sem-k1').value;
+        const sem2 = document.getElementById('sem-k2').value;
+        
+        const btn = event.target;
+        btn.innerText = "Processing...";
+        
+        for (let s of allStudents) {
+            let classNameLower = s.className.toLowerCase();
+            let newSem = K1_CLASSES.some(k => classNameLower.includes(k)) ? sem1 : sem2;
+            await updateDoc(doc(db, "studentInform", s.id), { semester: newSem });
+        }
+        
+        alert("Semua班级学期已更新!");
+        btn.innerText = "Simpan Tetapan Semester";
+    };
+
+</script>
+</body>
+</html>
