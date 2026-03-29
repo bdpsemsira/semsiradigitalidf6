@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semsira Attendance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+        }
+
+        body {
+            font-family: -apple-system, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .no-print { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+        .btn-print {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dashboard-container {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        canvas { max-width: 100%; margin-bottom: 30px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th { background-color: #D0E1F9; font-weight: bold; }
+        .summary-row { background-color: #FFEB3B; font-weight: bold; }
+        .footer-row { background-color: #FF9800; color: white; font-weight: bold; }
+
+        /* 打印样式优化 */
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0; background: white; }
+            .dashboard-container { box-shadow: none; }
+            table { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <h2>Analisis Kehadiran Murid (Harian)</h2>
+    <button class="btn-print" onclick="window.print()">
+        <i data-lucide="printer"></i> Cetak Laporan
+    </button>
+</div>
+
+<div class="dashboard-container">
+    <canvas id="attendanceChart" height="100"></canvas>
+
+    <table id="attendanceTable">
+        <thead>
+            <tr>
+                <th>KELAS</th>
+                <th>BILANGAN MURID</th>
+                <th>BIL. HADIR</th>
+                <th>PERATUS KEHADIRAN (%)</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            </tbody>
+        <tfoot>
+            <tr id="totalRow" class="summary-row"></tr>
+        </tfoot>
+    </table>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+        authDomain: "bdpsemsira-5c274.firebaseapp.com",
+        projectId: "bdpsemsira-5c274",
+        storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+        messagingSenderId: "176946808975",
+        appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function loadDashboard() {
+        // 1. 获取所有学生以计算每班总人数 (Bilangan Murid)
+        const studentSnap = await getDocs(collection(db, "studentInform"));
+        let classMasterData = {}; // { "6 AISHAH": { total: 0, present: 0 } }
+
+        studentSnap.forEach(doc => {
+            const data = doc.data();
+            const className = data.className || "Lain-lain";
+            if (!classMasterData[className]) {
+                classMasterData[className] = { total: 0, present: 0 };
+            }
+            classMasterData[className].total++;
+        });
+
+        // 2. 获取今天的出席记录 (Bil. Hadir)
+        const todayStr = new Date().toISOString().split('T')[0];
+        const attendQuery = query(collection(db, "attendanceLogs"), where("date", "==", todayStr));
+        const attendSnap = await getDocs(attendQuery);
+
+        attendSnap.forEach(doc => {
+            const data = doc.data();
+            if (classMasterData[data.className]) {
+                classMasterData[data.className].present++;
+            }
+        });
+
+        updateUI(classMasterData);
+    }
+
+    function updateUI(data) {
+        const tableBody = document.getElementById('tableBody');
+        const totalRow = document.getElementById('totalRow');
+        let labels = [];
+        let percentages = [];
+        
+        let grandTotalMurid = 0;
+        let grandTotalHadir = 0;
+
+        tableBody.innerHTML = "";
+
+        // 按班级名称排序
+        const sortedClasses = Object.keys(data).sort();
+
+        sortedClasses.forEach(className => {
+            const item = data[className];
+            const percent = ((item.present / item.total) * 100).toFixed(2);
+            
+            grandTotalMurid += item.total;
+            grandTotalHadir += item.present;
+
+            labels.push(className);
+            percentages.push(percent);
+
+            const row = `
+                <tr>
+                    <td>${className}</td>
+                    <td>${item.total}</td>
+                    <td>${item.present}</td>
+                    <td>${percent}%</td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
+        });
+
+        // 计算总结行
+        const grandPercent = ((grandTotalHadir / grandTotalMurid) * 100).toFixed(2);
+        totalRow.innerHTML = `
+            <td>JUMLAH KESELURUHAN</td>
+            <td>${grandTotalMurid}</td>
+            <td>${grandTotalHadir}</td>
+            <td>${grandPercent}%</td>
+        `;
+
+        renderChart(labels, percentages);
+        lucide.createIcons();
+    }
+
+    function renderChart(labels, values) {
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Peratus Kehadiran (%)',
+                    data: values,
+                    backgroundColor: '#007AFF',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+
+    loadDashboard();
+</script>
+</body>
+</html>
