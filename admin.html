@@ -70,7 +70,7 @@
     <div class="card">
         <h3><i data-lucide="settings"></i> Tetapan Semester Kumpulan</h3>
         <div class="group-box">
-            <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, dll.)</span>
+            <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, Khadijah, Ruqayyah, Sarah, Summayah, Ummukalthom, Zainab)</span>
             <select id="sem-k1">
                 <option value="1">Semester 1</option>
                 <option value="2">Semester 2</option>
@@ -78,14 +78,14 @@
             </select>
         </div>
         <div class="group-box">
-            <span><strong>Kumpulan 2:</strong> (Al Farabi, Al Ghazali, dll.)</span>
+            <span><strong>Kumpulan 2:</strong> (Al Farabi, Al Ghazali, Al Khawarizmi, dll.)</span>
             <select id="sem-k2">
                 <option value="1">Semester 1</option>
                 <option value="2">Semester 2</option>
                 <option value="3">Semester 3</option>
             </select>
         </div>
-        <button style="margin-top:15px; width:100%" onclick="saveSemSettings()">Simpan Tetapan Semester</button>
+        <button style="margin-top:15px; width:100%" id="save-sem-btn" onclick="saveSemSettings()">Simpan Tetapan Semester</button>
     </div>
 
     <div class="card">
@@ -208,25 +208,38 @@
         }
     };
 
+    // --- Pembaikan Logik Kumpulan ---
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+    const K2_CLASSES = ['farabi', 'ghazali', 'khawarizmi']; // Tambah keyword K2 di sini
 
     window.saveSemSettings = async () => {
         const sem1 = document.getElementById('sem-k1').value;
         const sem2 = document.getElementById('sem-k2').value;
-        const btn = event.target;
+        const btn = document.getElementById('save-sem-btn');
         btn.innerText = "Sedang diproses...";
+        btn.disabled = true;
         
         try {
-            for (let s of allStudents) {
+            const promises = allStudents.map(s => {
                 let classNameLower = (s.className || "").toLowerCase();
-                let newSem = K1_CLASSES.some(k => classNameLower.includes(k)) ? sem1 : sem2;
-                await updateDoc(doc(db, "studentInform", s.id), { semester: newSem });
-            }
-            alert("Semua semester kelas telah dikemaskini!");
+                
+                // Jika dalam senarai K1, guna sem1. Jika dalam senarai K2 (atau selain K1), guna sem2.
+                let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
+                let newSem = isK1 ? sem1 : sem2;
+                
+                return updateDoc(doc(db, "studentInform", s.id), { semester: newSem });
+            });
+
+            await Promise.all(promises);
+            alert("Berjaya! Semua semester Kumpulan 1 dan Kumpulan 2 telah dikemaskini.");
+            loadStudents();
         } catch (e) {
+            console.error(e);
             alert("Ralat semasa menyimpan tetapan semester.");
+        } finally {
+            btn.innerText = "Simpan Tetapan Semester";
+            btn.disabled = false;
         }
-        btn.innerText = "Simpan Tetapan Semester";
     };
 
 </script>
