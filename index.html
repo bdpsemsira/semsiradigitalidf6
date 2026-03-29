@@ -71,6 +71,18 @@
             border-radius: 15px;
         }
 
+        /* 只在 Utama (tab-home) 页面缩小并靠左 */
+        #tab-home .app-header-logo {
+            margin: 10px 0; /* 取消居中，设置上下间距 */
+            max-width: 45px; /* 缩小 Logo */
+            border-radius: 10px;
+        }
+
+        #tab-home h3 {
+            text-align: left !important; /* 标题也跟着左对齐更协调 */
+            margin-bottom: 20px;
+        }
+
         .glass {
             background: var(--card);
             backdrop-filter: blur(15px);
@@ -206,7 +218,7 @@
 <div id="main-app" style="display:none">
     <div id="tab-home" class="page active">
         <img src="/semsira.png" alt="Logo" class="app-header-logo">
-        <h3 style="text-align:center">Utama</h3>
+        <h3>Utama</h3>
         <div id="poster-slider" class="glass"></div>
         <h4>Pengumuman</h4>
         <div id="announcements-list" class="glass">Memuatkan...</div>
