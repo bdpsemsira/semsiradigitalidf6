@@ -258,7 +258,7 @@
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
             <h3>Kehadiran Digital</h3>
         </div>
-        <p>Sila tunjukkan kod QR ini kepada guru bertugas.</p>
+        <p id="scan-instruction">Sila tunjukkan kod QR ini kepada guru bertugas.</p>
         <div id="qrcode"></div>
         <p id="qr-timer" style="font-size:12px; color:#888"></p>
 
@@ -339,6 +339,7 @@
     window.currentUserData = null;
     let qrUpdateInterval = null;
     let isAttendedToday = false;
+    let attendanceListenerUnsubscribe = null;
 
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
@@ -352,13 +353,11 @@
         return isK1 ? semK1 : semK2;
     }
 
-    // --- 增强版警报系统 ---
     async function sendTelegramAlert(userData, currentUid) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
         const chatId = "@semsirasecurity29482910472"; 
         let currentDeviceId = localStorage.getItem('semsira_device_id');
         
-        // 查找是谁拥有这个设备
         let intruderData = { name: "Tidak Dikenali", studentId: "Unknown", ic: "Unknown", className: "Unknown", phone: "undefined" };
         try {
             const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
@@ -485,7 +484,10 @@
         catch (e) { alert("Log Masuk Gagal: " + e.message); }
     }
 
-    window.handleLogout = () => signOut(auth).then(() => location.reload());
+    window.handleLogout = () => {
+        if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
+        signOut(auth).then(() => location.reload());
+    }
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -500,8 +502,10 @@
                 applyWatermark(`${userData.name} (${userData.ic})`);
                 loadHomeData();
                 setupAccountPage();
-                startQRGenerator();
+                
+                // 实时监听器启动
                 listenToAttendance(userData.ic);
+                startQRGenerator();
             }
         } else {
             document.getElementById('main-app').style.display = 'none';
@@ -510,9 +514,11 @@
     });
 
     function listenToAttendance(studentIc) {
-        const todayStr = new Date().toLocaleDateString('en-CA');
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
         const statusEl = document.getElementById('attendance-status');
         const timeEl = document.getElementById('attendance-time');
+        const qrcEl = document.getElementById('qrcode');
+        const instEl = document.getElementById('scan-instruction');
 
         const q = query(
             collection(db, ATTENDANCE_LOGS),
@@ -520,15 +526,32 @@
             where("date", "==", todayStr)
         );
 
-        onSnapshot(q, (snapshot) => {
+        // 如果已经有监听器，先关闭它防止重复
+        if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
+
+        attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
                 const data = snapshot.docs[0].data();
                 const status = data.status;
                 const timestamp = data.timestamp;
+                
                 isAttendedToday = true;
-                if(qrUpdateInterval) clearInterval(qrUpdateInterval);
+                
+                // 停止QR更新
+                if(qrUpdateInterval) {
+                    clearInterval(qrUpdateInterval);
+                    qrUpdateInterval = null;
+                }
+
+                // 实时更新UI
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
+                
+                // 隐藏QR码显示成功
+                qrcEl.style.opacity = "0.3";
+                instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
+                document.getElementById('qr-timer').innerText = "DONE";
+
                 if (timestamp) {
                     const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
                     timeEl.innerText = d.toLocaleString('ms-MY', { 
@@ -541,6 +564,8 @@
                 statusEl.innerText = "TIDAK HADIR";
                 statusEl.className = "status-text status-tidak-hadir";
                 timeEl.innerText = "-- : -- : --";
+                qrcEl.style.opacity = "1";
+                instEl.innerText = "Sila tunjukkan kod QR ini kepada guru bertugas.";
             }
         });
     }
@@ -585,13 +610,17 @@
         qrContainer.innerHTML = "";
         qr = new QRCode(qrContainer, { width: 200, height: 200 });
         const updateQR = () => {
-            if (isAttendedToday) return;
+            if (isAttendedToday) {
+                if(qrUpdateInterval) clearInterval(qrUpdateInterval);
+                return;
+            }
             const now = new Date();
             const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
             qr.makeCode(`${window.currentUserData.ic}|${timestamp}`);
             document.getElementById('qr-timer').innerText = "Update: " + now.toLocaleTimeString('ms-MY');
         };
         updateQR();
+        if(qrUpdateInterval) clearInterval(qrUpdateInterval);
         qrUpdateInterval = setInterval(updateQR, 5000);
     }
 
