@@ -34,10 +34,6 @@
             -webkit-user-select: none;
         }
 
-        body.blur-content {
-            filter: blur(20px);
-        }
-
         #watermark-layer {
             position: fixed;
             top: 0;
@@ -503,7 +499,7 @@
                 loadHomeData();
                 setupAccountPage();
                 
-                // 实时监听器启动
+                // 启动实时监听：通过 attendanceLogs 判断今天是否已到
                 listenToAttendance(userData.ic);
                 startQRGenerator();
             }
@@ -513,12 +509,14 @@
         }
     });
 
+    // 核心修改：实时监听打卡记录，控制二维码状态
     function listenToAttendance(studentIc) {
-        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const todayStr = new Date().toLocaleDateString('en-CA'); // 格式 YYYY-MM-DD
         const statusEl = document.getElementById('attendance-status');
         const timeEl = document.getElementById('attendance-time');
         const qrcEl = document.getElementById('qrcode');
         const instEl = document.getElementById('scan-instruction');
+        const timerEl = document.getElementById('qr-timer');
 
         const q = query(
             collection(db, ATTENDANCE_LOGS),
@@ -526,46 +524,47 @@
             where("date", "==", todayStr)
         );
 
-        // 如果已经有监听器，先关闭它防止重复
         if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
 
         attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
                 const data = snapshot.docs[0].data();
-                const status = data.status;
-                const timestamp = data.timestamp;
-                
                 isAttendedToday = true;
                 
-                // 停止QR更新
+                // 1. 立即停止 QR 定时刷新
                 if(qrUpdateInterval) {
                     clearInterval(qrUpdateInterval);
                     qrUpdateInterval = null;
                 }
 
-                // 实时更新UI
+                // 2. 更新 UI 状态
+                const status = data.status;
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
                 
-                // 隐藏QR码显示成功
+                // 3. 处理二维码显示：变淡并显示成功文本
                 qrcEl.style.opacity = "0.3";
                 instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
-                document.getElementById('qr-timer').innerText = "DONE";
+                timerEl.innerText = "SIGNED IN";
 
+                const timestamp = data.timestamp;
                 if (timestamp) {
                     const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
                     timeEl.innerText = d.toLocaleString('ms-MY', { 
-                        year:'numeric', month:'2-digit', day:'2-digit', 
                         hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false 
                     });
                 }
             } else {
+                // 如果今天还没打卡
                 isAttendedToday = false;
                 statusEl.innerText = "TIDAK HADIR";
                 statusEl.className = "status-text status-tidak-hadir";
                 timeEl.innerText = "-- : -- : --";
                 qrcEl.style.opacity = "1";
                 instEl.innerText = "Sila tunjukkan kod QR ini kepada guru bertugas.";
+                
+                // 确保 QR 刷新在运行
+                if (!qrUpdateInterval) startQRGenerator();
             }
         });
     }
@@ -607,18 +606,23 @@
     let qr;
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
-        qrContainer.innerHTML = "";
-        qr = new QRCode(qrContainer, { width: 200, height: 200 });
+        if (!qr) {
+            qrContainer.innerHTML = "";
+            qr = new QRCode(qrContainer, { width: 200, height: 200 });
+        }
+        
         const updateQR = () => {
+            // 只要打过卡了，就停止刷新
             if (isAttendedToday) {
                 if(qrUpdateInterval) clearInterval(qrUpdateInterval);
                 return;
             }
             const now = new Date();
-            const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
-            qr.makeCode(`${window.currentUserData.ic}|${timestamp}`);
-            document.getElementById('qr-timer').innerText = "Update: " + now.toLocaleTimeString('ms-MY');
+            const ts = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
+            qr.makeCode(`${window.currentUserData.ic}|${ts}`);
+            document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
         };
+
         updateQR();
         if(qrUpdateInterval) clearInterval(qrUpdateInterval);
         qrUpdateInterval = setInterval(updateQR, 5000);
@@ -645,7 +649,7 @@
         const newClass = document.getElementById('upd-class').value;
         const newAddress = document.getElementById('upd-address').value;
 
-        if(!newName || !newId || !newPhone) return alert("Nama, No. Matrik dan No. Telefon tidak boleh kosong!");
+        if(!newName || !newId || !newPhone) return alert("Sila isi semua maklumat!");
 
         try {
             const newSemester = await getSemesterForClass(newClass);
@@ -667,7 +671,7 @@
             
             setupAccountPage();
             applyWatermark(`${newName} (${window.currentUserData.ic})`);
-            alert("Berjaya dikemaskini!");
+            alert("Kemaskini Berjaya!");
         } catch(e) { alert(e.message); }
     }
 
