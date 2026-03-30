@@ -30,12 +30,22 @@
             background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); 
             z-index: 999; padding: 10px 20px; border-bottom: 0.5px solid #d1d1d6;
         }
+        .nav-content-wrapper {
+            max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
+        }
         .nav-btns { 
-            max-width: 1000px; margin: 0 auto; display: flex; gap: 8px; 
-            overflow-x: auto; white-space: nowrap; padding-bottom: 5px;
+            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding-bottom: 5px;
         }
         .nav-btns::-webkit-scrollbar { display: none; }
         .nav-btns button { padding: 8px 16px; font-size: 12px; flex-shrink: 0; }
+        
+        /* Live Clock Style */
+        #live-clock {
+            font-size: 12px; font-weight: 500; color: #1c1c1e; text-align: right;
+            background: rgba(0,0,0,0.05); padding: 6px 12px; border-radius: 8px;
+            font-variant-numeric: tabular-nums; line-height: 1.2;
+        }
+
         .btn-logout { background: var(--danger) !important; }
         .btn-nav-alt { background: white; color: var(--primary); border: 1px solid var(--primary); }
 
@@ -73,13 +83,16 @@
 
 <div id="admin-content">
     <div class="nav-container">
-        <div class="nav-btns">
-            <button onclick="location.href='sks_panel_982x.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
-            <button class="btn-nav-alt" onclick="document.getElementById('section-kehadiran').scrollIntoView()"><i data-lucide="clock"></i> Kehadiran</button>
-            <button class="btn-nav-alt" onclick="document.getElementById('section-guru').scrollIntoView()"><i data-lucide="users"></i> Guru Kelas</button>
-            <button class="btn-nav-alt" onclick="document.getElementById('section-pelajar').scrollIntoView()"><i data-lucide="user-square"></i> Pelajar</button>
-            <button class="btn-nav-alt" onclick="document.getElementById('section-semester').scrollIntoView()"><i data-lucide="layers"></i> Semester</button>
-            <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Log Keluar</button>
+        <div class="nav-content-wrapper">
+            <div class="nav-btns">
+                <button onclick="location.href='sks_panel_982x.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-kehadiran').scrollIntoView()"><i data-lucide="clock"></i> Kehadiran</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-guru').scrollIntoView()"><i data-lucide="users"></i> Guru Kelas</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-pelajar').scrollIntoView()"><i data-lucide="user-square"></i> Pelajar</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-semester').scrollIntoView()"><i data-lucide="layers"></i> Semester</button>
+                <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Log Keluar</button>
+            </div>
+            <div id="live-clock">Memuatkan masa...</div>
         </div>
     </div>
 
@@ -157,6 +170,14 @@
     const STUDENT_COL = "studentInform";
     const TEACHER_COL = "classSettings";
 
+    // --- LIVE CLOCK FUNCTION ---
+    function updateClock() {
+        const now = new Date();
+        const options = { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+        document.getElementById('live-clock').innerText = now.toLocaleString('ms-MY', options).replace(/,/g, '');
+    }
+    setInterval(updateClock, 1000);
+
     window.handleGlobalKeys = (e) => {
         if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
             e.preventDefault(); return false;
@@ -182,6 +203,7 @@
             document.getElementById('admin-content').style.display = 'block';
             loadInitialData();
             lucide.createIcons();
+            updateClock();
         } else { alert("Akses Ditolak!"); }
     };
 
@@ -266,9 +288,8 @@
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir ke semua guru sekarang?")) return;
         
-        // --- UPDATED LOGIC FOR DATE CHECK ---
-        const now = new Date();
-        const todayStr = now.toLocaleDateString('en-CA'); // Gets YYYY-MM-DD
+        // --- FIXED LOGIC: CHECK DATE TO DETERMINE ABSENCE ---
+        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
         
         const teacherSnap = await getDocs(collection(db, TEACHER_COL));
         let teacherMap = {};
@@ -280,16 +301,14 @@
             
             const studentsInClass = allStudents.filter(s => s.className && s.className.toLowerCase().includes(cls.toLowerCase()));
             
-            // Check if lastScanDate exists AND contains TODAY'S date
             const absents = studentsInClass.filter(s => {
                 const isExempted = EXEMPTED_NAMES.includes((s.name || '').toUpperCase());
-                const scannedToday = s.lastScanDate && s.lastScanDate.includes(todayStr);
-                return !isExempted && !scannedToday;
+                // Only mark as present if lastScanDate exists AND contains TODAY'S date
+                const hasScannedToday = s.lastScanDate && s.lastScanDate.includes(today);
+                return !isExempted && !hasScannedToday;
             });
 
-            if(absents.length > 0) { 
-                await sendTelegram(chatId, cls, absents); 
-            }
+            if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
         }
         alert("Proses selesai. Notifikasi telah dihantar.");
     };
