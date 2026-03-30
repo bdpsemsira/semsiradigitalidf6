@@ -143,7 +143,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -165,6 +165,7 @@
     const SETTINGS_COL = "systemSettings";
     const STUDENT_COL = "studentInform";
     const TEACHER_COL = "classSettings";
+    const LOGS_COL = "attendanceLogs";
 
     function updateClock() {
         const now = new Date();
@@ -242,43 +243,50 @@
         }
     };
 
-    // --- 核心修复：支持多种日期格式判定 ---
+    // --- 逻辑修改：基于 attendanceLogs 进行对比判断 ---
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir sekarang?")) return;
         
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = now.getMonth() + 1;
-        const d = now.getDate();
+        const todayStr = new Date().toLocaleDateString('en-CA'); // 获取 YYYY-MM-DD
         
-        // 匹配格式 1: 2026-03-31
-        const todayFormat1 = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; 
-        // 匹配格式 2: 31/3/2026 (Firebase 里的 timeFull 格式)
-        const todayFormat2 = `${d}/${m}/${y}`; 
+        // 1. 获取今天所有已打卡的记录
+        const q = query(collection(db, LOGS_COL), where("date", "==", todayStr));
+        const logsSnap = await getDocs(q);
         
+        // 2. 提取所有已打卡学生的 IC 列表 (转为 Set 提高查询效率)
+        const attendedIcs = new Set();
+        logsSnap.forEach(doc => {
+            attendedIcs.add(doc.data().ic);
+        });
+
+        // 3. 获取教师配置
         const teacherSnap = await getDocs(collection(db, TEACHER_COL));
         let teacherMap = {};
         teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
 
+        // 4. 按班级筛选缺席学生
         for(let cls of ALL_CLASSES) {
             const chatId = teacherMap[cls];
             if(!chatId) continue;
             
-            const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()));
+            // 筛选该班级的学生
+            const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().trim() === cls.toLowerCase().trim());
             
+            // 找出不在 attendedIcs 列表里的学生
             const absents = studentsInClass.filter(s => {
                 const name = (s.name || '').toUpperCase();
-                const lastScan = s.lastScanDate || "";
+                const ic = s.ic || "";
                 
-                // 逻辑判定：如果 lastScanDate 包含今天的任何一种格式，即判定为出席
-                const isPresent = lastScan.includes(todayFormat1) || lastScan.includes(todayFormat2);
-                
+                // 如果是豁免名单或是已打卡，则不计入缺席
+                const isPresent = attendedIcs.has(ic);
                 return !EXEMPTED_NAMES.includes(name) && !isPresent;
             });
 
-            if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
+            if(absents.length > 0) { 
+                await sendTelegram(chatId, cls, absents); 
+            }
         }
-        alert("Laporan telah dihantar!");
+        alert("Laporan telah dihantar berdasarkan log hari ini!");
     };
 
     async function sendTelegram(chatId, cls, list) {
