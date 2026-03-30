@@ -7,8 +7,8 @@
     <link rel="icon" type="image/png" href="/semsira.png">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --primary: #007AFF; --bg: #F2F2F7; --success: #34C759; --danger: #FF3B30; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; }
+        :root { --primary: #007AFF; --bg: #F2F2F7; --success: #34C759; --danger: #FF3B30; --secondary: #8e8e93; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; scroll-behavior: smooth; }
         
         /* Login Overlay */
         #login-overlay { 
@@ -18,14 +18,29 @@
         }
         #login-overlay img { width: 100px; height: 100px; margin-bottom: 20px; border-radius: 22px; }
         input { padding: 12px; margin: 8px; border: 1px solid #ddd; border-radius: 10px; width: 260px; font-size: 14px; }
-        button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
         button:active { transform: scale(0.98); opacity: 0.9; }
 
         /* Main Layout */
-        #admin-content { display: none; max-width: 1000px; margin: 0 auto; }
+        #admin-content { display: none; max-width: 1000px; margin: 0 auto; padding-top: 80px; }
+        
+        /* Fixed Navigation Bar */
+        .nav-container { 
+            position: fixed; top: 0; left: 0; right: 0; 
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); 
+            z-index: 999; padding: 10px 20px; border-bottom: 0.5px solid #d1d1d6;
+        }
+        .nav-btns { 
+            max-width: 1000px; margin: 0 auto; display: flex; gap: 8px; 
+            overflow-x: auto; white-space: nowrap; padding-bottom: 5px;
+        }
+        .nav-btns::-webkit-scrollbar { display: none; }
+        .nav-btns button { padding: 8px 16px; font-size: 12px; flex-shrink: 0; }
+        .btn-logout { background: var(--danger) !important; }
+        .btn-nav-alt { background: white; color: var(--primary); border: 1px solid var(--primary); }
+
         .card { background: white; padding: 24px; border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 24px; }
         .card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; color: #1c1c1e; }
-        .nav-btns { display: flex; gap: 12px; margin-bottom: 24px; }
         .group-box { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f2f2f7; }
         
         /* Table Styles */
@@ -34,7 +49,8 @@
         th { background: #f9f9fb; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
         
         /* Utility */
-        .clickable { cursor: pointer; color: var(--primary); text-decoration: underline dotted; }
+        .clickable { cursor: pointer; color: var(--primary); font-weight: 500; }
+        .clickable:hover { text-decoration: underline; }
         .btn-small { padding: 6px 12px; font-size: 11px; margin: 2px; border-radius: 6px; border: 1px solid #ddd; background: white; }
         .btn-danger { color: var(--danger); border-color: var(--danger); }
         .time-item { display: flex; align-items: center; gap: 15px; margin: 12px 0; }
@@ -56,12 +72,18 @@
 </div>
 
 <div id="admin-content">
-    <div class="nav-btns">
-        <button onclick="location.href='dashboard.html'"><i data-lucide="arrow-left"></i> Dashboard</button>
-        <button style="background:#8e8e93" onclick="logout()">Log Keluar</button>
+    <div class="nav-container">
+        <div class="nav-btns">
+            <button onclick="location.href='sks_panel_982x.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+            <button class="btn-nav-alt" onclick="document.getElementById('section-kehadiran').scrollIntoView()"><i data-lucide="clock"></i> Kehadiran</button>
+            <button class="btn-nav-alt" onclick="document.getElementById('section-guru').scrollIntoView()"><i data-lucide="users"></i> Guru Kelas</button>
+            <button class="btn-nav-alt" onclick="document.getElementById('section-pelajar').scrollIntoView()"><i data-lucide="user-square"></i> Pelajar</button>
+            <button class="btn-nav-alt" onclick="document.getElementById('section-semester').scrollIntoView()"><i data-lucide="layers"></i> Semester</button>
+            <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Log Keluar</button>
+        </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="section-kehadiran">
         <h3><i data-lucide="clock"></i> Tetapan Kehadiran & Notifikasi</h3>
         <div class="time-item">
             <label style="flex:1">Waktu Mula Lewat (Late):</label>
@@ -77,29 +99,29 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="section-guru">
         <h3><i data-lucide="users-2"></i> Pengurusan Guru Kelas</h3>
         <p style="font-size: 12px; color: #8e8e93; margin-bottom: 15px;">Kemaskini Telegram Chat ID untuk menerima senarai nama pelajar yang tidak hadir secara automatik.</p>
-        <div id="teacher-table-container">
-            </div>
+        <div id="teacher-table-container"></div>
         <button style="width:100%; margin-top:15px; background: #5856d6;" onclick="saveTeacherIDs()">Simpan ID Guru</button>
     </div>
 
-    <div class="card">
-        <h3><i data-lucide="layers"></i> Tetapan Semester</h3>
+    <div class="card" id="section-semester">
+        <h3><i data-lucide="layers"></i> Pengurusan Semester</h3>
         <div class="group-box">
-            <span>Kumpulan 1 (Aishah-Zainab)</span>
+            <span>Kumpulan 1 (Sarah, Sumayyah, Khadijah, etc.)</span>
             <select id="sem-k1"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
         </div>
         <div class="group-box">
-            <span>Kumpulan 2 (Lain-lain)</span>
+            <span>Kumpulan 2 (Al Farabi, Al Ghazali, etc.)</span>
             <select id="sem-k2"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
         </div>
         <button style="width:100%; margin-top:15px;" onclick="saveSemSettings()">Kemaskini Semua Pelajar</button>
     </div>
 
-    <div class="card">
-        <h3><i data-lucide="list"></i> Data Pelajar</h3>
+    <div class="card" id="section-pelajar">
+        <h3><i data-lucide="list"></i> Pengurusan Pelajar</h3>
+        <p style="font-size: 11px; color: #8e8e93;">Tip: Klik pada nama pelajar untuk mengemaskini maklumat.</p>
         <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="width:calc(100% - 26px)">
         <table id="student-table">
             <thead>
@@ -126,24 +148,21 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // --- CONFIG & DATA ---
-    const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; // ⚠️ 请换成你的真实 Bot Token
-    const EXEMPTED_NAMES = ["KONG ZI JUN"]; // 被豁免的学生名单（不打卡也不报失踪）
-    const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Summayah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi'];
+    const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
+    const EXEMPTED_NAMES = [""]; 
+    const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Summayah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
     let allStudents = [];
     const SETTINGS_COL = "systemSettings";
     const STUDENT_COL = "studentInform";
     const TEACHER_COL = "classSettings";
 
-    // --- SECURITY ---
     window.handleGlobalKeys = (e) => {
         if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
             e.preventDefault(); return false;
         }
     };
 
-    // --- LOGIN ---
     window.onload = () => {
         if (localStorage.getItem('admin_user') === 'semsiraadmin') {
             document.getElementById('admin-user').value = 'semsiraadmin';
@@ -166,7 +185,6 @@
         } else { alert("Akses Ditolak!"); }
     };
 
-    // --- DATA LOADING ---
     async function loadInitialData() {
         await Promise.all([loadSettings(), loadTeacherSettings(), loadStudents()]);
     }
@@ -206,16 +224,31 @@
     function renderStudents(list) {
         document.getElementById('student-list').innerHTML = list.map(s => `
             <tr>
-                <td class="clickable" onclick="updateField('${s.id}','name','Nama','${s.name||''}')">${s.name || '-'}</td>
+                <td class="clickable" onclick="updateField('${s.id}','name','Nama','${s.name||''}')"><i data-lucide="edit-3" style="width:12px;vertical-align:middle"></i> ${s.name || '-'}</td>
                 <td>${s.className || '-'}</td>
                 <td>${s.ic || '-'}</td>
                 <td>Sem ${s.semester || '1'}</td>
                 <td class="address-cell" title="${s.address||''}">${s.address || '-'}</td>
                 <td><button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset</button></td>
             </tr>`).join('');
+        lucide.createIcons();
     }
 
-    // --- ACTION FUNCTIONS ---
+    // --- NEW: EDIT FIELD FUNCTION ---
+    window.updateField = async (id, field, label, currentVal) => {
+        const newVal = prompt(`Masukkan ${label} baru:`, currentVal);
+        if (newVal !== null && newVal.trim() !== "" && newVal !== currentVal) {
+            try {
+                await updateDoc(doc(db, STUDENT_COL, id), { [field]: newVal.trim() });
+                alert("Data berjaya dikemaskini!");
+                loadStudents(); // Refresh table
+            } catch (e) {
+                alert("Ralat mengemaskini data.");
+                console.error(e);
+            }
+        }
+    };
+
     window.saveTimeSettings = async () => {
         const late = document.getElementById('late-time').value;
         const absent = document.getElementById('absent-time').value;
@@ -233,29 +266,19 @@
 
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir ke semua guru sekarang?")) return;
-        
-        // 获取所有老师 ID
         const teacherSnap = await getDocs(collection(db, TEACHER_COL));
         let teacherMap = {};
         teacherSnap.forEach(d => teacherMap[d.id] = d.data().chatId);
 
-        // 获取今日签到情况（此处假设你有一个 attendance_logs 集合）
-        // 为了演示，我们从 studentInform 里筛选没有 checkIn 标记的人
         for(let cls of ALL_CLASSES) {
             const chatId = teacherMap[cls];
             if(!chatId) continue;
-
             const studentsInClass = allStudents.filter(s => s.className && s.className.toLowerCase().includes(cls.toLowerCase()));
-            
-            // 过滤缺席者：排除在豁免名单里的学生，且没有签到记录的
             const absents = studentsInClass.filter(s => {
-                const isExempted = EXEMPTED_NAMES.includes(s.name.toUpperCase());
-                return !isExempted && !s.lastScanDate; // 逻辑：不是豁免生 且 今天没扫描
+                const isExempted = EXEMPTED_NAMES.includes((s.name || '').toUpperCase());
+                return !isExempted && !s.lastScanDate;
             });
-
-            if(absents.length > 0) {
-                await sendTelegram(chatId, cls, absents);
-            }
+            if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
         }
         alert("Proses selesai. Notifikasi telah dihantar.");
     };
@@ -263,7 +286,6 @@
     async function sendTelegram(chatId, cls, list) {
         const now = new Date();
         const dateStr = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        
         let text = `⚠️ *LAPORAN KEHADIRAN PELAJAR*\n\n`;
         text += `*Kelas:* ${cls.toUpperCase()}\n`;
         text += `*Tarikh:* ${dateStr}\n`;
@@ -282,7 +304,6 @@
         } catch (e) { console.error("Error Telegram:", e); }
     }
 
-    // 原有其他逻辑 (Filter, Update, Reset)
     window.filterStudents = () => {
         const v = document.getElementById('search-box').value.toLowerCase();
         renderStudents(allStudents.filter(s => (s.name||'').toLowerCase().includes(v) || (s.ic||'').includes(v)));
@@ -298,10 +319,12 @@
     window.saveSemSettings = async () => {
         const s1 = document.getElementById('sem-k1').value;
         const s2 = document.getElementById('sem-k2').value;
-        const k1_names = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+        // Kumpulan 1 班级关键词
+        const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
         
         const ps = allStudents.map(s => {
-            let isK1 = k1_names.some(k => (s.className||'').toLowerCase().includes(k));
+            // 如果班级名包含 K1 关键词，则是 K1，否则全是 K2
+            let isK1 = k1_keywords.some(k => (s.className||'').toLowerCase().includes(k));
             return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
         });
         await Promise.all(ps);
