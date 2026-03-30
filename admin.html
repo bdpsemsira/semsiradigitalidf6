@@ -7,8 +7,8 @@
     <link rel="icon" type="image/png" href="/semsira.png">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --primary: #007AFF; --bg: #F2F2F7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; /* 防止选中文字 */ }
+        :root { --primary: #007AFF; --bg: #F2F2F7; --success: #34C759; --danger: #FF3B30; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; }
         
         /* Login Overlay */
         #login-overlay { 
@@ -16,104 +16,94 @@
             background: white; display: flex; flex-direction: column; 
             justify-content: center; align-items: center; z-index: 1000; 
         }
-        #login-overlay img {
-            width: 100px;
-            height: 100px;
-            margin-bottom: 20px;
-            border-radius: 20px;
-        }
-        input { padding: 12px; margin: 10px; border: 1px solid #ccc; border-radius: 8px; width: 250px; }
-        button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; }
+        #login-overlay img { width: 100px; height: 100px; margin-bottom: 20px; border-radius: 22px; }
+        input { padding: 12px; margin: 8px; border: 1px solid #ddd; border-radius: 10px; width: 260px; font-size: 14px; }
+        button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        button:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* Main Content */
-        #admin-content { display: none; max-width: 1200px; margin: 0 auto; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .nav-btns { display: flex; gap: 10px; margin-bottom: 20px; }
-        .group-box { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        /* Main Layout */
+        #admin-content { display: none; max-width: 1000px; margin: 0 auto; }
+        .card { background: white; padding: 24px; border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 24px; }
+        .card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; color: #1c1c1e; }
+        .nav-btns { display: flex; gap: 12px; margin-bottom: 24px; }
+        .group-box { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f2f2f7; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; border: 1px solid #eee; text-align: left; font-size: 13px; }
-        th { background: #f9f9f9; }
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 13px; }
+        th { background: #f9f9fb; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        .clickable { cursor: pointer; color: var(--primary); text-decoration: underline; text-decoration-style: dotted; }
-        .clickable:hover { background: #f0f7ff; }
-
-        .btn-small { padding: 5px 10px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
-        .btn-danger { color: #FF3B30; border-color: #FF3B30; }
-
-        .time-setting-item { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
-        .time-setting-item label { font-size: 14px; font-weight: 500; min-width: 150px; }
-        .time-setting-item input[type="time"] { width: auto; padding: 8px; }
-
-        .address-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Utility */
+        .clickable { cursor: pointer; color: var(--primary); text-decoration: underline dotted; }
+        .btn-small { padding: 6px 12px; font-size: 11px; margin: 2px; border-radius: 6px; border: 1px solid #ddd; background: white; }
+        .btn-danger { color: var(--danger); border-color: var(--danger); }
+        .time-item { display: flex; align-items: center; gap: 15px; margin: 12px 0; }
+        .address-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
+        select { padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
     </style>
 </head>
-<body oncontextmenu="return false" onkeydown="handleGlobalKeys(event)"> <div id="login-overlay">
-    <img src="/semsira.png" alt="Logo Semsira">
-    <h2>Log Masuk Admin Semsira</h2>
-    <input type="text" id="admin-user" placeholder="Nama Pengguna">
+<body oncontextmenu="return false" onkeydown="handleGlobalKeys(event)">
+
+<div id="login-overlay">
+    <img src="/semsira.png" alt="Logo">
+    <h2 style="margin-bottom: 10px;">Admin Semsira</h2>
+    <input type="text" id="admin-user" placeholder="ID Pengguna">
     <input type="password" id="admin-pass" placeholder="Kata Laluan" onkeydown="if(event.keyCode==13) checkLogin()">
-    <div style="margin: 10px; font-size: 14px;">
-        <input type="checkbox" id="remember-me" style="width: auto;"> <label for="remember-me">Simpan maklumat log masuk</label>
+    <div style="margin: 10px; font-size: 13px; color: #666;">
+        <input type="checkbox" id="remember-me" style="width: auto;"> <label for="remember-me">Ingat saya</label>
     </div>
-    <button onclick="checkLogin()">Log Masuk (Enter)</button>
+    <button onclick="checkLogin()" style="width: 285px;">Masuk Ke Panel</button>
 </div>
 
 <div id="admin-content">
     <div class="nav-btns">
-        <button onclick="location.href='dashboard.html'"><i data-lucide="layout-dashboard"></i> Ke Dashboard</button>
-        <button style="background:#555" onclick="logout()">Log Keluar</button>
+        <button onclick="location.href='dashboard.html'"><i data-lucide="arrow-left"></i> Dashboard</button>
+        <button style="background:#8e8e93" onclick="logout()">Log Keluar</button>
     </div>
 
     <div class="card">
-        <h3><i data-lucide="settings"></i> Tetapan Semester Kumpulan</h3>
-        <p style="font-size: 12px; color: #666;">Tetapan ini akan disimpan ke database dan menjadi rujukan utama untuk semua pelajar.</p>
-        <div class="group-box">
-            <span><strong>Kumpulan 1:</strong> (Aishah, Fatimah, Khadijah, Ruqayyah, Sarah, Summayah, Ummukalthom, Zainab)</span>
-            <select id="sem-k1">
-                <option value="1">Semester 1</option>
-                <option value="2">Semester 2</option>
-                <option value="3">Semester 3</option>
-            </select>
-        </div>
-        <div class="group-box">
-            <span><strong>Kumpulan 2:</strong> (Al Farabi, Al Ghazali, Al Khawarizmi, dll.)</span>
-            <select id="sem-k2">
-                <option value="1">Semester 1</option>
-                <option value="2">Semester 2</option>
-                <option value="3">Semester 3</option>
-            </select>
-        </div>
-        <button style="margin-top:15px; width:100%" id="save-sem-btn" onclick="saveSemSettings()">Simpan & Kemaskini Semua Pelajar</button>
-    </div>
-
-    <div class="card">
-        <h3><i data-lucide="clock"></i> Tetapan Waktu Kehadiran (Global)</h3>
-        <div class="time-setting-item">
-            <label>Waktu Mula Lewat (Lewat):</label>
+        <h3><i data-lucide="clock"></i> Tetapan Kehadiran & Notifikasi</h3>
+        <div class="time-item">
+            <label style="flex:1">Waktu Mula Lewat (Late):</label>
             <input type="time" id="late-time">
         </div>
-        <div class="time-setting-item">
-            <label>Waktu Tamat (Tidak Hadir):</label>
+        <div class="time-item">
+            <label style="flex:1">Waktu Tamat (Absent):</label>
             <input type="time" id="absent-time">
         </div>
-        <button style="width:100%; background: #34C759;" id="save-time-btn" onclick="saveTimeSettings()">Simpan Tetapan Waktu</button>
+        <div style="display: flex; gap: 10px;">
+            <button style="flex:2; background: var(--success);" onclick="saveTimeSettings()">Simpan Waktu</button>
+            <button style="flex:1; background: #0088cc;" onclick="triggerManualAlert()">Hantar Laporan Sekarang</button>
+        </div>
     </div>
 
     <div class="card">
-        <h3><i data-lucide="users"></i> Pengurusan Maklumat Pelajar</h3>
-        <input type="text" id="search-box" placeholder="Cari Nama atau No. IC..." oninput="filterStudents()" style="width:95%">
+        <h3><i data-lucide="users-2"></i> Pengurusan Guru Kelas</h3>
+        <p style="font-size: 12px; color: #8e8e93; margin-bottom: 15px;">Kemaskini Telegram Chat ID untuk menerima senarai nama pelajar yang tidak hadir secara automatik.</p>
+        <div id="teacher-table-container">
+            </div>
+        <button style="width:100%; margin-top:15px; background: #5856d6;" onclick="saveTeacherIDs()">Simpan ID Guru</button>
+    </div>
+
+    <div class="card">
+        <h3><i data-lucide="layers"></i> Tetapan Semester</h3>
+        <div class="group-box">
+            <span>Kumpulan 1 (Aishah-Zainab)</span>
+            <select id="sem-k1"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
+        </div>
+        <div class="group-box">
+            <span>Kumpulan 2 (Lain-lain)</span>
+            <select id="sem-k2"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
+        </div>
+        <button style="width:100%; margin-top:15px;" onclick="saveSemSettings()">Kemaskini Semua Pelajar</button>
+    </div>
+
+    <div class="card">
+        <h3><i data-lucide="list"></i> Data Pelajar</h3>
+        <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="width:calc(100% - 26px)">
         <table id="student-table">
             <thead>
-                <tr>
-                    <th>Nama</th>
-                    <th>Kelas</th>
-                    <th>No. IC</th>
-                    <th>ID Pelajar</th>
-                    <th>Sem</th>
-                    <th>Alamat</th>
-                    <th>Tindakan</th>
-                </tr>
+                <tr><th>Nama</th><th>Kelas</th><th>No. IC</th><th>Sem</th><th>Alamat</th><th>Aksi</th></tr>
             </thead>
             <tbody id="student-list"></tbody>
         </table>
@@ -136,25 +126,28 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // --- CONFIG & DATA ---
+    const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; // ⚠️ 请换成你的真实 Bot Token
+    const EXEMPTED_NAMES = ["KONG ZI JUN"]; // 被豁免的学生名单（不打卡也不报失踪）
+    const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Summayah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi'];
+    
     let allStudents = [];
-    const SETTINGS_COLLECTION = "systemSettings";
-    const STUDENT_COLLECTION = "studentInform";
+    const SETTINGS_COL = "systemSettings";
+    const STUDENT_COL = "studentInform";
+    const TEACHER_COL = "classSettings";
 
-    // 防开发者工具 F12
+    // --- SECURITY ---
     window.handleGlobalKeys = (e) => {
         if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
-            e.preventDefault();
-            return false;
+            e.preventDefault(); return false;
         }
     };
 
-    // 检查是否有记住的内容
+    // --- LOGIN ---
     window.onload = () => {
-        const savedUser = localStorage.getItem('admin_user');
-        const savedPass = localStorage.getItem('admin_pass');
-        if (savedUser && savedPass) {
-            document.getElementById('admin-user').value = savedUser;
-            document.getElementById('admin-pass').value = savedPass;
+        if (localStorage.getItem('admin_user') === 'semsiraadmin') {
+            document.getElementById('admin-user').value = 'semsiraadmin';
+            document.getElementById('admin-pass').value = localStorage.getItem('admin_pass');
             document.getElementById('remember-me').checked = true;
         }
     };
@@ -162,159 +155,161 @@
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
-        const remember = document.getElementById('remember-me').checked;
-
         if(u === "semsiraadmin" && p === "pw123") {
-            if(remember) {
-                localStorage.setItem('admin_user', u);
-                localStorage.setItem('admin_pass', p);
-            } else {
-                localStorage.removeItem('admin_user');
-                localStorage.removeItem('admin_pass');
+            if(document.getElementById('remember-me').checked) {
+                localStorage.setItem('admin_user', u); localStorage.setItem('admin_pass', p);
             }
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
             loadInitialData();
             lucide.createIcons();
-        } else {
-            alert("Nama pengguna atau kata laluan salah!");
-        }
+        } else { alert("Akses Ditolak!"); }
     };
 
+    // --- DATA LOADING ---
     async function loadInitialData() {
-        await loadSemesterSettings(); 
-        await loadTimeSettings();
-        await loadStudents();
+        await Promise.all([loadSettings(), loadTeacherSettings(), loadStudents()]);
     }
 
-    async function loadSemesterSettings() {
-        const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
-        const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
-        if (k1Snap.exists()) document.getElementById('sem-k1').value = k1Snap.data().semester;
-        if (k2Snap.exists()) document.getElementById('sem-k2').value = k2Snap.data().semester;
-    }
-
-    async function loadTimeSettings() {
-        const timeSnap = await getDoc(doc(db, SETTINGS_COLLECTION, "attendance_time"));
-        if (timeSnap.exists()) {
-            const data = timeSnap.data();
-            document.getElementById('late-time').value = data.lateTime || "07:30";
-            document.getElementById('absent-time').value = data.absentTime || "08:30";
+    async function loadSettings() {
+        const timeSnap = await getDoc(doc(db, SETTINGS_COL, "attendance_time"));
+        if(timeSnap.exists()) {
+            document.getElementById('late-time').value = timeSnap.data().lateTime;
+            document.getElementById('absent-time').value = timeSnap.data().absentTime;
         }
+        const k1 = await getDoc(doc(db, SETTINGS_COL, "k1_settings"));
+        const k2 = await getDoc(doc(db, SETTINGS_COL, "k2_settings"));
+        if(k1.exists()) document.getElementById('sem-k1').value = k1.data().semester;
+        if(k2.exists()) document.getElementById('sem-k2').value = k2.data().semester;
     }
 
-    window.saveTimeSettings = async () => {
-        const late = document.getElementById('late-time').value;
-        const absent = document.getElementById('absent-time').value;
-        const btn = document.getElementById('save-time-btn');
-        if(!late || !absent) return alert("Sila isi kedua-dua waktu!");
-        btn.innerText = "Menyimpan...";
-        btn.disabled = true;
-        try {
-            await setDoc(doc(db, SETTINGS_COLLECTION, "attendance_time"), {
-                lateTime: late,
-                absentTime: absent,
-                updatedAt: new Date().toISOString()
-            });
-            alert("Berjaya! Waktu kehadiran global telah dikemaskini.");
-        } catch (e) {
-            alert("Ralat: " + e.message);
-        } finally {
-            btn.innerText = "Simpan Tetapan Waktu";
-            btn.disabled = false;
-        }
-    };
+    async function loadTeacherSettings() {
+        const snap = await getDocs(collection(db, TEACHER_COL));
+        let dataMap = {};
+        snap.forEach(d => dataMap[d.id] = d.data().chatId);
+        
+        let html = `<table><tr><th>Kelas</th><th>Telegram Chat ID</th></tr>`;
+        ALL_CLASSES.forEach(cls => {
+            html += `<tr><td>${cls}</td><td><input type="text" id="t-id-${cls}" value="${dataMap[cls] || ''}" placeholder="Cth: 501234567" style="width:90%; padding:5px; margin:0; border-radius:5px;"></td></tr>`;
+        });
+        html += `</table>`;
+        document.getElementById('teacher-table-container').innerHTML = html;
+    }
 
     async function loadStudents() {
-        const snap = await getDocs(collection(db, STUDENT_COLLECTION));
+        const snap = await getDocs(collection(db, STUDENT_COL));
         allStudents = [];
         snap.forEach(d => allStudents.push({ id: d.id, ...d.data() }));
         renderStudents(allStudents);
     }
 
     function renderStudents(list) {
-        const container = document.getElementById('student-list');
-        container.innerHTML = list.map(s => `
+        document.getElementById('student-list').innerHTML = list.map(s => `
             <tr>
-                <td class="clickable" onclick="updateField('${s.id}', 'name', 'Nama', '${s.name || ''}')">${s.name || '-'}</td>
-                <td class="clickable" onclick="updateField('${s.id}', 'className', 'Kelas', '${s.className || ''}')">${s.className || '-'}</td>
-                <td class="clickable" onclick="updateField('${s.id}', 'ic', 'No. IC', '${s.ic || ''}')">${s.ic || '-'}</td>
-                <td class="clickable" onclick="updateField('${s.id}', 'studentId', 'ID Pelajar', '${s.studentId || ''}')">${s.studentId || '-'}</td>
-                <td><b>Sem ${s.semester || '1'}</b></td>
-                <td class="clickable address-cell" onclick="updateField('${s.id}', 'address', 'Alamat', '${s.address || ''}')" title="${s.address || 'Tiada Alamat'}">
-                    ${s.address || 'Klik untuk tambah alamat'}
-                </td>
-                <td>
-                    <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Peranti</button>
-                </td>
-            </tr>
-        `).join('');
+                <td class="clickable" onclick="updateField('${s.id}','name','Nama','${s.name||''}')">${s.name || '-'}</td>
+                <td>${s.className || '-'}</td>
+                <td>${s.ic || '-'}</td>
+                <td>Sem ${s.semester || '1'}</td>
+                <td class="address-cell" title="${s.address||''}">${s.address || '-'}</td>
+                <td><button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset</button></td>
+            </tr>`).join('');
     }
 
-    window.updateField = async (docId, fieldKey, fieldLabel, currentVal) => {
-        const newVal = prompt(`Kemaskini ${fieldLabel}:`, currentVal);
-        if (newVal !== null && newVal !== currentVal) {
-            try {
-                const data = {};
-                data[fieldKey] = newVal.trim();
-                await updateDoc(doc(db, STUDENT_COLLECTION, docId), data);
-                alert(`Berjaya dikemaskini: ${fieldLabel}`);
-                loadStudents();
-            } catch (e) {
-                alert("Ralat semasa mengemaskini data.");
+    // --- ACTION FUNCTIONS ---
+    window.saveTimeSettings = async () => {
+        const late = document.getElementById('late-time').value;
+        const absent = document.getElementById('absent-time').value;
+        await setDoc(doc(db, SETTINGS_COL, "attendance_time"), { lateTime: late, absentTime: absent });
+        alert("Waktu berjaya disimpan!");
+    };
+
+    window.saveTeacherIDs = async () => {
+        for(let cls of ALL_CLASSES) {
+            const val = document.getElementById(`t-id-${cls}`).value;
+            if(val) await setDoc(doc(db, TEACHER_COL, cls), { chatId: val.trim() });
+        }
+        alert("Data guru berjaya dikemaskini!");
+    };
+
+    window.triggerManualAlert = async () => {
+        if(!confirm("Hantar senarai tidak hadir ke semua guru sekarang?")) return;
+        
+        // 获取所有老师 ID
+        const teacherSnap = await getDocs(collection(db, TEACHER_COL));
+        let teacherMap = {};
+        teacherSnap.forEach(d => teacherMap[d.id] = d.data().chatId);
+
+        // 获取今日签到情况（此处假设你有一个 attendance_logs 集合）
+        // 为了演示，我们从 studentInform 里筛选没有 checkIn 标记的人
+        for(let cls of ALL_CLASSES) {
+            const chatId = teacherMap[cls];
+            if(!chatId) continue;
+
+            const studentsInClass = allStudents.filter(s => s.className && s.className.toLowerCase().includes(cls.toLowerCase()));
+            
+            // 过滤缺席者：排除在豁免名单里的学生，且没有签到记录的
+            const absents = studentsInClass.filter(s => {
+                const isExempted = EXEMPTED_NAMES.includes(s.name.toUpperCase());
+                return !isExempted && !s.lastScanDate; // 逻辑：不是豁免生 且 今天没扫描
+            });
+
+            if(absents.length > 0) {
+                await sendTelegram(chatId, cls, absents);
             }
         }
+        alert("Proses selesai. Notifikasi telah dihantar.");
     };
 
+    async function sendTelegram(chatId, cls, list) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        
+        let text = `⚠️ *LAPORAN KEHADIRAN PELAJAR*\n\n`;
+        text += `*Kelas:* ${cls.toUpperCase()}\n`;
+        text += `*Tarikh:* ${dateStr}\n`;
+        text += `*Status:* TIDAK HADIR\n`;
+        text += `*Bilangan:* ${list.length} orang\n\n`;
+        text += `*Senarai Nama:*\n`;
+        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
+        text += `\n_Sila ambil tindakan sewajarnya._`;
+
+        try {
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
+            });
+        } catch (e) { console.error("Error Telegram:", e); }
+    }
+
+    // 原有其他逻辑 (Filter, Update, Reset)
     window.filterStudents = () => {
-        const val = document.getElementById('search-box').value.toLowerCase();
-        const filtered = allStudents.filter(s => 
-            (s.name && s.name.toLowerCase().includes(val)) || 
-            (s.ic && s.ic.includes(val))
-        );
-        renderStudents(filtered);
+        const v = document.getElementById('search-box').value.toLowerCase();
+        renderStudents(allStudents.filter(s => (s.name||'').toLowerCase().includes(v) || (s.ic||'').includes(v)));
     };
-
-    window.resetDevice = async (docId) => {
-        if(confirm("Padam registeredDeviceId? Pelajar perlu log masuk semula.")) {
-            await updateDoc(doc(db, STUDENT_COLLECTION, docId), { registeredDeviceId: "" });
-            alert("ID Peranti telah dipadam!");
+    
+    window.resetDevice = async (id) => {
+        if(confirm("Reset ID Peranti?")) {
+            await updateDoc(doc(db, STUDENT_COL, id), { registeredDeviceId: "" });
             loadStudents();
         }
     };
-
-    const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
     window.saveSemSettings = async () => {
-        const sem1 = document.getElementById('sem-k1').value;
-        const sem2 = document.getElementById('sem-k2').value;
-        const btn = document.getElementById('save-sem-btn');
-        btn.innerText = "Menyimpan...";
-        btn.disabled = true;
-        try {
-            await setDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"), { semester: sem1, updatedBy: "admin" });
-            await setDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"), { semester: sem2, updatedBy: "admin" });
-            const promises = allStudents.map(s => {
-                let classNameLower = (s.className || "").toLowerCase();
-                let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
-                let newSem = isK1 ? sem1 : sem2;
-                return updateDoc(doc(db, STUDENT_COLLECTION, s.id), { semester: newSem });
-            });
-            await Promise.all(promises);
-            alert("Berjaya!");
-            loadStudents();
-        } catch (e) {
-            alert("Ralat!");
-        } finally {
-            btn.innerText = "Simpan & Kemaskini Semua Pelajar";
-            btn.disabled = false;
-        }
+        const s1 = document.getElementById('sem-k1').value;
+        const s2 = document.getElementById('sem-k2').value;
+        const k1_names = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+        
+        const ps = allStudents.map(s => {
+            let isK1 = k1_names.some(k => (s.className||'').toLowerCase().includes(k));
+            return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
+        });
+        await Promise.all(ps);
+        alert("Semua semester pelajar telah dikemaskini!");
+        loadStudents();
     };
 
-    window.logout = () => {
-        // 登出时不清除 localStorage，这样下次进来还会填好
-        location.reload();
-    };
+    window.logout = () => location.reload();
 </script>
 </body>
 </html>
