@@ -37,14 +37,13 @@
             display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding-bottom: 5px; flex: 1;
         }
         .nav-btns::-webkit-scrollbar { display: none; }
-        .nav-btns button { padding: 8px 16px; font-size: 12px; flex-shrink: 0; }
+        .nav-btns button { padding: 8px 16px; font-size: 11px; flex-shrink: 0; }
         
-        /* Live Clock Style */
+        /* Fixed Clock Style */
         #live-clock {
             font-size: 12px; font-weight: 600; color: #1c1c1e; text-align: right;
-            background: rgba(0,122,255,0.1); padding: 8px 15px; border-radius: 10px;
-            font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 15px;
-            border: 1px solid rgba(0,122,255,0.2);
+            background: rgba(0,122,255,0.1); padding: 6px 12px; border-radius: 8px;
+            font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 10px;
         }
 
         .btn-logout { background: var(--danger) !important; }
@@ -113,7 +112,6 @@
 
     <div class="card" id="section-guru">
         <h3><i data-lucide="users-2"></i> Pengurusan Guru Kelas</h3>
-        <p style="font-size: 12px; color: #8e8e93; margin-bottom: 15px;">Kemaskini Telegram Chat ID untuk menerima senarai nama pelajar yang tidak hadir secara automatik.</p>
         <div id="teacher-table-container"></div>
         <button style="width:100%; margin-top:15px; background: #5856d6;" onclick="saveTeacherIDs()">Simpan ID Guru</button>
     </div>
@@ -121,7 +119,7 @@
     <div class="card" id="section-semester">
         <h3><i data-lucide="layers"></i> Pengurusan Semester</h3>
         <div class="group-box">
-            <span>Kumpulan 1 (Sarah, Sumayyah, Khadijah, etc.)</span>
+            <span>Kumpulan 1 (Sarah, Sumayyah, etc.)</span>
             <select id="sem-k1"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
         </div>
         <div class="group-box">
@@ -133,7 +131,6 @@
 
     <div class="card" id="section-pelajar">
         <h3><i data-lucide="list"></i> Pengurusan Pelajar</h3>
-        <p style="font-size: 11px; color: #8e8e93;">Tip: Klik pada nama pelajar untuk mengemaskini maklumat.</p>
         <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="width:calc(100% - 26px)">
         <table id="student-table">
             <thead>
@@ -169,14 +166,10 @@
     const STUDENT_COL = "studentInform";
     const TEACHER_COL = "classSettings";
 
-    // --- 实时时钟：显示 年月日 小时 分钟 星期 ---
     function updateClock() {
         const now = new Date();
-        const days = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
-        const dayName = days[now.getDay()];
-        const dateStr = now.toLocaleDateString('ms-MY', { year: 'numeric', month: '2-digit', day: '2-digit' });
-        const timeStr = now.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        document.getElementById('live-clock').innerText = `${dateStr} (${dayName}) ${timeStr}`;
+        const options = { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+        document.getElementById('live-clock').innerText = now.toLocaleString('ms-MY', options).replace(/,/g, '');
     }
     setInterval(updateClock, 1000);
 
@@ -186,21 +179,10 @@
         }
     };
 
-    window.onload = () => {
-        if (localStorage.getItem('admin_user') === 'semsiraadmin') {
-            document.getElementById('admin-user').value = 'semsiraadmin';
-            document.getElementById('admin-pass').value = localStorage.getItem('admin_pass');
-            document.getElementById('remember-me').checked = true;
-        }
-    };
-
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
         if(u === "semsiraadmin" && p === "pw123") {
-            if(document.getElementById('remember-me').checked) {
-                localStorage.setItem('admin_user', u); localStorage.setItem('admin_pass', p);
-            }
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
             loadInitialData();
@@ -219,23 +201,17 @@
             document.getElementById('late-time').value = timeSnap.data().lateTime;
             document.getElementById('absent-time').value = timeSnap.data().absentTime;
         }
-        const k1 = await getDoc(doc(db, SETTINGS_COL, "k1_settings"));
-        const k2 = await getDoc(doc(db, SETTINGS_COL, "k2_settings"));
-        if(k1.exists()) document.getElementById('sem-k1').value = k1.data().semester;
-        if(k2.exists()) document.getElementById('sem-k2').value = k2.data().semester;
     }
 
     async function loadTeacherSettings() {
         const snap = await getDocs(collection(db, TEACHER_COL));
         let dataMap = {};
         snap.forEach(d => dataMap[d.id] = d.data().chatId);
-        
         let html = `<table><tr><th>Kelas</th><th>Telegram Chat ID</th></tr>`;
         ALL_CLASSES.forEach(cls => {
-            html += `<tr><td>${cls}</td><td><input type="text" id="t-id-${cls}" value="${dataMap[cls] || ''}" placeholder="Cth: 501234567" style="width:90%; padding:5px; margin:0; border-radius:5px;"></td></tr>`;
+            html += `<tr><td>${cls}</td><td><input type="text" id="t-id-${cls}" value="${dataMap[cls] || ''}" style="width:90%;"></td></tr>`;
         });
-        html += `</table>`;
-        document.getElementById('teacher-table-container').innerHTML = html;
+        document.getElementById('teacher-table-container').innerHTML = html + `</table>`;
     }
 
     async function loadStudents() {
@@ -252,7 +228,7 @@
                 <td>${s.className || '-'}</td>
                 <td>${s.ic || '-'}</td>
                 <td>Sem ${s.semester || '1'}</td>
-                <td class="address-cell" title="${s.address||''}">${s.address || '-'}</td>
+                <td class="address-cell">${s.address || '-'}</td>
                 <td><button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset</button></td>
             </tr>`).join('');
         lucide.createIcons();
@@ -260,17 +236,68 @@
 
     window.updateField = async (id, field, label, currentVal) => {
         const newVal = prompt(`Masukkan ${label} baru:`, currentVal);
-        if (newVal !== null && newVal.trim() !== "" && newVal !== currentVal) {
-            try {
-                await updateDoc(doc(db, STUDENT_COL, id), { [field]: newVal.trim() });
-                alert("Data berjaya dikemaskini!");
-                loadStudents();
-            } catch (e) {
-                alert("Ralat mengemaskini data.");
-                console.error(e);
-            }
+        if (newVal && newVal !== currentVal) {
+            await updateDoc(doc(db, STUDENT_COL, id), { [field]: newVal.trim() });
+            loadStudents();
         }
     };
+
+    // --- 核心修复：支持多种日期格式判定 ---
+    window.triggerManualAlert = async () => {
+        if(!confirm("Hantar senarai tidak hadir sekarang?")) return;
+        
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth() + 1;
+        const d = now.getDate();
+        
+        // 匹配格式 1: 2026-03-31
+        const todayFormat1 = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; 
+        // 匹配格式 2: 31/3/2026 (Firebase 里的 timeFull 格式)
+        const todayFormat2 = `${d}/${m}/${y}`; 
+        
+        const teacherSnap = await getDocs(collection(db, TEACHER_COL));
+        let teacherMap = {};
+        teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
+
+        for(let cls of ALL_CLASSES) {
+            const chatId = teacherMap[cls];
+            if(!chatId) continue;
+            
+            const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()));
+            
+            const absents = studentsInClass.filter(s => {
+                const name = (s.name || '').toUpperCase();
+                const lastScan = s.lastScanDate || "";
+                
+                // 逻辑判定：如果 lastScanDate 包含今天的任何一种格式，即判定为出席
+                const isPresent = lastScan.includes(todayFormat1) || lastScan.includes(todayFormat2);
+                
+                return !EXEMPTED_NAMES.includes(name) && !isPresent;
+            });
+
+            if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
+        }
+        alert("Laporan telah dihantar!");
+    };
+
+    async function sendTelegram(chatId, cls, list) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        let text = `⚠️ *LAPORAN KEHADIRAN PELAJAR*\n\n`;
+        text += `*Kelas:* ${cls.toUpperCase()}\n*Tarikh:* ${dateStr}\n*Status:* TIDAK HADIR\n*Bilangan:* ${list.length} orang\n\n`;
+        text += `*Senarai Nama:*\n`;
+        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
+        text += `\n_Sila ambil tindakan sewajarnya._`;
+
+        try {
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
+            });
+        } catch (e) { console.error("Error Telegram:", e); }
+    }
 
     window.saveTimeSettings = async () => {
         const late = document.getElementById('late-time').value;
@@ -286,64 +313,6 @@
         }
         alert("Data guru berjaya dikemaskini!");
     };
-
-    // --- 核心修复：更强大的日期对比逻辑 ---
-    window.triggerManualAlert = async () => {
-        if(!confirm("Hantar senarai tidak hadir ke semua guru sekarang?")) return;
-        
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const d = String(now.getDate()).padStart(2, '0');
-        
-        const todayFormat1 = `${y}-${m}-${d}`; // 2026-03-31
-        const todayFormat2 = `${d}/${m}/${y}`; // 31/03/2026
-        
-        const teacherSnap = await getDocs(collection(db, TEACHER_COL));
-        let teacherMap = {};
-        teacherSnap.forEach(docSnap => teacherMap[docSnap.id] = docSnap.data().chatId);
-
-        for(let cls of ALL_CLASSES) {
-            const chatId = teacherMap[cls];
-            if(!chatId) continue;
-            
-            const studentsInClass = allStudents.filter(s => s.className && s.className.toLowerCase().includes(cls.toLowerCase()));
-            
-            const absents = studentsInClass.filter(s => {
-                const isExempted = EXEMPTED_NAMES.includes((s.name || '').toUpperCase());
-                const lastScan = s.lastScanDate || "";
-                
-                // 检查数据库日期是否包含任何一种今天的格式
-                const isPresentToday = lastScan.includes(todayFormat1) || lastScan.includes(todayFormat2);
-                
-                return !isExempted && !isPresentToday;
-            });
-
-            if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
-        }
-        alert("Proses selesai. Notifikasi telah dihantar.");
-    };
-
-    async function sendTelegram(chatId, cls, list) {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        let text = `⚠️ *LAPORAN KEHADIRAN PELAJAR*\n\n`;
-        text += `*Kelas:* ${cls.toUpperCase()}\n`;
-        text += `*Tarikh:* ${dateStr}\n`;
-        text += `*Status:* TIDAK HADIR\n`;
-        text += `*Bilangan:* ${list.length} orang\n\n`;
-        text += `*Senarai Nama:*\n`;
-        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
-        text += `\n_Sila ambil tindakan sewajarnya._`;
-
-        try {
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
-            });
-        } catch (e) { console.error("Error Telegram:", e); }
-    }
 
     window.filterStudents = () => {
         const v = document.getElementById('search-box').value.toLowerCase();
@@ -361,7 +330,6 @@
         const s1 = document.getElementById('sem-k1').value;
         const s2 = document.getElementById('sem-k2').value;
         const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
-        
         const ps = allStudents.map(s => {
             let isK1 = k1_keywords.some(k => (s.className||'').toLowerCase().includes(k));
             return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
