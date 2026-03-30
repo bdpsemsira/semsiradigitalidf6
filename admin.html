@@ -34,16 +34,17 @@
             max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
         }
         .nav-btns { 
-            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding-bottom: 5px;
+            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding-bottom: 5px; flex: 1;
         }
         .nav-btns::-webkit-scrollbar { display: none; }
         .nav-btns button { padding: 8px 16px; font-size: 12px; flex-shrink: 0; }
         
         /* Live Clock Style */
         #live-clock {
-            font-size: 12px; font-weight: 500; color: #1c1c1e; text-align: right;
-            background: rgba(0,0,0,0.05); padding: 6px 12px; border-radius: 8px;
-            font-variant-numeric: tabular-nums; line-height: 1.2;
+            font-size: 12px; font-weight: 600; color: #1c1c1e; text-align: right;
+            background: rgba(0,122,255,0.1); padding: 8px 15px; border-radius: 10px;
+            font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 15px;
+            border: 1px solid rgba(0,122,255,0.2);
         }
 
         .btn-logout { background: var(--danger) !important; }
@@ -53,12 +54,10 @@
         .card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; color: #1c1c1e; }
         .group-box { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f2f2f7; }
         
-        /* Table Styles */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 10px; overflow: hidden; }
         th, td { padding: 14px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 13px; }
         th { background: #f9f9fb; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        /* Utility */
         .clickable { cursor: pointer; color: var(--primary); font-weight: 500; }
         .clickable:hover { text-decoration: underline; }
         .btn-small { padding: 6px 12px; font-size: 11px; margin: 2px; border-radius: 6px; border: 1px solid #ddd; background: white; }
@@ -92,7 +91,7 @@
                 <button class="btn-nav-alt" onclick="document.getElementById('section-semester').scrollIntoView()"><i data-lucide="layers"></i> Semester</button>
                 <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Log Keluar</button>
             </div>
-            <div id="live-clock">Memuatkan masa...</div>
+            <div id="live-clock">Memuatkan...</div>
         </div>
     </div>
 
@@ -170,11 +169,14 @@
     const STUDENT_COL = "studentInform";
     const TEACHER_COL = "classSettings";
 
-    // --- LIVE CLOCK FUNCTION ---
+    // --- 实时时钟：显示 年月日 小时 分钟 星期 ---
     function updateClock() {
         const now = new Date();
-        const options = { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-        document.getElementById('live-clock').innerText = now.toLocaleString('ms-MY', options).replace(/,/g, '');
+        const days = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+        const dayName = days[now.getDay()];
+        const dateStr = now.toLocaleDateString('ms-MY', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        const timeStr = now.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        document.getElementById('live-clock').innerText = `${dateStr} (${dayName}) ${timeStr}`;
     }
     setInterval(updateClock, 1000);
 
@@ -285,15 +287,21 @@
         alert("Data guru berjaya dikemaskini!");
     };
 
+    // --- 核心修复：更强大的日期对比逻辑 ---
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir ke semua guru sekarang?")) return;
         
-        // --- FIXED LOGIC: CHECK DATE TO DETERMINE ABSENCE ---
-        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        
+        const todayFormat1 = `${y}-${m}-${d}`; // 2026-03-31
+        const todayFormat2 = `${d}/${m}/${y}`; // 31/03/2026
         
         const teacherSnap = await getDocs(collection(db, TEACHER_COL));
         let teacherMap = {};
-        teacherSnap.forEach(d => teacherMap[d.id] = d.data().chatId);
+        teacherSnap.forEach(docSnap => teacherMap[docSnap.id] = docSnap.data().chatId);
 
         for(let cls of ALL_CLASSES) {
             const chatId = teacherMap[cls];
@@ -303,9 +311,12 @@
             
             const absents = studentsInClass.filter(s => {
                 const isExempted = EXEMPTED_NAMES.includes((s.name || '').toUpperCase());
-                // Only mark as present if lastScanDate exists AND contains TODAY'S date
-                const hasScannedToday = s.lastScanDate && s.lastScanDate.includes(today);
-                return !isExempted && !hasScannedToday;
+                const lastScan = s.lastScanDate || "";
+                
+                // 检查数据库日期是否包含任何一种今天的格式
+                const isPresentToday = lastScan.includes(todayFormat1) || lastScan.includes(todayFormat2);
+                
+                return !isExempted && !isPresentToday;
             });
 
             if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
