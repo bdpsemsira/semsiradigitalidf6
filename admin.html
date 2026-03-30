@@ -234,14 +234,13 @@
         lucide.createIcons();
     }
 
-    // --- NEW: EDIT FIELD FUNCTION ---
     window.updateField = async (id, field, label, currentVal) => {
         const newVal = prompt(`Masukkan ${label} baru:`, currentVal);
         if (newVal !== null && newVal.trim() !== "" && newVal !== currentVal) {
             try {
                 await updateDoc(doc(db, STUDENT_COL, id), { [field]: newVal.trim() });
                 alert("Data berjaya dikemaskini!");
-                loadStudents(); // Refresh table
+                loadStudents();
             } catch (e) {
                 alert("Ralat mengemaskini data.");
                 console.error(e);
@@ -266,6 +265,11 @@
 
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir ke semua guru sekarang?")) return;
+        
+        // --- UPDATED LOGIC FOR DATE CHECK ---
+        const now = new Date();
+        const todayStr = now.toLocaleDateString('en-CA'); // Gets YYYY-MM-DD
+        
         const teacherSnap = await getDocs(collection(db, TEACHER_COL));
         let teacherMap = {};
         teacherSnap.forEach(d => teacherMap[d.id] = d.data().chatId);
@@ -273,12 +277,19 @@
         for(let cls of ALL_CLASSES) {
             const chatId = teacherMap[cls];
             if(!chatId) continue;
+            
             const studentsInClass = allStudents.filter(s => s.className && s.className.toLowerCase().includes(cls.toLowerCase()));
+            
+            // Check if lastScanDate exists AND contains TODAY'S date
             const absents = studentsInClass.filter(s => {
                 const isExempted = EXEMPTED_NAMES.includes((s.name || '').toUpperCase());
-                return !isExempted && !s.lastScanDate;
+                const scannedToday = s.lastScanDate && s.lastScanDate.includes(todayStr);
+                return !isExempted && !scannedToday;
             });
-            if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
+
+            if(absents.length > 0) { 
+                await sendTelegram(chatId, cls, absents); 
+            }
         }
         alert("Proses selesai. Notifikasi telah dihantar.");
     };
@@ -319,11 +330,9 @@
     window.saveSemSettings = async () => {
         const s1 = document.getElementById('sem-k1').value;
         const s2 = document.getElementById('sem-k2').value;
-        // Kumpulan 1 班级关键词
         const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
         
         const ps = allStudents.map(s => {
-            // 如果班级名包含 K1 关键词，则是 K1，否则全是 K2
             let isK1 = k1_keywords.some(k => (s.className||'').toLowerCase().includes(k));
             return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
         });
