@@ -173,19 +173,15 @@
 
     lucide.createIcons();
 
-    // 核心改进：在按钮点击中执行多重解锁
     startBtn.addEventListener('click', function() {
-        // 1. 尝试播放并立即暂停来“骗过”浏览器锁定
         beepSound.play().then(() => {
             beepSound.pause();
             beepSound.currentTime = 0;
             console.log("Audio Unlocked Successfully");
         }).catch(err => console.log("Audio fail:", err));
 
-        // 2. 强制预加载
         beepSound.load();
 
-        // 3. UI 交互
         startOverlay.style.opacity = '0';
         setTimeout(() => startOverlay.style.display = 'none', 500);
 
@@ -211,9 +207,7 @@
         if (isProcessing) return;
         isProcessing = true;
 
-        // 在这里立即播放声音
         playBeep();
-
         showResult("Processing...", "Mengesahkan QR...", "wait");
 
         try {
@@ -244,7 +238,9 @@
             let attendanceStatus = "Hadir";
             if (currentTimeStr > lateThreshold) attendanceStatus = "Lewat";
 
-            const todayStr = now.toISOString().split('T')[0];
+            // --- 关键修复：使用本地日期格式 YYYY-MM-DD ---
+            const todayStr = now.toLocaleDateString('en-CA'); 
+
             const checkQuery = query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", todayStr));
             
             const existingDocs = await getDocs(checkQuery);
@@ -263,7 +259,7 @@
                 className: studentData.className,
                 ic: studentData.ic,
                 timestamp: serverTimestamp(),
-                date: todayStr,
+                date: todayStr, // 这里的日期现在会与 timeFull 一致了
                 timeFull: fullTimeStr,
                 status: attendanceStatus 
             });
@@ -278,18 +274,13 @@
         }
     }
 
-    // 强化版播放函数
     function playBeep() {
         if (beepSound) {
-            // 解决连续播放问题
             beepSound.pause();
             beepSound.currentTime = 0;
             const playPromise = beepSound.play();
-            
             if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    console.error("Audio playback was prevented:", e);
-                });
+                playPromise.catch(e => console.error("Audio error:", e));
             }
         }
     }
