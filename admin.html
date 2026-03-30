@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --primary: #007AFF; --bg: #F2F2F7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; /* 防止选中文字 */ }
         
         /* Login Overlay */
         #login-overlay { 
@@ -35,35 +35,28 @@
         th, td { padding: 12px; border: 1px solid #eee; text-align: left; font-size: 13px; }
         th { background: #f9f9f9; }
         
-        /* Clickable style */
-        .clickable { 
-            cursor: pointer; 
-            color: var(--primary);
-            text-decoration: underline;
-            text-decoration-style: dotted;
-        }
+        .clickable { cursor: pointer; color: var(--primary); text-decoration: underline; text-decoration-style: dotted; }
         .clickable:hover { background: #f0f7ff; }
 
         .btn-small { padding: 5px 10px; font-size: 12px; margin: 2px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
         .btn-danger { color: #FF3B30; border-color: #FF3B30; }
 
-        /* Time Setup Style */
         .time-setting-item { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
         .time-setting-item label { font-size: 14px; font-weight: 500; min-width: 150px; }
         .time-setting-item input[type="time"] { width: auto; padding: 8px; }
 
-        /* Prevent address cell from being too wide */
         .address-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
-<body>
-
-<div id="login-overlay">
+<body oncontextmenu="return false" onkeydown="handleGlobalKeys(event)"> <div id="login-overlay">
     <img src="/semsira.png" alt="Logo Semsira">
     <h2>Log Masuk Admin Semsira</h2>
     <input type="text" id="admin-user" placeholder="Nama Pengguna">
-    <input type="password" id="admin-pass" placeholder="Kata Laluan">
-    <button onclick="checkLogin()">Log Masuk</button>
+    <input type="password" id="admin-pass" placeholder="Kata Laluan" onkeydown="if(event.keyCode==13) checkLogin()">
+    <div style="margin: 10px; font-size: 14px;">
+        <input type="checkbox" id="remember-me" style="width: auto;"> <label for="remember-me">Simpan maklumat log masuk</label>
+    </div>
+    <button onclick="checkLogin()">Log Masuk (Enter)</button>
 </div>
 
 <div id="admin-content">
@@ -96,26 +89,19 @@
 
     <div class="card">
         <h3><i data-lucide="clock"></i> Tetapan Waktu Kehadiran (Global)</h3>
-        <p style="font-size: 12px; color: #666;">Sila tetapkan waktu untuk menentukan status kehadiran pelajar secara automatik.</p>
-        
         <div class="time-setting-item">
             <label>Waktu Mula Lewat (Lewat):</label>
             <input type="time" id="late-time">
         </div>
-        <p style="font-size: 11px; color: #888; margin: -5px 0 10px 165px;">Pelajar yang scan selepas waktu ini akan ditanda "Lewat".</p>
-
         <div class="time-setting-item">
             <label>Waktu Tamat (Tidak Hadir):</label>
             <input type="time" id="absent-time">
         </div>
-        <p style="font-size: 11px; color: #888; margin: -5px 0 20px 165px;">Pelajar yang tidak scan sebelum waktu ini dikira "Tidak Hadir".</p>
-
         <button style="width:100%; background: #34C759;" id="save-time-btn" onclick="saveTimeSettings()">Simpan Tetapan Waktu</button>
     </div>
 
     <div class="card">
         <h3><i data-lucide="users"></i> Pengurusan Maklumat Pelajar</h3>
-        <p style="font-size: 12px; color: #666;">* Klik pada mana-mana data pelajar untuk mengemaskini.</p>
         <input type="text" id="search-box" placeholder="Cari Nama atau No. IC..." oninput="filterStudents()" style="width:95%">
         <table id="student-table">
             <thead>
@@ -154,11 +140,38 @@
     const SETTINGS_COLLECTION = "systemSettings";
     const STUDENT_COLLECTION = "studentInform";
 
+    // 防开发者工具 F12
+    window.handleGlobalKeys = (e) => {
+        if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
+            e.preventDefault();
+            return false;
+        }
+    };
+
+    // 检查是否有记住的内容
+    window.onload = () => {
+        const savedUser = localStorage.getItem('admin_user');
+        const savedPass = localStorage.getItem('admin_pass');
+        if (savedUser && savedPass) {
+            document.getElementById('admin-user').value = savedUser;
+            document.getElementById('admin-pass').value = savedPass;
+            document.getElementById('remember-me').checked = true;
+        }
+    };
+
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
-        // 已更正密码为 pw123
+        const remember = document.getElementById('remember-me').checked;
+
         if(u === "semsiraadmin" && p === "pw123") {
+            if(remember) {
+                localStorage.setItem('admin_user', u);
+                localStorage.setItem('admin_pass', p);
+            } else {
+                localStorage.removeItem('admin_user');
+                localStorage.removeItem('admin_pass');
+            }
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
             loadInitialData();
@@ -170,19 +183,17 @@
 
     async function loadInitialData() {
         await loadSemesterSettings(); 
-        await loadTimeSettings(); // 加载考勤时间设置
+        await loadTimeSettings();
         await loadStudents();
     }
 
     async function loadSemesterSettings() {
         const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
         const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
-        
         if (k1Snap.exists()) document.getElementById('sem-k1').value = k1Snap.data().semester;
         if (k2Snap.exists()) document.getElementById('sem-k2').value = k2Snap.data().semester;
     }
 
-    // NEW: Load Attendance Time Settings
     async function loadTimeSettings() {
         const timeSnap = await getDoc(doc(db, SETTINGS_COLLECTION, "attendance_time"));
         if (timeSnap.exists()) {
@@ -192,17 +203,13 @@
         }
     }
 
-    // NEW: Save Attendance Time Settings
     window.saveTimeSettings = async () => {
         const late = document.getElementById('late-time').value;
         const absent = document.getElementById('absent-time').value;
         const btn = document.getElementById('save-time-btn');
-
         if(!late || !absent) return alert("Sila isi kedua-dua waktu!");
-
         btn.innerText = "Menyimpan...";
         btn.disabled = true;
-
         try {
             await setDoc(doc(db, SETTINGS_COLLECTION, "attendance_time"), {
                 lateTime: late,
@@ -282,33 +289,32 @@
         const sem1 = document.getElementById('sem-k1').value;
         const sem2 = document.getElementById('sem-k2').value;
         const btn = document.getElementById('save-sem-btn');
-        btn.innerText = "Menyimpan ke Database...";
+        btn.innerText = "Menyimpan...";
         btn.disabled = true;
-        
         try {
             await setDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"), { semester: sem1, updatedBy: "admin" });
             await setDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"), { semester: sem2, updatedBy: "admin" });
-
             const promises = allStudents.map(s => {
                 let classNameLower = (s.className || "").toLowerCase();
                 let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
                 let newSem = isK1 ? sem1 : sem2;
                 return updateDoc(doc(db, STUDENT_COLLECTION, s.id), { semester: newSem });
             });
-
             await Promise.all(promises);
-            alert("Berjaya! Tetapan sistem telah disimpan dan semua pelajar telah dikemaskini.");
+            alert("Berjaya!");
             loadStudents();
         } catch (e) {
-            console.error(e);
-            alert("Ralat semasa menyimpan tetapan.");
+            alert("Ralat!");
         } finally {
             btn.innerText = "Simpan & Kemaskini Semua Pelajar";
             btn.disabled = false;
         }
     };
 
-    window.logout = () => location.reload();
+    window.logout = () => {
+        // 登出时不清除 localStorage，这样下次进来还会填好
+        location.reload();
+    };
 </script>
 </body>
 </html>
