@@ -33,12 +33,11 @@
         .nav-content-wrapper {
             max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
         }
-        .nav-title-box { display: flex; align-items: center; gap: 10px; }
-        .nav-title-box img { width: 24px; height: 24px; border-radius: 6px; }
-        .nav-title-box span { font-weight: 700; font-size: 16px; letter-spacing: -0.5px; }
+        .nav-title-box { display: flex; align-items: center; margin-right: 15px; }
+        .nav-title-box img { width: 28px; height: 28px; border-radius: 7px; }
 
         .nav-btns { 
-            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 5px 10px; flex: 1;
+            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 5px 0; flex: 1;
         }
         .nav-btns::-webkit-scrollbar { display: none; }
         .nav-btns button { padding: 8px 16px; font-size: 11px; flex-shrink: 0; }
@@ -87,7 +86,6 @@
         <div class="nav-content-wrapper">
             <div class="nav-title-box">
                 <img src="/semsira.png" alt="Logo">
-                <span>SEMSIRA</span>
             </div>
             <div class="nav-btns">
                 <button onclick="location.href='dashboard.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
@@ -174,7 +172,6 @@
     const TEACHER_COL = "classSettings";
     const LOGS_COL = "attendanceLogs";
 
-    // 初始化检查：保存登录信息功能
     window.onload = () => {
         if(localStorage.getItem("semsira_isLoggedIn") === "true") {
             document.getElementById('login-overlay').style.display = 'none';
@@ -206,7 +203,6 @@
 
         if(u === "semsiraadmin" && p === "pw123") {
             if(remember) localStorage.setItem("semsira_isLoggedIn", "true");
-            
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
             loadInitialData();
@@ -266,7 +262,7 @@
         }
     };
 
-    // --- 核心修复：基于 attendanceLogs 判定当日缺席 ---
+    // 核心逻辑：基于当日 attendanceLogs 判定缺席
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir sekarang? (Berdasarkan Log Hari Ini)")) return;
         
@@ -279,32 +275,36 @@
             const y = now.getFullYear();
             const m = now.getMonth() + 1;
             const d = now.getDate();
-            const todayDateStr = `${d}/${m}/${y}`; // 匹配日志中的 timeFull 格式
+            const todayDateStr = `${d}/${m}/${y}`; // 匹配数据库 timeFull 格式
 
-            // 1. 获取今日所有签到记录的 IC 列表
+            // 1. 获取今日所有已打卡的 IC 集合
             const logsQuery = query(collection(db, LOGS_COL), where("timeFull", "==", todayDateStr));
             const logsSnap = await getDocs(logsQuery);
             const presentICs = new Set();
-            logsSnap.forEach(doc => presentICs.add(doc.data().ic));
+            logsSnap.forEach(doc => {
+                const data = doc.data();
+                if(data.ic) presentICs.add(data.ic);
+            });
 
-            // 2. 获取教师配置
+            // 2. 获取教师电报配置
             const teacherSnap = await getDocs(collection(db, TEACHER_COL));
             let teacherMap = {};
             teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
 
             let totalSent = 0;
 
-            // 3. 按班级循环判定
+            // 3. 循环所有班级进行过滤
             for(let cls of ALL_CLASSES) {
                 const chatId = teacherMap[cls];
                 if(!chatId) continue;
                 
                 const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()));
                 
-                // 筛选未签到且不在豁免名单的学生
+                // 核心判定：如果 IC 不在今日打卡记录里，且不在豁免名单，则为不出席（Tidak Hadir）
                 const absents = studentsInClass.filter(s => {
                     const name = (s.name || '').toUpperCase();
                     const ic = s.ic || "";
+                    // 只要 presentICs 包含该 IC，就是 Hadir，返回 false (不加入缺席名单)
                     return !EXEMPTED_NAMES.includes(name) && !presentICs.has(ic);
                 });
 
