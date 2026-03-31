@@ -33,13 +33,16 @@
         .nav-content-wrapper {
             max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
         }
+        .nav-title-box { display: flex; align-items: center; gap: 10px; }
+        .nav-title-box img { width: 24px; height: 24px; border-radius: 6px; }
+        .nav-title-box span { font-weight: 700; font-size: 16px; letter-spacing: -0.5px; }
+
         .nav-btns { 
-            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding-bottom: 5px; flex: 1;
+            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 5px 10px; flex: 1;
         }
         .nav-btns::-webkit-scrollbar { display: none; }
         .nav-btns button { padding: 8px 16px; font-size: 11px; flex-shrink: 0; }
         
-        /* Fixed Clock Style */
         #live-clock {
             font-size: 12px; font-weight: 600; color: #1c1c1e; text-align: right;
             background: rgba(0,122,255,0.1); padding: 6px 12px; border-radius: 8px;
@@ -82,8 +85,12 @@
 <div id="admin-content">
     <div class="nav-container">
         <div class="nav-content-wrapper">
+            <div class="nav-title-box">
+                <img src="/semsira.png" alt="Logo">
+                <span>SEMSIRA</span>
+            </div>
             <div class="nav-btns">
-                <button onclick="location.href='sks_panel_982x.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+                <button onclick="location.href='dashboard.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
                 <button class="btn-nav-alt" onclick="document.getElementById('section-kehadiran').scrollIntoView()"><i data-lucide="clock"></i> Kehadiran</button>
                 <button class="btn-nav-alt" onclick="document.getElementById('section-guru').scrollIntoView()"><i data-lucide="users"></i> Guru Kelas</button>
                 <button class="btn-nav-alt" onclick="document.getElementById('section-pelajar').scrollIntoView()"><i data-lucide="user-square"></i> Pelajar</button>
@@ -106,7 +113,7 @@
         </div>
         <div style="display: flex; gap: 10px;">
             <button style="flex:2; background: var(--success);" onclick="saveTimeSettings()">Simpan Waktu</button>
-            <button style="flex:1; background: #0088cc;" onclick="triggerManualAlert()">Hantar Laporan Sekarang</button>
+            <button id="btn-report" style="flex:1; background: #0088cc;" onclick="triggerManualAlert()">Hantar Laporan Sekarang</button>
         </div>
     </div>
 
@@ -143,7 +150,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -165,11 +172,24 @@
     const SETTINGS_COL = "systemSettings";
     const STUDENT_COL = "studentInform";
     const TEACHER_COL = "classSettings";
+    const LOGS_COL = "attendanceLogs";
+
+    // 初始化检查：保存登录信息功能
+    window.onload = () => {
+        if(localStorage.getItem("semsira_isLoggedIn") === "true") {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadInitialData();
+            lucide.createIcons();
+            updateClock();
+        }
+    };
 
     function updateClock() {
         const now = new Date();
         const options = { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-        document.getElementById('live-clock').innerText = now.toLocaleString('ms-MY', options).replace(/,/g, '');
+        const el = document.getElementById('live-clock');
+        if(el) el.innerText = now.toLocaleString('ms-MY', options).replace(/,/g, '');
     }
     setInterval(updateClock, 1000);
 
@@ -182,7 +202,11 @@
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
+        const remember = document.getElementById('remember-me').checked;
+
         if(u === "semsiraadmin" && p === "pw123") {
+            if(remember) localStorage.setItem("semsira_isLoggedIn", "true");
+            
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-content').style.display = 'block';
             loadInitialData();
@@ -242,43 +266,61 @@
         }
     };
 
-    // --- 核心修复：支持多种日期格式判定 ---
+    // --- 核心修复：基于 attendanceLogs 判定当日缺席 ---
     window.triggerManualAlert = async () => {
-        if(!confirm("Hantar senarai tidak hadir sekarang?")) return;
+        if(!confirm("Hantar senarai tidak hadir sekarang? (Berdasarkan Log Hari Ini)")) return;
         
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = now.getMonth() + 1;
-        const d = now.getDate();
-        
-        // 匹配格式 1: 2026-03-31
-        const todayFormat1 = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; 
-        // 匹配格式 2: 31/3/2026 (Firebase 里的 timeFull 格式)
-        const todayFormat2 = `${d}/${m}/${y}`; 
-        
-        const teacherSnap = await getDocs(collection(db, TEACHER_COL));
-        let teacherMap = {};
-        teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
+        const btn = document.getElementById('btn-report');
+        btn.innerText = "Memproses...";
+        btn.disabled = true;
 
-        for(let cls of ALL_CLASSES) {
-            const chatId = teacherMap[cls];
-            if(!chatId) continue;
-            
-            const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()));
-            
-            const absents = studentsInClass.filter(s => {
-                const name = (s.name || '').toUpperCase();
-                const lastScan = s.lastScanDate || "";
-                
-                // 逻辑判定：如果 lastScanDate 包含今天的任何一种格式，即判定为出席
-                const isPresent = lastScan.includes(todayFormat1) || lastScan.includes(todayFormat2);
-                
-                return !EXEMPTED_NAMES.includes(name) && !isPresent;
-            });
+        try {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth() + 1;
+            const d = now.getDate();
+            const todayDateStr = `${d}/${m}/${y}`; // 匹配日志中的 timeFull 格式
 
-            if(absents.length > 0) { await sendTelegram(chatId, cls, absents); }
+            // 1. 获取今日所有签到记录的 IC 列表
+            const logsQuery = query(collection(db, LOGS_COL), where("timeFull", "==", todayDateStr));
+            const logsSnap = await getDocs(logsQuery);
+            const presentICs = new Set();
+            logsSnap.forEach(doc => presentICs.add(doc.data().ic));
+
+            // 2. 获取教师配置
+            const teacherSnap = await getDocs(collection(db, TEACHER_COL));
+            let teacherMap = {};
+            teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
+
+            let totalSent = 0;
+
+            // 3. 按班级循环判定
+            for(let cls of ALL_CLASSES) {
+                const chatId = teacherMap[cls];
+                if(!chatId) continue;
+                
+                const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()));
+                
+                // 筛选未签到且不在豁免名单的学生
+                const absents = studentsInClass.filter(s => {
+                    const name = (s.name || '').toUpperCase();
+                    const ic = s.ic || "";
+                    return !EXEMPTED_NAMES.includes(name) && !presentICs.has(ic);
+                });
+
+                if(absents.length > 0) { 
+                    await sendTelegram(chatId, cls, absents); 
+                    totalSent++;
+                }
+            }
+            alert(`Selesai! Laporan dihantar ke ${totalSent} kelas.`);
+        } catch (e) {
+            console.error(e);
+            alert("Ralat berlaku semasa memproses logs.");
+        } finally {
+            btn.innerText = "Hantar Laporan Sekarang";
+            btn.disabled = false;
         }
-        alert("Laporan telah dihantar!");
     };
 
     async function sendTelegram(chatId, cls, list) {
@@ -339,7 +381,10 @@
         loadStudents();
     };
 
-    window.logout = () => location.reload();
+    window.logout = () => {
+        localStorage.removeItem("semsira_isLoggedIn");
+        location.reload();
+    };
 </script>
 </body>
 </html>
