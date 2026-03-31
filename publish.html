@@ -15,8 +15,7 @@
         
         body { 
             font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-            background: var(--bg); 
-            padding: 20px; margin: 0; 
+            background: var(--bg); padding: 20px; margin: 0; 
             -webkit-font-smoothing: antialiased;
         }
         
@@ -24,10 +23,8 @@
             background: var(--card);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-radius: 18px;
-            padding: 20px;
-            border: 1px solid var(--border);
-            margin-bottom: 20px;
+            border-radius: 18px; padding: 20px;
+            border: 1px solid var(--border); margin-bottom: 20px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
@@ -51,6 +48,7 @@
             width: 100%; padding: 14px; margin: 10px 0;
             border-radius: 12px; border: 1px solid var(--border);
             background: rgba(255,255,255,0.6); font-size: 16px; box-sizing: border-box;
+            outline: none;
         }
 
         button {
@@ -60,8 +58,8 @@
         }
         
         .secondary-btn {
-            background: none; color: var(--primary); font-size: 13px;
-            padding: 5px; margin-top: 5px; width: auto; font-weight: 400;
+            background: none; color: #8E8E93; font-size: 12px;
+            padding: 10px; margin-top: 5px; width: auto; font-weight: 400;
         }
 
         .issue-item {
@@ -69,8 +67,8 @@
             padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         .tag { font-size: 10px; padding: 2px 8px; border-radius: 5px; font-weight: 700; text-transform: uppercase; }
-        .tag-post { background: #E1F5FE; color: #0288D1; }
-        .tag-poster { background: #FFF3E0; color: #EF6C00; }
+        .tag-post { background: #E3F2FD; color: #1976D2; }
+        .tag-poster { background: #FFF3E0; color: #F57C00; }
 
         .del-btn { background: #FF3B30; width: auto; padding: 6px 14px; font-size: 12px; border-radius: 8px; }
 
@@ -86,10 +84,11 @@
 <div id="toast">Memproses...</div>
 
 <div id="token-view" class="glass" style="display:none;">
-    <h3>🔑 Tatarajah Akses GitHub</h3>
-    <p style="font-size:13px; color:#666;">Sila masukkan Personal Access Token (PAT) anda untuk mula mengurus kandungan.</p>
+    <h3 style="margin-top:0">🔑 Semsira Access Setup</h3>
+    <p style="font-size:13px; color:#666;">Sila masukkan GitHub Personal Access Token untuk mengurus Issues.</p>
     <input type="password" id="input-token" placeholder="github_pat_...">
-    <button onclick="saveToken()">Simpan & Mula</button>
+    <button onclick="saveToken()">Simpan & Masuk</button>
+    <p style="font-size:11px; color: #999; margin-top: 10px;">Token disimpan secara lokal pada pelayar ini sahaja.</p>
 </div>
 
 <div id="main-view" style="display:none;">
@@ -98,7 +97,7 @@
             <img src="semsira.png" alt="Semsira" class="logo-img" onerror="this.src='https://ui-avatars.com/api/?name=S&background=007AFF&color=fff'">
             <div>
                 <h2 style="margin:0; font-size: 22px;">Semsira Editor</h2>
-                <p style="margin:2px 0 0 0; color: #8E8E93; font-size: 13px;">Auto-save Token Active</p>
+                <p style="margin:2px 0 0 0; color: #8E8E93; font-size: 13px;">Panel Kawalan Issues</p>
             </div>
         </div>
 
@@ -109,61 +108,53 @@
             <label for="type-poster">🖼️ Poster (Slider)</label>
         </div>
 
-        <input type="text" id="title" placeholder="Tajuk Hebahan">
-        <textarea id="body" rows="5" placeholder="Kandungan atau URL gambar..."></textarea>
+        <input type="text" id="title" placeholder="Tajuk Ringkas">
+        <textarea id="body" rows="5" placeholder="Kandungan teks atau URL gambar..."></textarea>
         
         <button onclick="publish()">Terbitkan Ke Website</button>
-        <center><button class="secondary-btn" onclick="clearToken()">⚠️ Tukar / Padam Token</button></center>
+        <center><button class="secondary-btn" onclick="clearToken()">Tukar Token GitHub</button></center>
     </div>
 
     <div class="glass">
         <h3 style="margin: 0 0 15px 0; font-size: 18px;">Kandungan Aktif</h3>
-        <div id="list">Memuatkan...</div>
+        <div id="list">Memuatkan senarai...</div>
     </div>
 </div>
 
 <script>
     const REPO = "bdpsemsira/bdpsemsira.github.io";
-    let CURRENT_TOKEN = localStorage.getItem('gh_token');
+    let AUTH_TOKEN = localStorage.getItem('gh_admin_token');
 
     window.onload = () => {
-        checkAuth();
-    };
-
-    function checkAuth() {
-        if (!CURRENT_TOKEN) {
+        if (!AUTH_TOKEN) {
             document.getElementById('token-view').style.display = 'block';
-            document.getElementById('main-view').style.display = 'none';
         } else {
-            document.getElementById('token-view').style.display = 'none';
             document.getElementById('main-view').style.display = 'block';
             fetchIssues();
         }
-    }
+    };
 
     function saveToken() {
-        const val = document.getElementById('input-token').value.trim();
-        if (val.startsWith('github_pat_')) {
-            localStorage.setItem('gh_token', val);
-            CURRENT_TOKEN = val;
-            showToast("Token disimpan!");
-            checkAuth();
+        const t = document.getElementById('input-token').value.trim();
+        if (t.startsWith('github_pat_')) {
+            localStorage.setItem('gh_admin_token', t);
+            location.reload();
         } else {
-            alert("Format Token tidak sah! Mesti bermula dengan 'github_pat_'.");
+            alert("Format Token salah! Pastikan ia bermula dengan 'github_pat_'.");
         }
     }
 
     function clearToken() {
-        if(confirm("Padam token yang tersimpan?")) {
-            localStorage.removeItem('gh_token');
+        if(confirm("Padam token sedia ada?")) {
+            localStorage.removeItem('gh_admin_token');
             location.reload();
         }
     }
 
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg; t.style.display = 'block';
-        setTimeout(() => { t.style.display = 'none'; }, 3000);
+    function showToast(m) {
+        const el = document.getElementById('toast');
+        el.innerText = m; el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 2500);
     }
 
     async function publish() {
@@ -174,25 +165,35 @@
         if(!t || !b) return alert("Sila isi tajuk dan kandungan!");
 
         showToast("Sedang menerbitkan...");
+
         try {
-            const res = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+            const response = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `token ${CURRENT_TOKEN}`,
+                    'Authorization': `token ${AUTH_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ title: t, body: b, labels: [l] })
+                // 关键点：确保发送的是数组格式的 labels
+                body: JSON.stringify({
+                    title: t,
+                    body: b,
+                    labels: [l] 
+                })
             });
 
-            if(res.ok) {
+            if (response.ok) {
                 showToast("✅ Berjaya!");
                 document.getElementById('title').value = "";
                 document.getElementById('body').value = "";
                 fetchIssues();
             } else {
-                alert("Ralat! Token mungkin tamat tempoh atau tiada kebenaran.");
+                const errData = await response.json();
+                alert("Gagal: " + (errData.message || "Token tidak sah"));
             }
-        } catch(e) { alert("Gagal menyambung ke GitHub."); }
+        } catch (e) {
+            alert("Ralat rangkaian.");
+        }
     }
 
     async function fetchIssues() {
@@ -200,32 +201,44 @@
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/issues?state=open&t=${Date.now()}`);
             const data = await res.json();
-            listDiv.innerHTML = data.map(i => `
+            
+            if (!Array.isArray(data)) {
+                listDiv.innerHTML = "Sila semak Token anda.";
+                return;
+            }
+
+            listDiv.innerHTML = data.map(i => {
+                const labelName = i.labels[0] ? i.labels[0].name : 'no label';
+                return `
                 <div class="issue-item">
                     <div>
-                        <div style="font-weight:600;">${i.title}</div>
-                        <span class="tag tag-${i.labels[0]?.name || 'post'}">${i.labels[0]?.name || 'post'}</span>
+                        <div class="issue-title">${i.title}</div>
+                        <span class="tag tag-${labelName}">${labelName}</span>
                     </div>
                     <button class="del-btn" onclick="removeIssue(${i.number})">Padam</button>
                 </div>
-            `).join('');
-        } catch(e) { listDiv.innerHTML = "Gagal memuatkan senarai."; }
+                `;
+            }).join('');
+        } catch(e) {
+            listDiv.innerHTML = "Ralat memuatkan senarai.";
+        }
     }
 
-    async function removeIssue(id) {
-        if(!confirm("Padam kandungan ini?")) return;
-        showToast("Memadam...");
+    async function removeIssue(num) {
+        if(!confirm("Padam makluman ini?")) return;
+        showToast("Sedang memadam...");
         try {
-            await fetch(`https://api.github.com/repos/${REPO}/issues/${id}`, {
+            const res = await fetch(`https://api.github.com/repos/${REPO}/issues/${num}`, {
                 method: 'PATCH',
                 headers: {
-                    'Authorization': `token ${CURRENT_TOKEN}`,
+                    'Authorization': `token ${AUTH_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ state: 'closed' })
             });
-            fetchIssues();
-        } catch(e) { alert("Ralat memadam."); }
+            if(res.ok) fetchIssues();
+        } catch(e) { alert("Gagal memadam."); }
     }
 </script>
 </body>
