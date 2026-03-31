@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --primary: #007AFF; --bg: #F2F2F7; --success: #34C759; --danger: #FF3B30; --secondary: #8e8e93; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; scroll-behavior: smooth; }
         
         /* Login Overlay */
         #login-overlay { 
@@ -16,55 +16,67 @@
             background: white; display: flex; flex-direction: column; 
             justify-content: center; align-items: center; z-index: 1000; 
         }
-        #login-overlay img { width: 100px; height: 100px; margin-bottom: 20px; border-radius: 22px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        input { padding: 12px; margin: 8px; border: 1px solid #ddd; border-radius: 10px; width: 260px; font-size: 14px; outline: none; }
-        input:focus { border-color: var(--primary); }
+        #login-overlay img { width: 100px; height: 100px; margin-bottom: 20px; border-radius: 22px; }
+        input { padding: 12px; margin: 8px; border: 1px solid #ddd; border-radius: 10px; width: 260px; font-size: 14px; }
         button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
         button:active { transform: scale(0.98); opacity: 0.9; }
 
         /* Main Layout */
         #admin-content { display: none; max-width: 1000px; margin: 0 auto; padding-top: 80px; }
         
+        /* Fixed Navigation Bar */
         .nav-container { 
             position: fixed; top: 0; left: 0; right: 0; 
             background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); 
             z-index: 999; padding: 10px 20px; border-bottom: 0.5px solid #d1d1d6;
         }
-        .nav-content-wrapper { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .nav-content-wrapper {
+            max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav-title-box { display: flex; align-items: center; margin-right: 15px; }
         .nav-title-box img { width: 28px; height: 28px; border-radius: 7px; }
-        .nav-btns { display: flex; gap: 8px; overflow-x: auto; flex: 1; margin: 0 15px; }
+
+        .nav-btns { 
+            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 5px 0; flex: 1;
+        }
         .nav-btns::-webkit-scrollbar { display: none; }
         .nav-btns button { padding: 8px 16px; font-size: 11px; flex-shrink: 0; }
         
-        #live-clock { font-size: 12px; font-weight: 600; background: rgba(0,122,255,0.1); padding: 6px 12px; border-radius: 8px; white-space: nowrap; }
+        #live-clock {
+            font-size: 12px; font-weight: 600; color: #1c1c1e; text-align: right;
+            background: rgba(0,122,255,0.1); padding: 6px 12px; border-radius: 8px;
+            font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 10px;
+        }
 
         .btn-logout { background: var(--danger) !important; }
         .btn-nav-alt { background: white; color: var(--primary); border: 1px solid var(--primary); }
 
         .card { background: white; padding: 24px; border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 24px; }
-        .card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; }
+        .card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 18px; color: #1c1c1e; }
+        .group-box { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f2f2f7; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 10px; overflow: hidden; }
         th, td { padding: 14px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 13px; }
-        th { background: #f9f9fb; color: #8e8e93; text-transform: uppercase; }
+        th { background: #f9f9fb; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
-        .status-present { background: #E7F9ED; color: var(--success); }
-        .status-absent { background: #FFEBEB; color: var(--danger); }
-
         .clickable { cursor: pointer; color: var(--primary); font-weight: 500; }
-        .address-cell { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
+        .clickable:hover { text-decoration: underline; }
+        .btn-small { padding: 6px 12px; font-size: 11px; margin: 2px; border-radius: 6px; border: 1px solid #ddd; background: white; }
+        .btn-danger { color: var(--danger); border-color: var(--danger); }
+        .time-item { display: flex; align-items: center; gap: 15px; margin: 12px 0; }
+        .address-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
+        select { padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
     </style>
 </head>
-<body oncontextmenu="return false">
+<body oncontextmenu="return false" onkeydown="handleGlobalKeys(event)">
 
 <div id="login-overlay">
     <img src="/semsira.png" alt="Logo">
     <h2 style="margin-bottom: 10px;">Admin Semsira</h2>
     <input type="text" id="admin-user" placeholder="ID Pengguna">
-    <input type="password" id="admin-pass" placeholder="Kata Laluan">
-    <div style="margin: 10px; font-size: 13px; color: #666; display: flex; align-items: center; gap: 5px;">
-        <input type="checkbox" id="remember-me" style="width: auto; margin: 0;"> <label for="remember-me">Ingat saya</label>
+    <input type="password" id="admin-pass" placeholder="Kata Laluan" onkeydown="if(event.keyCode==13) checkLogin()">
+    <div style="margin: 10px; font-size: 13px; color: #666;">
+        <input type="checkbox" id="remember-me" style="width: auto;"> <label for="remember-me">Ingat saya</label>
     </div>
     <button onclick="checkLogin()" style="width: 285px;">Masuk Ke Panel</button>
 </div>
@@ -72,39 +84,65 @@
 <div id="admin-content">
     <div class="nav-container">
         <div class="nav-content-wrapper">
-            <div class="nav-title-box"><img src="/semsira.png" alt="Logo"></div>
+            <div class="nav-title-box">
+                <img src="/semsira.png" alt="Logo">
+            </div>
             <div class="nav-btns">
                 <button onclick="location.href='dashboard.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
-                <button class="btn-nav-alt" onclick="scrollToSec('section-pelajar')"><i data-lucide="user-square"></i> Status Hadir</button>
-                <button class="btn-nav-alt" onclick="scrollToSec('section-guru')"><i data-lucide="users"></i> Guru</button>
-                <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Keluar</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-kehadiran').scrollIntoView()"><i data-lucide="clock"></i> Kehadiran</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-guru').scrollIntoView()"><i data-lucide="users"></i> Guru Kelas</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-pelajar').scrollIntoView()"><i data-lucide="user-square"></i> Pelajar</button>
+                <button class="btn-nav-alt" onclick="document.getElementById('section-semester').scrollIntoView()"><i data-lucide="layers"></i> Semester</button>
+                <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Log Keluar</button>
             </div>
-            <div id="live-clock">...</div>
+            <div id="live-clock">Memuatkan...</div>
         </div>
     </div>
 
-    <div class="card" id="section-pelajar">
-        <h3><i data-lucide="list"></i> Status Kehadiran Pelajar (Hari Ini)</h3>
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="flex: 1; margin: 0;">
-            <button id="btn-report" style="background: #0088cc; font-size: 12px;" onclick="triggerManualAlert()">
-                <i data-lucide="send"></i> Hantar Telegram
-            </button>
+    <div class="card" id="section-kehadiran">
+        <h3><i data-lucide="clock"></i> Tetapan Kehadiran & Notifikasi</h3>
+        <div class="time-item">
+            <label style="flex:1">Waktu Mula Lewat (Late):</label>
+            <input type="time" id="late-time">
         </div>
-        <table id="student-table">
-            <thead>
-                <tr><th>Nama</th><th>Kelas</th><th>Status</th><th>Aksi</th></tr>
-            </thead>
-            <tbody id="student-list">
-                <tr><td colspan="4" style="text-align:center;">Memuatkan data...</td></tr>
-            </tbody>
-        </table>
+        <div class="time-item">
+            <label style="flex:1">Waktu Tamat (Absent):</label>
+            <input type="time" id="absent-time">
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button style="flex:2; background: var(--success);" onclick="saveTimeSettings()">Simpan Waktu</button>
+            <button id="btn-report" style="flex:1; background: #0088cc;" onclick="triggerManualAlert()">Hantar Laporan Sekarang</button>
+        </div>
     </div>
 
     <div class="card" id="section-guru">
-        <h3><i data-lucide="users-2"></i> Telegram Guru</h3>
+        <h3><i data-lucide="users-2"></i> Pengurusan Guru Kelas</h3>
         <div id="teacher-table-container"></div>
-        <button style="width:100%; margin-top:15px; background: var(--success);" onclick="saveTeacherIDs()">Simpan ID Guru</button>
+        <button style="width:100%; margin-top:15px; background: #5856d6;" onclick="saveTeacherIDs()">Simpan ID Guru</button>
+    </div>
+
+    <div class="card" id="section-semester">
+        <h3><i data-lucide="layers"></i> Pengurusan Semester</h3>
+        <div class="group-box">
+            <span>Kumpulan 1 (Sarah, Sumayyah, etc.)</span>
+            <select id="sem-k1"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
+        </div>
+        <div class="group-box">
+            <span>Kumpulan 2 (Al Farabi, Al Ghazali, etc.)</span>
+            <select id="sem-k2"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
+        </div>
+        <button style="width:100%; margin-top:15px;" onclick="saveSemSettings()">Kemaskini Semua Pelajar</button>
+    </div>
+
+    <div class="card" id="section-pelajar">
+        <h3><i data-lucide="list"></i> Pengurusan Pelajar</h3>
+        <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="width:calc(100% - 26px)">
+        <table id="student-table">
+            <thead>
+                <tr><th>Nama</th><th>Kelas</th><th>No. IC</th><th>Sem</th><th>Alamat</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="student-list"></tbody>
+        </table>
     </div>
 </div>
 
@@ -125,15 +163,36 @@
     const db = getFirestore(app);
 
     const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
+    const EXEMPTED_NAMES = [""]; 
     const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Summayah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
     let allStudents = [];
-    let presentICs = new Set();
+    const SETTINGS_COL = "systemSettings";
+    const STUDENT_COL = "studentInform";
+    const TEACHER_COL = "classSettings";
+    const LOGS_COL = "attendanceLogs";
 
-    // 页面加载逻辑：处理自动登录
     window.onload = () => {
         if(localStorage.getItem("semsira_isLoggedIn") === "true") {
-            showAdmin();
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadInitialData();
+            lucide.createIcons();
+            updateClock();
+        }
+    };
+
+    function updateClock() {
+        const now = new Date();
+        const options = { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+        const el = document.getElementById('live-clock');
+        if(el) el.innerText = now.toLocaleString('ms-MY', options).replace(/,/g, '');
+    }
+    setInterval(updateClock, 1000);
+
+    window.handleGlobalKeys = (e) => {
+        if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
+            e.preventDefault(); return false;
         }
     };
 
@@ -144,144 +203,181 @@
 
         if(u === "semsiraadmin" && p === "pw123") {
             if(remember) localStorage.setItem("semsira_isLoggedIn", "true");
-            showAdmin();
-        } else { alert("ID atau Kata Laluan Salah!"); }
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadInitialData();
+            lucide.createIcons();
+            updateClock();
+        } else { alert("Akses Ditolak!"); }
     };
 
-    function showAdmin() {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('admin-content').style.display = 'block';
-        loadAllData();
-        lucide.createIcons();
-        setInterval(updateClock, 1000);
+    async function loadInitialData() {
+        await Promise.all([loadSettings(), loadTeacherSettings(), loadStudents()]);
     }
 
-    async function loadAllData() {
-        await loadAttendance(); // 先加载今日已到的人
-        await loadStudents();   // 再加载学生名单
-        await loadTeacherSettings();
+    async function loadSettings() {
+        const timeSnap = await getDoc(doc(db, SETTINGS_COL, "attendance_time"));
+        if(timeSnap.exists()) {
+            document.getElementById('late-time').value = timeSnap.data().lateTime || "";
+            document.getElementById('absent-time').value = timeSnap.data().absentTime || "";
+        }
     }
 
-    // 获取今日已签到的人 (参考 Dashboard 逻辑)
-    async function loadAttendance() {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const q = query(collection(db, "attendanceLogs"), where("date", "==", todayStr));
-        const snap = await getDocs(q);
-        presentICs.clear();
-        snap.forEach(d => {
-            if(d.data().ic) presentICs.add(d.data().ic);
+    async function loadTeacherSettings() {
+        const snap = await getDocs(collection(db, TEACHER_COL));
+        let dataMap = {};
+        snap.forEach(d => dataMap[d.id] = d.data().chatId);
+        let html = `<table><tr><th>Kelas</th><th>Telegram Chat ID</th></tr>`;
+        ALL_CLASSES.forEach(cls => {
+            html += `<tr><td>${cls}</td><td><input type="text" id="t-id-${cls}" value="${dataMap[cls] || ''}" style="width:90%;"></td></tr>`;
         });
+        document.getElementById('teacher-table-container').innerHTML = html + `</table>`;
     }
 
     async function loadStudents() {
-        const snap = await getDocs(collection(db, "studentInform"));
+        const snap = await getDocs(collection(db, STUDENT_COL));
         allStudents = [];
         snap.forEach(d => allStudents.push({ id: d.id, ...d.data() }));
         renderStudents(allStudents);
     }
 
     function renderStudents(list) {
-        const tbody = document.getElementById('student-list');
-        tbody.innerHTML = list.map(s => {
-            const isHadir = presentICs.has(s.ic);
-            return `
+        document.getElementById('student-list').innerHTML = list.map(s => `
             <tr>
-                <td>${s.name || '-'}</td>
+                <td class="clickable" onclick="updateField('${s.id}','name','Nama','${s.name||''}')"><i data-lucide="edit-3" style="width:12px;vertical-align:middle"></i> ${s.name || '-'}</td>
                 <td>${s.className || '-'}</td>
-                <td>
-                    <span class="status-badge ${isHadir ? 'status-present' : 'status-absent'}">
-                        ${isHadir ? 'HADIR' : 'TIDAK HADIR'}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn-nav-alt" style="padding:4px 8px; font-size:10px" onclick="resetDevice('${s.id}')">Reset</button>
-                </td>
-            </tr>`;
-        }).join('');
+                <td>${s.ic || '-'}</td>
+                <td>Sem ${s.semester || '1'}</td>
+                <td class="address-cell">${s.address || '-'}</td>
+                <td><button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset</button></td>
+            </tr>`).join('');
+        lucide.createIcons();
     }
 
-    // --- 其他功能函数 ---
+    window.updateField = async (id, field, label, currentVal) => {
+        const newVal = prompt(`Masukkan ${label} baru:`, currentVal);
+        if (newVal !== null && newVal !== currentVal) {
+            await updateDoc(doc(db, STUDENT_COL, id), { [field]: newVal.trim() });
+            loadStudents();
+        }
+    };
 
-    window.scrollToSec = (id) => document.getElementById(id).scrollIntoView({behavior:'smooth'});
+    window.triggerManualAlert = async () => {
+        if(!confirm("Hantar senarai tidak hadir sekarang? (Berdasarkan Log Hari Ini)")) return;
+        
+        const btn = document.getElementById('btn-report');
+        btn.innerText = "Memproses...";
+        btn.disabled = true;
 
-    function updateClock() {
+        try {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth() + 1;
+            const d = now.getDate();
+            const todayDateStr = `${d}/${m}/${y}`; 
+
+            const logsQuery = query(collection(db, LOGS_COL), where("timeFull", "==", todayDateStr));
+            const logsSnap = await getDocs(logsQuery);
+            const presentICs = new Set();
+            logsSnap.forEach(doc => {
+                const data = doc.data();
+                if(data.ic) presentICs.add(data.ic);
+            });
+
+            const teacherSnap = await getDocs(collection(db, TEACHER_COL));
+            let teacherMap = {};
+            teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
+
+            let totalSent = 0;
+
+            for(let cls of ALL_CLASSES) {
+                const chatId = teacherMap[cls];
+                if(!chatId) continue;
+                
+                const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()));
+                const absents = studentsInClass.filter(s => {
+                    const name = (s.name || '').toUpperCase();
+                    const ic = s.ic || "";
+                    return !EXEMPTED_NAMES.includes(name) && !presentICs.has(ic);
+                });
+
+                if(absents.length > 0) { 
+                    await sendTelegram(chatId, cls, absents); 
+                    totalSent++;
+                }
+            }
+            alert(`Selesai! Laporan dihantar ke ${totalSent} kelas.`);
+        } catch (e) {
+            console.error(e);
+            alert("Ralat berlaku semasa memproses logs.");
+        } finally {
+            btn.innerText = "Hantar Laporan Sekarang";
+            btn.disabled = false;
+        }
+    };
+
+    async function sendTelegram(chatId, cls, list) {
         const now = new Date();
-        document.getElementById('live-clock').innerText = now.toLocaleTimeString('ms-MY');
+        const dateStr = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        let text = `⚠️ *LAPORAN KEHADIRAN PELAJAR*\n\n`;
+        text += `*Kelas:* ${cls.toUpperCase()}\n*Tarikh:* ${dateStr}\n*Status:* TIDAK HADIR\n*Bilangan:* ${list.length} orang\n\n`;
+        text += `*Senarai Nama:*\n`;
+        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
+        text += `\n_Sila ambil tindakan sewajarnya._`;
+
+        try {
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
+            });
+        } catch (e) { console.error("Error Telegram:", e); }
     }
 
-    window.logout = () => {
-        localStorage.removeItem("semsira_isLoggedIn");
-        location.reload();
+    window.saveTimeSettings = async () => {
+        const late = document.getElementById('late-time').value;
+        const absent = document.getElementById('absent-time').value;
+        await setDoc(doc(db, SETTINGS_COL, "attendance_time"), { lateTime: late, absentTime: absent });
+        alert("Waktu berjaya disimpan!");
+    };
+
+    window.saveTeacherIDs = async () => {
+        for(let cls of ALL_CLASSES) {
+            const val = document.getElementById(`t-id-${cls}`).value;
+            if(val) await setDoc(doc(db, TEACHER_COL, cls), { chatId: val.trim() });
+        }
+        alert("Data guru berjaya dikemaskini!");
     };
 
     window.filterStudents = () => {
         const v = document.getElementById('search-box').value.toLowerCase();
         renderStudents(allStudents.filter(s => (s.name||'').toLowerCase().includes(v) || (s.ic||'').includes(v)));
     };
-
+    
     window.resetDevice = async (id) => {
-        if(confirm("Reset Device ID?")) {
-            await updateDoc(doc(db, "studentInform", id), { registeredDeviceId: "" });
-            alert("Berjaya!");
+        if(confirm("Reset ID Peranti?")) {
+            await updateDoc(doc(db, STUDENT_COL, id), { registeredDeviceId: "" });
+            loadStudents();
         }
     };
 
-    async function loadTeacherSettings() {
-        const snap = await getDocs(collection(db, "classSettings"));
-        let dataMap = {};
-        snap.forEach(d => dataMap[d.id] = d.data().chatId);
-        let html = `<table><tr><th>Kelas</th><th>Telegram ID</th></tr>`;
-        ALL_CLASSES.forEach(cls => {
-            html += `<tr><td>${cls}</td><td><input type="text" id="t-id-${cls}" value="${dataMap[cls] || ''}" style="width:90%;margin:0;"></td></tr>`;
+    window.saveSemSettings = async () => {
+        const s1 = document.getElementById('sem-k1').value;
+        const s2 = document.getElementById('sem-k2').value;
+        const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+        const ps = allStudents.map(s => {
+            let isK1 = k1_keywords.some(k => (s.className||'').toLowerCase().includes(k));
+            return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
         });
-        document.getElementById('teacher-table-container').innerHTML = html + `</table>`;
-    }
-
-    window.saveTeacherIDs = async () => {
-        for(let cls of ALL_CLASSES) {
-            const val = document.getElementById(`t-id-${cls}`).value;
-            if(val) await setDoc(doc(db, "classSettings", cls), { chatId: val.trim() });
-        }
-        alert("Berjaya Disimpan!");
+        await Promise.all(ps);
+        alert("Semua semester pelajar telah dikemaskini!");
+        loadStudents();
     };
 
-    window.triggerManualAlert = async () => {
-        if(!confirm("Hantar senarai TIDAK HADIR ke Telegram Guru?")) return;
-        const btn = document.getElementById('btn-report');
-        btn.innerText = "Processing...";
-        btn.disabled = true;
-
-        const teacherSnap = await getDocs(collection(db, "classSettings"));
-        let teacherMap = {};
-        teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
-
-        for(let cls of ALL_CLASSES) {
-            const chatId = teacherMap[cls];
-            if(!chatId) continue;
-            
-            const absents = allStudents.filter(s => 
-                (s.className||'').toLowerCase() === cls.toLowerCase() && !presentICs.has(s.ic)
-            );
-
-            if(absents.length > 0) {
-                await sendTelegram(chatId, cls, absents);
-            }
-        }
-        alert("Semua laporan telah dihantar!");
-        btn.innerHTML = `<i data-lucide="send"></i> Hantar Telegram`;
-        btn.disabled = false;
-        lucide.createIcons();
+    window.logout = () => {
+        localStorage.removeItem("semsira_isLoggedIn");
+        location.reload();
     };
-
-    async function sendTelegram(chatId, cls, list) {
-        let text = `⚠️ *LAPORAN TIDAK HADIR*\n*Kelas:* ${cls}\n*Tarikh:* ${new Date().toLocaleDateString()}\n\n`;
-        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
-        });
-    }
 </script>
 </body>
 </html>
