@@ -21,6 +21,17 @@
             --bg: #F2F2F7;
             --card: rgba(255, 255, 255, 0.8);
             --border: rgba(200, 200, 200, 0.3);
+            --text: #000000;
+            --nav-bg: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 暗色模式变量 */
+        [data-theme="dark"] {
+            --bg: #1C1C1E;
+            --card: rgba(44, 44, 46, 0.8);
+            --border: rgba(84, 84, 88, 0.5);
+            --text: #FFFFFF;
+            --nav-bg: rgba(28, 28, 30, 0.9);
         }
 
         body {
@@ -28,73 +39,55 @@
             background-color: var(--bg);
             margin: 0;
             padding: 0;
-            color: #000;
+            color: var(--text);
             overflow-x: hidden;
             user-select: none;
             -webkit-user-select: none;
+            transition: background-color 0.3s ease;
         }
 
         #watermark-layer {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 9999;
-            opacity: 0.15;
-            display: none; 
-            flex-wrap: wrap;
-            justify-content: space-around;
-            align-content: space-around;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 9999;
+            opacity: 0.15; display: none; 
+            flex-wrap: wrap; justify-content: space-around; align-content: space-around;
             overflow: hidden;
         }
 
         .watermark-item {
             transform: rotate(-30deg);
-            font-size: 14px;
-            white-space: nowrap;
-            padding: 40px;
-            color: #000;
-            font-weight: bold;
+            font-size: 14px; white-space: nowrap; padding: 40px;
+            color: var(--text); font-weight: bold;
+        }
+
+        /* 自动登录加载层 */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 10001;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
         }
 
         .login-logo {
-            display: block;
-            margin: 20px auto 10px;
-            max-width: 80px;
-            height: auto;
-            border-radius: 15px;
+            display: block; margin: 20px auto 10px;
+            max-width: 80px; height: auto; border-radius: 15px;
         }
 
         .header-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            padding-top: 10px;
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 20px; padding-top: 10px;
         }
 
         .app-header-logo {
-            display: block;
-            max-width: 45px;
-            height: auto;
-            border-radius: 10px;
-            margin: 0; 
+            display: block; max-width: 45px; height: auto; border-radius: 10px; margin: 0; 
         }
 
-        .header-container h3 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 700;
-        }
+        .header-container h3 { margin: 0; font-size: 22px; font-weight: 700; }
 
         .glass {
             background: var(--card);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--border);
-            border-radius: 15px;
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border); border-radius: 15px;
         }
 
         .page { display: none; padding: 20px; padding-bottom: 100px; min-height: 100vh; box-sizing: border-box; }
@@ -103,101 +96,96 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         input, select {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 10px;
-            border: 1px solid #DDD;
-            box-sizing: border-box;
-            font-size: 16px;
+            width: 100%; padding: 12px; margin: 8px 0;
+            border-radius: 10px; border: 1px solid var(--border);
+            box-sizing: border-box; font-size: 16px;
+            background: var(--card); color: var(--text);
         }
 
         button {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            margin-top: 10px;
+            width: 100%; padding: 14px; background-color: var(--primary);
+            color: white; border: none; border-radius: 12px;
+            font-weight: 600; font-size: 16px; margin-top: 10px;
         }
 
         .nav-bar {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            height: 70px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-top: 1px solid var(--border);
-            z-index: 1000;
+            position: fixed; bottom: 0; width: 100%; height: 70px;
+            display: flex; justify-content: space-around; align-items: center;
+            background: var(--nav-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border); z-index: 1000;
         }
 
         .nav-item { text-align: center; color: #8E8E93; font-size: 12px; cursor: pointer; }
         .nav-item.active-nav { color: var(--primary); }
 
         #poster-slider {
-            width: 100%;
-            aspect-ratio: 16/9;
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-            background: #000;
+            width: 100%; aspect-ratio: 16/9; border-radius: 15px;
+            overflow: hidden; position: relative; background: #000;
         }
 
         #poster-slider img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 0.8s; }
         #poster-slider img.show { opacity: 1; }
 
+        /* Pengumuman 卡片间距优化 */
         .post-card {
             margin-top: 15px;
+            margin-bottom: 15px; /* 添加间距 */
             padding: 15px;
-            border-bottom: 1px solid #EEE;
+            border-radius: 12px; /* 变成圆角卡片感 */
             word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         .post-card img {
-            max-width: 100% !important;
-            height: auto !important;
-            border-radius: 10px;
-            margin-top: 8px;
-            display: block;
+            max-width: 100% !important; height: auto !important;
+            border-radius: 10px; margin-top: 8px; display: block;
         }
 
+        /* 暗色模式开关样式 */
+        .setting-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 22px; width: 22px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
         #qrcode {
-            background: white;
-            padding: 20px;
-            border-radius: 20px;
-            margin: 20px auto;
-            display: inline-block;
+            background: white; padding: 20px; border-radius: 20px;
+            margin: 20px auto; display: inline-block;
         }
 
         .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
         .profile-label b { color: var(--primary); text-align: right; }
 
-        .attendance-panel {
-            margin: 20px auto;
-            padding: 15px;
-            max-width: 280px;
-            text-align: center;
-        }
-        .status-text {
-            font-size: 20px;
-            font-weight: 800;
-            margin: 5px 0;
-        }
+        .attendance-panel { margin: 20px auto; padding: 15px; max-width: 280px; text-align: center; }
+        .status-text { font-size: 20px; font-weight: 800; margin: 5px 0; }
         .status-tidak-hadir { color: #FF3B30; }
         .status-hadir { color: #34C759; }
         .status-lewat { color: #FF9500; }
-        .status-time { font-size: 13px; color: #666; font-family: monospace; }
+        .status-time { font-size: 13px; color: #888; font-family: monospace; }
     </style>
 </head>
 <body oncontextmenu="return false;">
+
+<div id="loading-overlay">
+    <div class="glass" style="padding: 30px; text-align: center; border-radius: 20px;">
+        <img src="/semsira.png" style="width: 60px; border-radius: 12px; margin-bottom: 15px;">
+        <div style="font-weight: 600; font-size: 18px;">Logging in...</div>
+        <div style="font-size: 12px; color: #888; margin-top: 5px;">Semsira Digital ID</div>
+    </div>
+</div>
 
 <div id="watermark-layer"></div>
 
@@ -246,7 +234,7 @@
         </div>
         <div id="poster-slider" class="glass"></div>
         <h4>Pengumuman</h4>
-        <div id="announcements-list" class="glass">Memuatkan...</div>
+        <div id="announcements-list">Memuatkan...</div>
     </div>
 
     <div id="tab-scan" class="page" style="text-align:center">
@@ -274,23 +262,34 @@
             <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
             <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
-            <div class="profile-label"><span>Semester Semasa:</span> <b id="prof-sem" style="font-size: 1.2em;">-</b></div>
+            <div class="profile-label"><span>Semester:</span> <b id="prof-sem">-</b></div>
+            
+            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
+            
+            <div class="setting-item">
+                <span style="font-size: 14px; font-weight: 600;">Dark Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-toggle" onclick="toggleDarkMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
             <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
             <p style="font-weight: bold; font-size: 14px;">Kemaskini maklumat:</p>
             
-            <label style="font-size: 12px; color: #666;">Nama Penuh:</label>
-            <input type="text" id="upd-name" placeholder="Nama Baru">
+            <label style="font-size: 12px; color: #888;">Nama Penuh:</label>
+            <input type="text" id="upd-name">
 
-            <label style="font-size: 12px; color: #666;">No. Matrik:</label>
-            <input type="text" id="upd-id" placeholder="No. Matrik Baru">
+            <label style="font-size: 12px; color: #888;">No. Matrik:</label>
+            <input type="text" id="upd-id">
 
-            <label style="font-size: 12px; color: #666;">No. Telefon:</label>
-            <input type="tel" id="upd-phone" placeholder="No. Telefon Baru">
+            <label style="font-size: 12px; color: #888;">No. Telefon:</label>
+            <input type="tel" id="upd-phone">
 
-            <label style="font-size: 12px; color: #666;">Alamat Rumah:</label>
-            <input type="text" id="upd-address" placeholder="Alamat Baru">
+            <label style="font-size: 12px; color: #888;">Alamat Rumah:</label>
+            <input type="text" id="upd-address">
 
-            <label style="font-size: 12px; color: #666;">Kelas:</label>
+            <label style="font-size: 12px; color: #888;">Kelas:</label>
             <select id="upd-class">
                 <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
                 <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
@@ -336,6 +335,18 @@
     let qrUpdateInterval = null;
     let isAttendedToday = false;
     let attendanceListenerUnsubscribe = null;
+
+    // --- 暗色模式逻辑 ---
+    window.toggleDarkMode = () => {
+        const isDark = document.getElementById('dark-mode-toggle').checked;
+        document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        localStorage.setItem('semsira_theme', isDark ? 'dark' : 'light');
+    };
+
+    // 初始化主题
+    const savedTheme = localStorage.getItem('semsira_theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    document.getElementById('dark-mode-toggle').checked = (savedTheme === 'dark');
 
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
@@ -486,32 +497,43 @@
     }
 
     onAuthStateChanged(auth, async (user) => {
+        const loadingOverlay = document.getElementById('loading-overlay');
         if (user) {
+            // 显示加载提示
+            loadingOverlay.style.display = 'flex';
+            
             const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
             if (snap.exists()) {
                 const userData = snap.data();
-                if (!(await verifyDevice(user, userData))) return;
+                if (!(await verifyDevice(user, userData))) {
+                    loadingOverlay.style.display = 'none';
+                    return;
+                }
                 window.currentUserData = userData;
-                document.getElementById('page-login').classList.remove('active');
-                document.getElementById('page-register').classList.remove('active');
-                document.getElementById('main-app').style.display = 'block';
-                applyWatermark(`${userData.name} (${userData.ic})`);
-                loadHomeData();
-                setupAccountPage();
                 
-                // 启动实时监听：通过 attendanceLogs 判断今天是否已到
-                listenToAttendance(userData.ic);
-                startQRGenerator();
+                // 模拟一个短暂的延迟让用户看到 "Login in..."
+                setTimeout(() => {
+                    document.getElementById('page-login').classList.remove('active');
+                    document.getElementById('page-register').classList.remove('active');
+                    document.getElementById('main-app').style.display = 'block';
+                    loadingOverlay.style.display = 'none';
+                    
+                    applyWatermark(`${userData.name} (${userData.ic})`);
+                    loadHomeData();
+                    setupAccountPage();
+                    listenToAttendance(userData.ic);
+                    startQRGenerator();
+                }, 1200);
             }
         } else {
+            loadingOverlay.style.display = 'none';
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('page-login').classList.add('active');
         }
     });
 
-    // 核心修改：实时监听打卡记录，控制二维码状态
     function listenToAttendance(studentIc) {
-        const todayStr = new Date().toLocaleDateString('en-CA'); // 格式 YYYY-MM-DD
+        const todayStr = new Date().toLocaleDateString('en-CA');
         const statusEl = document.getElementById('attendance-status');
         const timeEl = document.getElementById('attendance-time');
         const qrcEl = document.getElementById('qrcode');
@@ -530,19 +552,12 @@
             if (!snapshot.empty) {
                 const data = snapshot.docs[0].data();
                 isAttendedToday = true;
-                
-                // 1. 立即停止 QR 定时刷新
-                if(qrUpdateInterval) {
-                    clearInterval(qrUpdateInterval);
-                    qrUpdateInterval = null;
-                }
+                if(qrUpdateInterval) { clearInterval(qrUpdateInterval); qrUpdateInterval = null; }
 
-                // 2. 更新 UI 状态
                 const status = data.status;
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
                 
-                // 3. 处理二维码显示：变淡并显示成功文本
                 qrcEl.style.opacity = "0.3";
                 instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
                 timerEl.innerText = "SIGNED IN";
@@ -550,20 +565,15 @@
                 const timestamp = data.timestamp;
                 if (timestamp) {
                     const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                    timeEl.innerText = d.toLocaleString('ms-MY', { 
-                        hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false 
-                    });
+                    timeEl.innerText = d.toLocaleString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
                 }
             } else {
-                // 如果今天还没打卡
                 isAttendedToday = false;
                 statusEl.innerText = "TIDAK HADIR";
                 statusEl.className = "status-text status-tidak-hadir";
                 timeEl.innerText = "-- : -- : --";
                 qrcEl.style.opacity = "1";
                 instEl.innerText = "Sila tunjukkan kod QR ini kepada guru bertugas.";
-                
-                // 确保 QR 刷新在运行
                 if (!qrUpdateInterval) startQRGenerator();
             }
         });
@@ -587,7 +597,8 @@
                 }
                 if(labels.includes('post')) {
                     let contentHtml = issue.body.replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">');
-                    list.innerHTML += `<div class="post-card"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
+                    // 添加 glass 效果到每条帖子
+                    list.innerHTML += `<div class="post-card glass"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
                 }
             });
             let current = 0;
@@ -612,7 +623,6 @@
         }
         
         const updateQR = () => {
-            // 只要打过卡了，就停止刷新
             if (isAttendedToday) {
                 if(qrUpdateInterval) clearInterval(qrUpdateInterval);
                 return;
