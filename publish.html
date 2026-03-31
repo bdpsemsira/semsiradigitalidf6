@@ -14,10 +14,9 @@
         }
         
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
             background: var(--bg); 
-            padding: 20px; 
-            margin: 0; 
+            padding: 20px; margin: 0; 
             -webkit-font-smoothing: antialiased;
         }
         
@@ -32,120 +31,53 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
-        /* Logo 样式 */
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .logo-img {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            object-fit: cover;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
+        .logo-section { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .logo-img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
-        /* iOS 分段选择器 */
         .segmented-control {
-            display: flex;
-            background: rgba(118, 118, 128, 0.12);
-            border-radius: 9px;
-            padding: 2px;
-            margin: 15px 0;
+            display: flex; background: rgba(118, 118, 128, 0.12);
+            border-radius: 9px; padding: 2px; margin: 15px 0;
         }
         .segmented-control input { display: none; }
         .segmented-control label {
-            flex: 1;
-            text-align: center;
-            padding: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 7px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            color: #3A3A3C;
+            flex: 1; text-align: center; padding: 8px; font-size: 14px;
+            font-weight: 500; cursor: pointer; border-radius: 7px; transition: 0.2s;
         }
         .segmented-control input:checked + label {
-            background: white;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-            color: var(--primary);
+            background: white; box-shadow: 0 3px 8px rgba(0,0,0,0.12); color: var(--primary);
         }
 
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 14px;
-            margin: 10px 0;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: rgba(255,255,255,0.6);
-            font-size: 16px;
-            box-sizing: border-box;
-            outline: none;
-            transition: 0.2s;
+        input[type="text"], input[type="password"], textarea {
+            width: 100%; padding: 14px; margin: 10px 0;
+            border-radius: 12px; border: 1px solid var(--border);
+            background: rgba(255,255,255,0.6); font-size: 16px; box-sizing: border-box;
         }
-        input:focus, textarea:focus { border-color: var(--primary); background: white; }
 
         button {
-            width: 100%;
-            padding: 16px;
-            border-radius: 14px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            font-weight: 600;
-            font-size: 17px;
-            margin-top: 15px;
-            cursor: pointer;
-            transition: opacity 0.2s;
+            width: 100%; padding: 16px; border-radius: 14px;
+            background: var(--primary); color: white; border: none;
+            font-weight: 600; font-size: 17px; margin-top: 10px; cursor: pointer;
         }
-        button:active { opacity: 0.7; }
-
-        /* 列表项样式 */
-        .issue-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-        .issue-info { display: flex; flex-direction: column; gap: 4px; }
-        .issue-title { font-weight: 600; font-size: 16px; color: #1C1C1E; }
         
-        .tag {
-            display: inline-block;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 5px;
-            font-weight: 700;
-            text-transform: uppercase;
+        .secondary-btn {
+            background: none; color: var(--primary); font-size: 13px;
+            padding: 5px; margin-top: 5px; width: auto; font-weight: 400;
         }
+
+        .issue-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .tag { font-size: 10px; padding: 2px 8px; border-radius: 5px; font-weight: 700; text-transform: uppercase; }
         .tag-post { background: #E1F5FE; color: #0288D1; }
         .tag-poster { background: #FFF3E0; color: #EF6C00; }
 
-        .del-btn {
-            background: #FF3B30;
-            width: auto;
-            padding: 6px 14px;
-            font-size: 13px;
-            margin: 0;
-            border-radius: 8px;
-        }
+        .del-btn { background: #FF3B30; width: auto; padding: 6px 14px; font-size: 12px; border-radius: 8px; }
 
         #toast {
-            position: fixed;
-            top: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 30px;
-            display: none;
-            z-index: 100;
-            font-size: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); color: white; padding: 12px 24px;
+            border-radius: 30px; display: none; z-index: 100; font-size: 14px;
         }
     </style>
 </head>
@@ -153,53 +85,84 @@
 
 <div id="toast">Memproses...</div>
 
-<div class="glass">
-    <div class="logo-section">
-        <img src="semsira.png" alt="Semsira" class="logo-img" onerror="this.src='https://ui-avatars.com/api/?name=S&background=007AFF&color=fff'">
-        <div>
-            <h2 style="margin:0; font-size: 22px; letter-spacing: -0.5px;">Semsira Editor</h2>
-            <p style="margin:2px 0 0 0; color: #8E8E93; font-size: 13px;">Panel Hebahan & Poster</p>
-        </div>
-    </div>
-
-    <div class="segmented-control">
-        <input type="radio" id="type-post" name="labelType" value="post" checked>
-        <label for="type-post">📢 Post (Berita)</label>
-        
-        <input type="radio" id="type-poster" name="labelType" value="poster">
-        <label for="type-poster">🖼️ Poster (Slider)</label>
-    </div>
-
-    <input type="text" id="title" placeholder="Tajuk Hebahan">
-    <textarea id="body" rows="5" placeholder="Tulis kandungan pengumuman atau tampal URL gambar untuk poster..."></textarea>
-    
-    <button onclick="publish()">Terbitkan Ke Website</button>
+<div id="token-view" class="glass" style="display:none;">
+    <h3>🔑 Tatarajah Akses GitHub</h3>
+    <p style="font-size:13px; color:#666;">Sila masukkan Personal Access Token (PAT) anda untuk mula mengurus kandungan.</p>
+    <input type="password" id="input-token" placeholder="github_pat_...">
+    <button onclick="saveToken()">Simpan & Mula</button>
 </div>
 
-<div class="glass">
-    <h3 style="margin: 0 0 15px 0; font-size: 18px;">Kandungan Aktif</h3>
-    <div id="list">Memuatkan senarai...</div>
+<div id="main-view" style="display:none;">
+    <div class="glass">
+        <div class="logo-section">
+            <img src="semsira.png" alt="Semsira" class="logo-img" onerror="this.src='https://ui-avatars.com/api/?name=S&background=007AFF&color=fff'">
+            <div>
+                <h2 style="margin:0; font-size: 22px;">Semsira Editor</h2>
+                <p style="margin:2px 0 0 0; color: #8E8E93; font-size: 13px;">Auto-save Token Active</p>
+            </div>
+        </div>
+
+        <div class="segmented-control">
+            <input type="radio" id="type-post" name="labelType" value="post" checked>
+            <label for="type-post">📢 Post (Berita)</label>
+            <input type="radio" id="type-poster" name="labelType" value="poster">
+            <label for="type-poster">🖼️ Poster (Slider)</label>
+        </div>
+
+        <input type="text" id="title" placeholder="Tajuk Hebahan">
+        <textarea id="body" rows="5" placeholder="Kandungan atau URL gambar..."></textarea>
+        
+        <button onclick="publish()">Terbitkan Ke Website</button>
+        <center><button class="secondary-btn" onclick="clearToken()">⚠️ Tukar / Padam Token</button></center>
+    </div>
+
+    <div class="glass">
+        <h3 style="margin: 0 0 15px 0; font-size: 18px;">Kandungan Aktif</h3>
+        <div id="list">Memuatkan...</div>
+    </div>
 </div>
 
 <script>
-    // Token & Repo Configuration
-    const _ENC_T = "Z2l0aHViX3BhdF8xMUI2Q0hGS1EwenloRWoyVXRqc3c0X1dvVU5ZY1ZucWJ3amJDMDdscUstTjF4a3Z1M1hHaWlUYmREczhuclszd3BFVlFQQUI3WEtHWW55bDlo";
     const REPO = "bdpsemsira/bdpsemsira.github.io";
+    let CURRENT_TOKEN = localStorage.getItem('gh_token');
 
-    // Access Control
     window.onload = () => {
-        const pass = prompt("Sila masukkan Kata Laluan Admin:");
-        if (pass !== "semsira2026") { 
-            alert("Akses Ditolak!");
-            window.location.href = "index.html";
-        }
-        fetchIssues();
+        checkAuth();
     };
+
+    function checkAuth() {
+        if (!CURRENT_TOKEN) {
+            document.getElementById('token-view').style.display = 'block';
+            document.getElementById('main-view').style.display = 'none';
+        } else {
+            document.getElementById('token-view').style.display = 'none';
+            document.getElementById('main-view').style.display = 'block';
+            fetchIssues();
+        }
+    }
+
+    function saveToken() {
+        const val = document.getElementById('input-token').value.trim();
+        if (val.startsWith('github_pat_')) {
+            localStorage.setItem('gh_token', val);
+            CURRENT_TOKEN = val;
+            showToast("Token disimpan!");
+            checkAuth();
+        } else {
+            alert("Format Token tidak sah! Mesti bermula dengan 'github_pat_'.");
+        }
+    }
+
+    function clearToken() {
+        if(confirm("Padam token yang tersimpan?")) {
+            localStorage.removeItem('gh_token');
+            location.reload();
+        }
+    }
 
     function showToast(msg) {
         const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.display = 'block';
+        t.innerText = msg; t.style.display = 'block';
         setTimeout(() => { t.style.display = 'none'; }, 3000);
     }
 
@@ -208,34 +171,28 @@
         const b = document.getElementById('body').value;
         const l = document.querySelector('input[name="labelType"]:checked').value;
 
-        if(!t || !b) return alert("Sila lengkapkan tajuk dan kandungan!");
+        if(!t || !b) return alert("Sila isi tajuk dan kandungan!");
 
         showToast("Sedang menerbitkan...");
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `token ${atob(_ENC_T)}`,
+                    'Authorization': `token ${CURRENT_TOKEN}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    title: t,
-                    body: b,
-                    labels: [l]
-                })
+                body: JSON.stringify({ title: t, body: b, labels: [l] })
             });
 
             if(res.ok) {
-                showToast("✅ Berjaya Diterbitkan!");
+                showToast("✅ Berjaya!");
                 document.getElementById('title').value = "";
                 document.getElementById('body').value = "";
                 fetchIssues();
             } else {
-                alert("Ralat: Pastikan Token masih sah.");
+                alert("Ralat! Token mungkin tamat tempoh atau tiada kebenaran.");
             }
-        } catch(e) {
-            alert("Gagal menyambung ke GitHub.");
-        }
+        } catch(e) { alert("Gagal menyambung ke GitHub."); }
     }
 
     async function fetchIssues() {
@@ -243,50 +200,33 @@
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/issues?state=open&t=${Date.now()}`);
             const data = await res.json();
-            
-            if(data.length === 0) {
-                listDiv.innerHTML = "<p style='color:#8E8E93; font-size:14px;'>Tiada kandungan aktif.</p>";
-                return;
-            }
-
             listDiv.innerHTML = data.map(i => `
                 <div class="issue-item">
-                    <div class="issue-info">
-                        <div class="issue-title">${i.title}</div>
-                        <div>
-                            <span class="tag tag-${i.labels[0]?.name || 'post'}">${i.labels[0]?.name || 'post'}</span>
-                            <span style="font-size:11px; color:#8E8E93; margin-left:5px;">#${i.number}</span>
-                        </div>
+                    <div>
+                        <div style="font-weight:600;">${i.title}</div>
+                        <span class="tag tag-${i.labels[0]?.name || 'post'}">${i.labels[0]?.name || 'post'}</span>
                     </div>
                     <button class="del-btn" onclick="removeIssue(${i.number})">Padam</button>
                 </div>
             `).join('');
-        } catch(e) {
-            listDiv.innerHTML = "Gagal memuatkan senarai.";
-        }
+        } catch(e) { listDiv.innerHTML = "Gagal memuatkan senarai."; }
     }
 
     async function removeIssue(id) {
-        if(!confirm("Padam kandungan ini daripada website?")) return;
-        showToast("Sedang memadam...");
+        if(!confirm("Padam kandungan ini?")) return;
+        showToast("Memadam...");
         try {
-            const res = await fetch(`https://api.github.com/repos/${REPO}/issues/${id}`, {
+            await fetch(`https://api.github.com/repos/${REPO}/issues/${id}`, {
                 method: 'PATCH',
                 headers: {
-                    'Authorization': `token ${atob(_ENC_T)}`,
+                    'Authorization': `token ${CURRENT_TOKEN}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ state: 'closed' })
             });
-            if(res.ok) {
-                showToast("🗑️ Berjaya Dipadam.");
-                fetchIssues();
-            }
-        } catch(e) {
-            alert("Ralat memadam.");
-        }
+            fetchIssues();
+        } catch(e) { alert("Ralat memadam."); }
     }
 </script>
-
 </body>
 </html>
