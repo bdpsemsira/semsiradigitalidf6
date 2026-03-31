@@ -29,7 +29,7 @@
         }
 
         .logo-section { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-        .logo-img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .logo-img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; }
 
         .segmented-control {
             display: flex; background: rgba(118, 118, 128, 0.12);
@@ -59,7 +59,7 @@
         
         .secondary-btn {
             background: none; color: #8E8E93; font-size: 12px;
-            padding: 10px; margin-top: 5px; width: auto; font-weight: 400;
+            padding: 10px; width: auto; font-weight: 400;
         }
 
         .issue-item {
@@ -69,6 +69,7 @@
         .tag { font-size: 10px; padding: 2px 8px; border-radius: 5px; font-weight: 700; text-transform: uppercase; }
         .tag-post { background: #E3F2FD; color: #1976D2; }
         .tag-poster { background: #FFF3E0; color: #F57C00; }
+        .tag-none { background: #EEEEEE; color: #999; }
 
         .del-btn { background: #FF3B30; width: auto; padding: 6px 14px; font-size: 12px; border-radius: 8px; }
 
@@ -84,11 +85,10 @@
 <div id="toast">Memproses...</div>
 
 <div id="token-view" class="glass" style="display:none;">
-    <h3 style="margin-top:0">🔑 Semsira Access Setup</h3>
-    <p style="font-size:13px; color:#666;">Sila masukkan GitHub Personal Access Token untuk mengurus Issues.</p>
+    <h3 style="margin-top:0">🔑 Semsira Access</h3>
+    <p style="font-size:13px; color:#666;">Masukkan Token GitHub untuk mengurus kandungan.</p>
     <input type="password" id="input-token" placeholder="github_pat_...">
     <button onclick="saveToken()">Simpan & Masuk</button>
-    <p style="font-size:11px; color: #999; margin-top: 10px;">Token disimpan secara lokal pada pelayar ini sahaja.</p>
 </div>
 
 <div id="main-view" style="display:none;">
@@ -97,7 +97,7 @@
             <img src="semsira.png" alt="Semsira" class="logo-img" onerror="this.src='https://ui-avatars.com/api/?name=S&background=007AFF&color=fff'">
             <div>
                 <h2 style="margin:0; font-size: 22px;">Semsira Editor</h2>
-                <p style="margin:2px 0 0 0; color: #8E8E93; font-size: 13px;">Panel Kawalan Issues</p>
+                <p style="margin:2px 0 0 0; color: #8E8E93; font-size: 13px;">Panel Kawalan Label</p>
             </div>
         </div>
 
@@ -108,16 +108,16 @@
             <label for="type-poster">🖼️ Poster (Slider)</label>
         </div>
 
-        <input type="text" id="title" placeholder="Tajuk Ringkas">
-        <textarea id="body" rows="5" placeholder="Kandungan teks atau URL gambar..."></textarea>
+        <input type="text" id="title" placeholder="Tajuk">
+        <textarea id="body" rows="5" placeholder="Kandungan..."></textarea>
         
-        <button onclick="publish()">Terbitkan Ke Website</button>
-        <center><button class="secondary-btn" onclick="clearToken()">Tukar Token GitHub</button></center>
+        <button onclick="publish()">Terbitkan Sekarang</button>
+        <center><button class="secondary-btn" onclick="clearToken()">Log Keluar / Tukar Token</button></center>
     </div>
 
     <div class="glass">
-        <h3 style="margin: 0 0 15px 0; font-size: 18px;">Kandungan Aktif</h3>
-        <div id="list">Memuatkan senarai...</div>
+        <h3 style="margin: 0 0 15px 0; font-size: 18px;">Senarai Issues Terkini</h3>
+        <div id="list">Memuatkan...</div>
     </div>
 </div>
 
@@ -140,12 +140,12 @@
             localStorage.setItem('gh_admin_token', t);
             location.reload();
         } else {
-            alert("Format Token salah! Pastikan ia bermula dengan 'github_pat_'.");
+            alert("Token tidak sah.");
         }
     }
 
     function clearToken() {
-        if(confirm("Padam token sedia ada?")) {
+        if(confirm("Padam token?")) {
             localStorage.removeItem('gh_admin_token');
             location.reload();
         }
@@ -160,39 +160,43 @@
     async function publish() {
         const t = document.getElementById('title').value;
         const b = document.getElementById('body').value;
-        const l = document.querySelector('input[name="labelType"]:checked').value;
+        const radio = document.querySelector('input[name="labelType"]:checked');
+        const l = radio ? radio.value : null;
 
-        if(!t || !b) return alert("Sila isi tajuk dan kandungan!");
+        if(!t || !b || !l) return alert("Sila isi semua maklumat!");
 
-        showToast("Sedang menerbitkan...");
+        showToast("Menghantar...");
 
         try {
             const response = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `token ${AUTH_TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json',
+                    'Accept': 'application/vnd.github+json', // 强制要求返回 JSON
                     'Content-Type': 'application/json'
                 },
-                // 关键点：确保发送的是数组格式的 labels
                 body: JSON.stringify({
                     title: t,
                     body: b,
-                    labels: [l] 
+                    labels: [l] // 确保是数组
                 })
             });
+
+            const resData = await response.json();
 
             if (response.ok) {
                 showToast("✅ Berjaya!");
                 document.getElementById('title').value = "";
                 document.getElementById('body').value = "";
-                fetchIssues();
+                // 刷新列表时增加一点延迟，确保数据已存入数据库
+                setTimeout(fetchIssues, 1500);
             } else {
-                const errData = await response.json();
-                alert("Gagal: " + (errData.message || "Token tidak sah"));
+                console.error("GitHub Error Response:", resData);
+                alert("Ralat: " + resData.message);
             }
         } catch (e) {
-            alert("Ralat rangkaian.");
+            console.error("Fetch Error:", e);
+            alert("Sambungan gagal.");
         }
     }
 
@@ -203,36 +207,40 @@
             const data = await res.json();
             
             if (!Array.isArray(data)) {
-                listDiv.innerHTML = "Sila semak Token anda.";
+                listDiv.innerHTML = "Ralat data API.";
                 return;
             }
 
             listDiv.innerHTML = data.map(i => {
-                const labelName = i.labels[0] ? i.labels[0].name : 'no label';
+                // 遍历获取该 Issue 的第一个标签名
+                const labelName = (i.labels && i.labels.length > 0) ? i.labels[0].name : "no label";
+                const tagClass = (labelName === 'post' || labelName === 'poster') ? `tag-${labelName}` : 'tag-none';
+                
                 return `
                 <div class="issue-item">
                     <div>
-                        <div class="issue-title">${i.title}</div>
-                        <span class="tag tag-${labelName}">${labelName}</span>
+                        <div style="font-weight:600; font-size:15px;">${i.title}</div>
+                        <span class="tag ${tagClass}">${labelName}</span>
+                        <span style="font-size:11px; color:#999; margin-left:5px;">#${i.number}</span>
                     </div>
                     <button class="del-btn" onclick="removeIssue(${i.number})">Padam</button>
                 </div>
                 `;
             }).join('');
         } catch(e) {
-            listDiv.innerHTML = "Ralat memuatkan senarai.";
+            listDiv.innerHTML = "Gagal memuatkan senarai.";
         }
     }
 
     async function removeIssue(num) {
         if(!confirm("Padam makluman ini?")) return;
-        showToast("Sedang memadam...");
+        showToast("Memadam...");
         try {
             const res = await fetch(`https://api.github.com/repos/${REPO}/issues/${num}`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `token ${AUTH_TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json',
+                    'Accept': 'application/vnd.github+json',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ state: 'closed' })
