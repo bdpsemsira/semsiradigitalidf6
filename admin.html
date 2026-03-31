@@ -276,7 +276,13 @@
             const d = now.getDate();
             const todayDateStr = `${d}/${m}/${y}`; 
 
-            const logsQuery = query(collection(db, LOGS_COL), where("timeFull", "==", todayDateStr));
+            // 修复点：使用范围查询以匹配带有时间后缀的 timeFull 字段
+            const logsQuery = query(
+                collection(db, LOGS_COL), 
+                where("timeFull", ">=", todayDateStr),
+                where("timeFull", "<=", todayDateStr + "\uf8ff")
+            );
+            
             const logsSnap = await getDocs(logsQuery);
             const presentICs = new Set();
             logsSnap.forEach(doc => {
