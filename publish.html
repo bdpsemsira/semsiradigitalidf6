@@ -60,6 +60,16 @@
         
         button:disabled { background: #ccc; cursor: not-allowed; }
 
+        /* 新增上传图片按钮样式 */
+        .upload-area {
+            background: rgba(0, 122, 255, 0.1);
+            border: 1px dashed var(--primary);
+            border-radius: 12px; padding: 12px;
+            text-align: center; color: var(--primary);
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            margin-bottom: 10px;
+        }
+
         .issue-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -85,7 +95,7 @@
 
 <div id="token-view" class="glass" style="display:none;">
     <h3 style="margin-top:0">🔑 Semsira Access</h3>
-    <p style="font-size:13px; color:#666;">Masukkan Token GitHub dengan izin 'repo' atau 'issues'.</p>
+    <p style="font-size:13px; color:#666;">Masukkan Token GitHub dengan izin 'repo'.</p>
     <input type="password" id="input-token" placeholder="github_pat_...">
     <button onclick="saveToken()">Simpan & Masuk</button>
 </div>
@@ -102,13 +112,18 @@
 
         <div class="segmented-control">
             <input type="radio" id="type-post" name="labelType" value="post" checked>
-            <label for="type-post">📢 Post (Berita)</label>
+            <label for="type-post">📢 Post</label>
             <input type="radio" id="type-poster" name="labelType" value="poster">
-            <label for="type-poster">🖼️ Poster (Slider)</label>
+            <label for="type-poster">🖼️ Poster</label>
         </div>
 
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            📷 Muat Naik Gambar (Auto Link)
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="uploadImage(this)">
+
         <input type="text" id="title" placeholder="Tajuk">
-        <textarea id="body" rows="5" placeholder="Kandungan..."></textarea>
+        <textarea id="body" rows="6" placeholder="Kandungan..."></textarea>
         
         <button id="btn-pub" onclick="publish()">Terbitkan Sekarang</button>
         <center><button class="secondary-btn" style="background:none; border:none; color:#8E8E93; margin-top:15px; cursor:pointer;" onclick="clearToken()">Log Keluar / Tukar Token</button></center>
@@ -154,7 +169,53 @@
     function showToast(m) {
         const el = document.getElementById('toast');
         el.innerText = m; el.style.display = 'block';
-        setTimeout(() => el.style.display = 'none', 2500);
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // --- 新增：图片上传功能 ---
+    async function uploadImage(input) {
+        if (!input.files || !input.files[0]) return;
+        
+        const file = input.files[0];
+        const fileName = `img_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+        const path = `images/${fileName}`; // 图片将保存在仓库的 images 文件夹下
+        
+        showToast("Sedang memuat naik gambar...");
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const content = e.target.result.split(',')[1]; // 获取 Base64 编码
+            
+            try {
+                const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${AUTH_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Upload image: ${fileName}`,
+                        content: content
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    // 构造图片直连链接 (GitHub Pages 路径)
+                    const imageUrl = `https://raw.githubusercontent.com/${REPO}/master/${path}`;
+                    
+                    // 将图片 Markdown 插入到文本框
+                    const bodyEl = document.getElementById('body');
+                    bodyEl.value += `\n\n![image](${imageUrl})`;
+                    showToast("✅ Gambar berjaya dimasukkan!");
+                } else {
+                    alert("Gagal memuat naik gambar. Pastikan folder 'images' wujud atau Token sah.");
+                }
+            } catch (err) {
+                alert("Ralat sambungan untuk muat naik.");
+            }
+        };
+        reader.readAsDataURL(file);
     }
 
     async function publish() {
@@ -176,11 +237,7 @@
                     'Accept': 'application/vnd.github+json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    title: t, 
-                    body: b, 
-                    labels: [l]
-                })
+                body: JSON.stringify({ title: t, body: b, labels: [l] })
             });
 
             if (res.ok) {
@@ -206,13 +263,8 @@
                 headers: { 'Authorization': `token ${AUTH_TOKEN}` }
             });
             const data = await res.json();
-            
-            if (!Array.isArray(data)) {
-                listDiv.innerHTML = "Tiada akses.";
-                return;
-            }
+            if (!Array.isArray(data)) return;
 
-            // 过滤掉包含 'close' 标签的 issue，确保列表干净
             const activeIssues = data.filter(i => !i.labels.some(l => l.name === 'close'));
 
             if (activeIssues.length === 0) {
@@ -221,7 +273,7 @@
             }
 
             listDiv.innerHTML = activeIssues.map(i => {
-                const labelObj = i.labels.find(lb => lb.name === 'post' || lb.name === 'poster' || lb.name === 'close');
+                const labelObj = i.labels.find(lb => lb.name === 'post' || lb.name === 'poster');
                 const labelName = labelObj ? labelObj.name : "Tiada Label";
                 const tagClass = labelObj ? `tag-${labelObj.name}` : 'tag-none';
                 
@@ -242,10 +294,8 @@
 
     async function removeIssue(num) {
         if(!confirm("Pindah ke arkib (tukar label ke 'close')?")) return;
-        
         showToast("Mengemaskini...");
         try {
-            // 这里执行核心逻辑：修改 labels 为 ['close']，并关闭 issue
             const res = await fetch(`https://api.github.com/repos/${REPO}/issues/${num}`, {
                 method: 'PATCH',
                 headers: {
@@ -253,22 +303,13 @@
                     'Accept': 'application/vnd.github+json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    labels: ['close'],
-                    state: 'closed' // 同时也设为 closed，双重保险
-                })
+                body: JSON.stringify({ labels: ['close'], state: 'closed' })
             });
-            
             if(res.ok) {
-                showToast("🗑️ Berjaya dipadam");
+                showToast("🗑️ Telah dipadam");
                 fetchIssues();
-            } else {
-                const err = await res.json();
-                alert("Gagal: " + err.message);
             }
-        } catch(e) { 
-            alert("Ralat teknikal."); 
-        }
+        } catch(e) { alert("Ralat teknikal."); }
     }
 </script>
 </body>
