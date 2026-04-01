@@ -24,7 +24,7 @@
         /* Main Layout */
         #admin-content { display: none; max-width: 1000px; margin: 0 auto; padding-top: 100px; }
         
-        /* Fixed Navigation Bar - 修复裁剪问题 */
+        /* Fixed Navigation Bar */
         .nav-container { 
             position: fixed; top: 0; left: 0; right: 0; 
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px); 
@@ -38,14 +38,13 @@
         .nav-title-box { display: flex; align-items: center; flex-shrink: 0; }
         .nav-title-box img { width: 32px; height: 32px; border-radius: 8px; }
 
-        /* 滚动区域优化：确保在宽屏下不会挤压功能按钮 */
         .nav-btns { 
             display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; 
             padding: 5px 0; flex: 1; -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
         }
         .nav-btns::-webkit-scrollbar { display: none; }
-        .nav-btns button { padding: 8px 14px; font-size: 12px; flex-shrink: 0; height: 36px; }
+        .nav-btns button { padding: 8px 14px; font-size: 12px; flex-shrink: 0; height: 36px; border-radius: 8px; }
         
         .nav-right-box { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
@@ -55,10 +54,9 @@
             font-variant-numeric: tabular-nums; white-space: nowrap;
         }
 
-        /* 移动端适配 */
         @media (max-width: 768px) {
             .nav-container { padding: 10px 10px; }
-            #live-clock { display: none; } /* 手机端隐藏时钟给按钮留空间 */
+            #live-clock { display: none; }
         }
 
         .btn-logout { background: var(--danger) !important; }
@@ -70,19 +68,20 @@
         .group-box { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f2f2f7; }
         
         .table-container { width: 100%; overflow-x: auto; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; min-width: 600px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; min-width: 650px; }
         th, td { padding: 14px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 13px; }
         th { background: #f9f9fb; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
         
         .clickable { cursor: pointer; color: var(--primary); font-weight: 500; }
         .clickable:hover { text-decoration: underline; }
-        .btn-small { padding: 6px 12px; font-size: 11px; margin: 2px; border-radius: 6px; border: 1px solid #ddd; background: white; }
+        .btn-small { padding: 6px 12px; font-size: 11px; margin: 2px; border-radius: 6px; border: 1px solid #ddd; background: white; cursor: pointer; }
         .btn-danger { color: var(--danger); border-color: var(--danger); }
+        
         .time-item { display: flex; align-items: center; gap: 15px; margin: 12px 0; }
         .address-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
         select { padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
 
-        /* iOS Style Modal */
+        /* Modal */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.4); backdrop-filter: blur(5px);
@@ -94,7 +93,6 @@
             animation: modalSlide 0.3s ease-out;
         }
         @keyframes modalSlide { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .modal-body div { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 0.5px solid #f2f2f7; display: flex; justify-content: space-between; }
         .modal-body label { color: #8e8e93; font-size: 12px; font-weight: 600; }
         .modal-body span { font-size: 14px; font-weight: 500; color: #1c1c1e; }
@@ -104,12 +102,11 @@
 
 <div id="modal-overlay" onclick="closeModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
-        <div class="modal-header">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h3 style="margin:0">Maklumat Pelajar</h3>
             <i data-lucide="x" class="clickable" onclick="closeModal()"></i>
         </div>
-        <div class="modal-body" id="modal-content">
-            </div>
+        <div class="modal-body" id="modal-content"></div>
         <button onclick="closeModal()" style="width:100%; margin-top:10px;">Tutup</button>
     </div>
 </div>
@@ -128,9 +125,7 @@
 <div id="admin-content">
     <div class="nav-container">
         <div class="nav-content-wrapper">
-            <div class="nav-title-box">
-                <img src="/semsira.png" alt="Logo">
-            </div>
+            <div class="nav-title-box"><img src="/semsira.png" alt="Logo"></div>
             <div class="nav-btns">
                 <button onclick="location.href='dashboard.html'"><i data-lucide="layout-dashboard"></i> Dashboard</button>
                 <button class="btn-nav-feature" onclick="location.href='publish.html'"><i data-lucide="send"></i> Publish</button>
@@ -149,14 +144,8 @@
 
     <div class="card" id="section-kehadiran">
         <h3><i data-lucide="clock"></i> Tetapan Kehadiran & Notifikasi</h3>
-        <div class="time-item">
-            <label style="flex:1">Waktu Mula Lewat (Late):</label>
-            <input type="time" id="late-time">
-        </div>
-        <div class="time-item">
-            <label style="flex:1">Waktu Tamat (Absent):</label>
-            <input type="time" id="absent-time">
-        </div>
+        <div class="time-item"><label style="flex:1">Waktu Mula Lewat (Late):</label><input type="time" id="late-time"></div>
+        <div class="time-item"><label style="flex:1">Waktu Tamat (Absent):</label><input type="time" id="absent-time"></div>
         <div style="display: flex; gap: 10px;">
             <button style="flex:2; background: var(--success);" onclick="saveTimeSettings()">Simpan Waktu</button>
             <button id="btn-report" style="flex:1; background: #0088cc;" onclick="triggerManualAlert()">Hantar Laporan Sekarang</button>
@@ -184,7 +173,7 @@
 
     <div class="card" id="section-pelajar">
         <h3><i data-lucide="list"></i> Pengurusan Pelajar</h3>
-        <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="width:calc(100% - 26px)">
+        <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="width:calc(100% - 26px); margin-bottom: 10px;">
         <div class="table-container">
             <table id="student-table">
                 <thead>
@@ -249,20 +238,15 @@
     window.checkLogin = () => {
         const u = document.getElementById('admin-user').value;
         const p = document.getElementById('admin-pass').value;
-        const remember = document.getElementById('remember-me').checked;
-
         if(u === "semsiraadmin" && p === "pw123") {
-            if(remember) localStorage.setItem("semsira_isLoggedIn", "true");
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('admin-content').style.display = 'block';
-            loadInitialData();
-            lucide.createIcons();
-            updateClock();
+            if(document.getElementById('remember-me').checked) localStorage.setItem("semsira_isLoggedIn", "true");
+            location.reload();
         } else { alert("Akses Ditolak!"); }
     };
 
     async function loadInitialData() {
         await Promise.all([loadSettings(), loadTeacherSettings(), loadStudents()]);
+        lucide.createIcons();
     }
 
     async function loadSettings() {
@@ -307,7 +291,6 @@
         lucide.createIcons();
     }
 
-    // Modal Functions
     window.showStudentDetails = (id) => {
         const s = allStudents.find(item => item.id === id);
         if(!s) return;
@@ -316,17 +299,14 @@
             <div><label>No. IC:</label><span>${s.ic || '-'}</span></div>
             <div><label>Kelas:</label><span>${s.className || '-'}</span></div>
             <div><label>Semester:</label><span>${s.semester || '-'}</span></div>
-            <div><label>Alamat:</label><span style="text-align:right; max-width:150px;">${s.address || '-'}</span></div>
-            <div><label>No. Telefon:</label><span>${s.phone || '-'}</span></div>
-            <div><label>ID Peranti:</label><span style="font-size:10px; color:#999">${s.registeredDeviceId || 'Belum Daftar'}</span></div>
+            <div><label>No. Tel:</label><span>${s.phone || '-'}</span></div>
+            <div><label>ID Peranti:</label><span style="font-size:10px; color:#999">${s.registeredDeviceId || 'Tiada'}</span></div>
         `;
         document.getElementById('modal-content').innerHTML = html;
         document.getElementById('modal-overlay').style.display = 'flex';
     };
 
-    window.closeModal = (e) => {
-        document.getElementById('modal-overlay').style.display = 'none';
-    };
+    window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
 
     window.updateField = async (id, field, label, currentVal) => {
         const newVal = prompt(`Masukkan ${label} baru:`, currentVal);
@@ -336,88 +316,19 @@
         }
     };
 
-    window.triggerManualAlert = async () => {
-        if(!confirm("Hantar senarai tidak hadir sekarang? (Berdasarkan Log Hari Ini)")) return;
-        
-        const btn = document.getElementById('btn-report');
-        btn.innerText = "Memproses...";
-        btn.disabled = true;
-
-        try {
-            const now = new Date();
-            const y = now.getFullYear();
-            const m = now.getMonth() + 1;
-            const d = now.getDate();
-            const todayDateStr = `${d}/${m}/${y}`; 
-
-            const logsQuery = query(
-                collection(db, LOGS_COL), 
-                where("timeFull", ">=", todayDateStr),
-                where("timeFull", "<=", todayDateStr + "\uf8ff")
-            );
-            
-            const logsSnap = await getDocs(logsQuery);
-            const presentICs = new Set();
-            logsSnap.forEach(doc => {
-                const data = doc.data();
-                if(data.ic) presentICs.add(data.ic);
-            });
-
-            const teacherSnap = await getDocs(collection(db, TEACHER_COL));
-            let teacherMap = {};
-            teacherSnap.forEach(snap => teacherMap[snap.id] = snap.data().chatId);
-
-            let totalSent = 0;
-
-            for(let cls of ALL_CLASSES) {
-                const chatId = teacherMap[cls];
-                if(!chatId) continue;
-                
-                const studentsInClass = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()));
-                const absents = studentsInClass.filter(s => {
-                    const name = (s.name || '').toUpperCase();
-                    const ic = s.ic || "";
-                    return !EXEMPTED_NAMES.includes(name) && !presentICs.has(ic);
-                });
-
-                if(absents.length > 0) { 
-                    await sendTelegram(chatId, cls, absents); 
-                    totalSent++;
-                }
-            }
-            alert(`Selesai! Laporan dihantar ke ${totalSent} kelas.`);
-        } catch (e) {
-            console.error(e);
-            alert("Ralat berlaku semasa memproses logs.");
-        } finally {
-            btn.innerText = "Hantar Laporan Sekarang";
-            btn.disabled = false;
+    window.resetDevice = async (id) => {
+        if(confirm("Reset pendaftaran peranti pelajar ini?")) {
+            await updateDoc(doc(db, STUDENT_COL, id), { registeredDeviceId: "" });
+            alert("Berjaya!");
+            loadStudents();
         }
     };
-
-    async function sendTelegram(chatId, cls, list) {
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        let text = `⚠️ *LAPORAN KEHADIRAN PELAJAR*\n\n`;
-        text += `*Kelas:* ${cls.toUpperCase()}\n*Tarikh:* ${dateStr}\n*Status:* TIDAK HADIR\n*Bilangan:* ${list.length} orang\n\n`;
-        text += `*Senarai Nama:*\n`;
-        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
-        text += `\n_Sila ambil tindakan sewajarnya._`;
-
-        try {
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
-            });
-        } catch (e) { console.error("Error Telegram:", e); }
-    }
 
     window.saveTimeSettings = async () => {
         const late = document.getElementById('late-time').value;
         const absent = document.getElementById('absent-time').value;
         await setDoc(doc(db, SETTINGS_COL, "attendance_time"), { lateTime: late, absentTime: absent });
-        alert("Waktu berjaya disimpan!");
+        alert("Waktu disimpan!");
     };
 
     window.saveTeacherIDs = async () => {
@@ -425,19 +336,7 @@
             const val = document.getElementById(`t-id-${cls}`).value;
             if(val) await setDoc(doc(db, TEACHER_COL, cls), { chatId: val.trim() });
         }
-        alert("Data guru berjaya dikemaskini!");
-    };
-
-    window.filterStudents = () => {
-        const v = document.getElementById('search-box').value.toLowerCase();
-        renderStudents(allStudents.filter(s => (s.name||'').toLowerCase().includes(v) || (s.ic||'').includes(v)));
-    };
-    
-    window.resetDevice = async (id) => {
-        if(confirm("Reset ID Peranti?")) {
-            await updateDoc(doc(db, STUDENT_COL, id), { registeredDeviceId: "" });
-            loadStudents();
-        }
+        alert("ID Guru dikemaskini!");
     };
 
     window.saveSemSettings = async () => {
@@ -449,14 +348,53 @@
             return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
         });
         await Promise.all(ps);
-        alert("Semua semester pelajar telah dikemaskini!");
+        alert("Semester semua pelajar dikemaskini!");
         loadStudents();
     };
 
-    window.logout = () => {
-        localStorage.removeItem("semsira_isLoggedIn");
-        location.reload();
+    window.filterStudents = () => {
+        const v = document.getElementById('search-box').value.toLowerCase();
+        renderStudents(allStudents.filter(s => (s.name||'').toLowerCase().includes(v) || (s.ic||'').includes(v)));
     };
+
+    window.triggerManualAlert = async () => {
+        if(!confirm("Hantar senarai tidak hadir sekarang?")) return;
+        const btn = document.getElementById('btn-report');
+        btn.innerText = "Memproses..."; btn.disabled = true;
+
+        try {
+            const now = new Date();
+            const todayStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+            const logsSnap = await getDocs(query(collection(db, LOGS_COL), where("timeFull", ">=", todayStr), where("timeFull", "<=", todayStr + "\uf8ff")));
+            const presentICs = new Set();
+            logsSnap.forEach(doc => presentICs.add(doc.data().ic));
+
+            const teacherSnap = await getDocs(collection(db, TEACHER_COL));
+            let teacherMap = {};
+            teacherSnap.forEach(s => teacherMap[s.id] = s.data().chatId);
+
+            for(let cls of ALL_CLASSES) {
+                const chatId = teacherMap[cls];
+                if(!chatId) continue;
+                const absents = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()) && !presentICs.has(s.ic));
+                if(absents.length > 0) await sendTelegram(chatId, cls, absents);
+            }
+            alert("Laporan berjaya dihantar!");
+        } catch (e) { alert("Ralat memproses."); }
+        finally { btn.innerText = "Hantar Laporan Sekarang"; btn.disabled = false; }
+    };
+
+    async function sendTelegram(chatId, cls, list) {
+        let text = `⚠️ *LAPORAN TIDAK HADIR: ${cls.toUpperCase()}*\n\n`;
+        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
+        });
+    }
+
+    window.logout = () => { localStorage.removeItem("semsira_isLoggedIn"); location.reload(); };
 </script>
 </body>
 </html>
