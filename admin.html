@@ -24,39 +24,42 @@
         /* Main Layout */
         #admin-content { display: none; max-width: 1000px; margin: 0 auto; padding-top: 100px; }
         
-        /* Fixed Navigation Bar */
+        /* Fixed Navigation Bar - Fixed Clipping Issue */
         .nav-container { 
             position: fixed; top: 0; left: 0; right: 0; 
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px); 
             -webkit-backdrop-filter: blur(25px);
-            z-index: 999; padding: 10px 20px; border-bottom: 0.5px solid #d1d1d6;
+            z-index: 999; padding: 10px 15px; border-bottom: 0.5px solid #d1d1d6;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         .nav-content-wrapper {
-            max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 15px;
+            max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 10px;
         }
         .nav-title-box { display: flex; align-items: center; flex-shrink: 0; }
         .nav-title-box img { width: 32px; height: 32px; border-radius: 8px; }
 
         .nav-btns { 
-            display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; 
+            display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; 
             padding: 5px 0; flex: 1; -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
         }
         .nav-btns::-webkit-scrollbar { display: none; }
-        .nav-btns button { padding: 8px 14px; font-size: 12px; flex-shrink: 0; height: 36px; border-radius: 8px; }
+        .nav-btns button { padding: 8px 12px; font-size: 11px; flex-shrink: 0; height: 34px; border-radius: 8px; }
         
-        .nav-right-box { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .nav-right-box { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
         #live-clock {
-            font-size: 11px; font-weight: 700; color: #1c1c1e;
+            font-size: 10px; font-weight: 700; color: #1c1c1e;
             background: rgba(0,122,255,0.1); padding: 6px 10px; border-radius: 8px;
             font-variant-numeric: tabular-nums; white-space: nowrap;
         }
 
         @media (max-width: 768px) {
-            .nav-container { padding: 10px 10px; }
+            #admin-content { padding-top: 80px; }
+            .nav-container { padding: 8px 10px; }
             #live-clock { display: none; }
+            .nav-right-box button { padding: 8px; width: 40px; }
+            .nav-right-box button span { display: none; } /* Hide "Log Keluar" text on mobile */
         }
 
         .btn-logout { background: var(--danger) !important; }
@@ -137,7 +140,7 @@
             </div>
             <div class="nav-right-box">
                 <div id="live-clock">Memuatkan...</div>
-                <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> Log Keluar</button>
+                <button class="btn-logout" onclick="logout()"><i data-lucide="log-out"></i> <span>Log Keluar</span></button>
             </div>
         </div>
     </div>
@@ -275,6 +278,7 @@
         renderStudents(allStudents);
     }
 
+    // UPDATED: Removed name editing, kept only device reset
     function renderStudents(list) {
         document.getElementById('student-list').innerHTML = list.map(s => `
             <tr>
@@ -284,8 +288,7 @@
                 <td>Sem ${s.semester || '1'}</td>
                 <td class="address-cell">${s.address || '-'}</td>
                 <td>
-                    <button class="btn-small" onclick="updateField('${s.id}','name','Nama','${s.name||''}')">Edit</button>
-                    <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset</button>
+                    <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Peranti</button>
                 </td>
             </tr>`).join('');
         lucide.createIcons();
@@ -308,6 +311,7 @@
 
     window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
 
+    // updateField function preserved but not used in student list table for names
     window.updateField = async (id, field, label, currentVal) => {
         const newVal = prompt(`Masukkan ${label} baru:`, currentVal);
         if (newVal !== null && newVal !== currentVal) {
