@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semsira Scanner - Stable Pro</title>
+    <title>Semsira Scanner - Anti-Glare Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -15,7 +15,7 @@
         }
 
         body {
-            font-family: -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg);
             margin: 0;
             display: flex;
@@ -24,73 +24,78 @@
             min-height: 100vh;
         }
 
-        /* 启动遮罩 */
+        /* 启动遮罩 - 适配 iOS 磨砂感 */
         #start-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.4s ease;
         }
 
         .start-btn {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 18px 45px;
-            border-radius: 35px;
-            font-size: 20px;
-            font-weight: bold;
-            box-shadow: 0 6px 20px rgba(0,122,255,0.4);
+            padding: 16px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(0,122,255,0.3);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .header {
             width: 100%;
-            padding: 12px 0;
+            padding: 15px 0;
             background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
         }
 
-        .header img { width: 40px; height: 40px; border-radius: 8px; }
-        .header-text h2 { margin: 0; font-size: 18px; }
-        .header-text p { margin: 0; font-size: 12px; color: #888; }
+        .header img { width: 38px; height: 38px; border-radius: 10px; }
+        .header-text h2 { margin: 0; font-size: 17px; color: #1c1c1e; }
+        .header-text p { margin: 0; font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .controls-container {
             width: 90%;
-            max-width: 500px;
+            max-width: 480px;
             margin: 15px 0 5px;
         }
 
         #camera-select {
             width: 100%;
             padding: 12px;
-            border-radius: 12px;
-            border: 1px solid #ddd;
+            border-radius: 14px;
+            border: 1px solid #d1d1d6;
             font-size: 14px;
             background: white;
-            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
         }
 
         #reader {
-            width: 90%;
-            max-width: 500px;
+            width: 92%;
+            max-width: 480px;
             margin: 10px auto;
-            border-radius: 20px;
+            border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             background: #000;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
 
         .result-card {
@@ -98,36 +103,38 @@
             max-width: 400px;
             background: white;
             padding: 20px;
-            border-radius: 20px;
-            margin-top: 10px;
-            min-height: 100px;
+            border-radius: 22px;
+            margin-top: 15px;
+            min-height: 110px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
             text-align: center;
         }
 
         .status-icon {
-            width: 45px;
-            height: 45px;
-            margin-bottom: 10px;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
+            transition: all 0.3s ease;
         }
 
-        .success { color: var(--success); border: 2px solid var(--success); }
-        .error { color: var(--error); border: 2px solid var(--error); }
+        .success { color: var(--success); background: #eafaf1; }
+        .error { color: var(--error); background: #fff1f0; }
+        .waiting { color: #8e8e93; background: #f2f2f7; }
     </style>
 </head>
 <body>
 
 <div id="start-overlay">
-    <img src="/semsira.png" style="width: 100px; margin-bottom: 30px; border-radius: 20px;">
+    <img src="/semsira.png" style="width: 90px; margin-bottom: 25px; border-radius: 20px;">
     <button class="start-btn" id="start-btn">
-        <i data-lucide="camera"></i> Mula Scanner
+        <i data-lucide="camera"></i> Mula Imbasan
     </button>
 </div>
 
@@ -135,7 +142,7 @@
     <img src="/semsira.png" alt="Logo">
     <div class="header-text">
         <h2>Semsira Attendance</h2>
-        <p>Sistem Imbasan Kehadiran</p>
+        <p>Anti-Glare Scanning Mode</p>
     </div>
 </div>
 
@@ -148,12 +155,12 @@
 <div id="reader"></div>
 
 <div id="result-card" class="result-card">
-    <div id="status-icon" class="status-icon">
-        <i data-lucide="scan-line" style="color:#ccc"></i>
+    <div id="status-icon" class="status-icon waiting">
+        <i data-lucide="qr-code"></i>
     </div>
-    <h3 id="res-name" style="margin:5px 0; color:#888; font-size: 16px;">Sila halakan kod QR</h3>
-    <p id="res-msg" style="margin:2px 0; font-size:14px; color:#666"></p>
-    <p id="res-time" style="font-size:12px; color:#999"></p>
+    <h3 id="res-name" style="margin:5px 0; color:#3a3a3c; font-size: 16px;">Sila halakan kod QR</h3>
+    <p id="res-msg" style="margin:2px 0; font-size:14px; color:#8e8e93"></p>
+    <p id="res-time" style="font-size:12px; color:#aeaeb2; margin-top: 5px;"></p>
 </div>
 
 <audio id="beep-sound" src="beep.mp3" preload="auto"></audio>
@@ -162,7 +169,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // Firebase 配置保持不变
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
         authDomain: "bdpsemsira-5c274.firebaseapp.com",
@@ -185,102 +191,93 @@
 
     lucide.createIcons();
 
-    // 1. 点击启动（解锁音频和相机）
     startBtn.addEventListener('click', () => {
         beepSound.play().catch(() => {});
         startOverlay.style.opacity = '0';
-        setTimeout(() => startOverlay.style.display = 'none', 500);
+        setTimeout(() => startOverlay.style.display = 'none', 400);
         initCameraList();
     }, { once: true });
 
-    // 2. 初始化相机列表
     function initCameraList() {
         Html5Qrcode.getCameras().then(cameras => {
             if (cameras && cameras.length > 0) {
                 cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
-                
-                // 监听切换选择
                 cameraSelect.onchange = () => {
-                    const newId = cameraSelect.value;
-                    if (newId) switchCamera(newId);
+                    if (cameraSelect.value) switchCamera(cameraSelect.value);
                 };
-
-                // 默认启动第一个
                 startScanning(cameras[0].id);
             } else {
                 cameraSelect.innerHTML = '<option value="">No Camera Found</option>';
             }
-        }).catch(err => console.error("GetCameras fail:", err));
+        }).catch(err => console.error(err));
     }
 
-    // 3. 切换相机逻辑（安全停止后再启动）
     async function switchCamera(cameraId) {
         try {
             await html5QrCode.stop();
-            // 给硬件 200ms 的释放时间，防止占用冲突
-            setTimeout(() => startScanning(cameraId), 200);
+            setTimeout(() => startScanning(cameraId), 300);
         } catch (err) {
-            console.error("Stop fail:", err);
-            startScanning(cameraId); // 强制尝试启动
+            startScanning(cameraId);
         }
     }
 
-    // 4. 启动扫描（关键改动：简化配置保证成功率）
     function startScanning(cameraId) {
         const config = {
-            fps: 20, 
-            qrbox: { width: 260, height: 260 },
+            fps: 25, // 提高帧率以捕捉清晰瞬间
+            qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0
         };
 
-        // 先以最基础的配置启动，确保“能看见画面”
         html5QrCode.start(cameraId, config, onScanSuccess)
         .then(() => {
-            console.log("Camera started, applying enhancements...");
-            applyAdvancedSettings(); // 画面出来后，再去后台调对焦
+            applyAdvancedSettings(); // 核心：启动后注入防过曝设置
         })
         .catch(err => {
-            console.error("Start fail:", err);
-            // 保底方案：如果配置失败，用最原始模式启动
+            console.error(err);
             html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess);
         });
     }
 
-    // 5. 持续对焦和亮度增强（静默执行，失败不报错）
+    // --- 核心防过曝逻辑 ---
     async function applyAdvancedSettings() {
         try {
             const track = html5QrCode.getRunningTrack();
             if (!track) return;
             
             const caps = track.getCapabilities();
-            const constraints = { advanced: [] };
+            const settings = {};
 
-            // 持续对焦
+            // 1. 持续对焦
             if (caps.focusMode && caps.focusMode.includes('continuous')) {
-                constraints.advanced.push({ focusMode: 'continuous' });
+                settings.focusMode = 'continuous';
             }
             
-            // 提高一点亮度（外接头通常偏暗）
-            if (caps.brightness) {
-                const targetBrightness = caps.brightness.max * 0.7;
-                constraints.advanced.push({ brightness: targetBrightness });
+            // 2. 降低曝光补偿 (Exposure Compensation)
+            // 针对手机发光屏幕，通过降低 EV 值来让画面变暗，使二维码细节凸显
+            if (caps.exposureCompensation) {
+                // 取最小值的 60%，强制镜头进入“暗调”模式
+                settings.exposureCompensation = caps.exposureCompensation.min * 0.6;
+                console.log("Anti-Glare: Exposure lowered to " + settings.exposureCompensation);
             }
 
-            if (constraints.advanced.length > 0) {
-                await track.applyConstraints(constraints);
-                console.log("Hardware focus/brightness optimized.");
+            // 3. 如果没有曝光补偿，则强制调低亮度
+            if (!caps.exposureCompensation && caps.brightness) {
+                settings.brightness = caps.brightness.min + (caps.brightness.max - caps.brightness.min) * 0.2;
+            }
+
+            if (Object.keys(settings).length > 0) {
+                await track.applyConstraints({ advanced: [settings] });
             }
         } catch (e) {
-            console.warn("Hardware does not support auto-focus control.");
+            console.warn("Hardware optimization not supported on this device.");
         }
     }
 
-    // 6. 扫码成功逻辑（Firebase 交互）
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
         playBeep();
-        showResult("Processing", "Checking data...", "wait");
+        showResult("Memproses", "Sila tunggu sebentar...", "wait");
 
         try {
             const parts = decodedText.split('|');
@@ -288,7 +285,7 @@
 
             const scannedIC = parts[0];
             const qrTimeStr = parts[1];
-            if (!validateTime(qrTimeStr, 20)) throw new Error("Kod Expired (20s).");
+            if (!validateTime(qrTimeStr, 30)) throw new Error("Kod Luput (Sila refresh QR)");
 
             const timeSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
             let late = "07:30", absent = "08:30";
@@ -321,16 +318,15 @@
                 timestamp: serverTimestamp()
             });
 
-            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir!", "success", now.toLocaleTimeString());
-            setTimeout(resetResult, 2500);
+            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", now.toLocaleTimeString());
+            setTimeout(resetResult, 3000);
 
         } catch (err) {
             showResult("Gagal", err.message, "error");
-            setTimeout(resetResult, 2500);
+            setTimeout(resetResult, 3000);
         }
     }
 
-    // 辅助工具函数
     function playBeep() {
         beepSound.currentTime = 0;
         beepSound.play().catch(() => {});
@@ -339,10 +335,9 @@
     function resetResult() {
         isProcessing = false;
         const icon = document.getElementById('status-icon');
-        icon.className = 'status-icon';
-        icon.innerHTML = '<i data-lucide="scan-line" style="color:#ccc"></i>';
+        icon.className = 'status-icon waiting';
+        icon.innerHTML = '<i data-lucide="qr-code"></i>';
         document.getElementById('res-name').innerText = "Sila halakan kod QR";
-        document.getElementById('res-name').style.color = "#888";
         document.getElementById('res-msg').innerText = "";
         document.getElementById('res-time').innerText = "";
         lucide.createIcons();
@@ -357,19 +352,11 @@
     function showResult(name, msg, type, time = "") {
         const icon = document.getElementById('status-icon');
         document.getElementById('res-name').innerText = name;
-        document.getElementById('res-name').style.color = "#333";
         document.getElementById('res-msg').innerText = msg;
         document.getElementById('res-time').innerText = time;
-        if (type === 'success') {
-            icon.className = 'status-icon success';
-            icon.innerHTML = '<i data-lucide="check"></i>';
-        } else if (type === 'error') {
-            icon.className = 'status-icon error';
-            icon.innerHTML = '<i data-lucide="x"></i>';
-        } else {
-            icon.className = 'status-icon';
-            icon.innerHTML = '...';
-        }
+        
+        icon.className = 'status-icon ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'waiting'));
+        icon.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2')}"></i>`;
         lucide.createIcons();
     }
 </script>
