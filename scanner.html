@@ -192,6 +192,17 @@
         Html5Qrcode.getCameras().then(cameras => {
             if (cameras && cameras.length > 0) {
                 cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
+                
+                // 监听相机切换选择
+                cameraSelect.addEventListener('change', (e) => {
+                    const newCameraId = e.target.value;
+                    if (newCameraId) {
+                        html5QrCode.stop().then(() => {
+                            startScanning(newCameraId);
+                        }).catch(err => console.error("Stop fail", err));
+                    }
+                });
+
                 startScanning(cameras[0].id);
             } else {
                 cameraSelect.innerHTML = '<option value="">Tiada Kamera Dikesan</option>';
@@ -238,7 +249,6 @@
             let attendanceStatus = "Hadir";
             if (currentTimeStr > lateThreshold) attendanceStatus = "Lewat";
 
-            // --- 关键修复：使用本地日期格式 YYYY-MM-DD ---
             const todayStr = now.toLocaleDateString('en-CA'); 
 
             const checkQuery = query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", todayStr));
@@ -259,7 +269,7 @@
                 className: studentData.className,
                 ic: studentData.ic,
                 timestamp: serverTimestamp(),
-                date: todayStr, // 这里的日期现在会与 timeFull 一致了
+                date: todayStr, 
                 timeFull: fullTimeStr,
                 status: attendanceStatus 
             });
