@@ -126,12 +126,11 @@
         #poster-slider img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 0.8s; }
         #poster-slider img.show { opacity: 1; }
 
-        /* Pengumuman 卡片间距优化 */
         .post-card {
             margin-top: 15px;
-            margin-bottom: 15px; /* 添加间距 */
+            margin-bottom: 15px;
             padding: 15px;
-            border-radius: 12px; /* 变成圆角卡片感 */
+            border-radius: 12px;
             word-wrap: break-word;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
@@ -141,7 +140,6 @@
             border-radius: 10px; margin-top: 8px; display: block;
         }
 
-        /* 暗色模式开关样式 */
         .setting-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 0;
@@ -161,9 +159,18 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(22px); }
 
+        /* 重点修改：无论主题如何，二维码容器强制保持白底，防止曝光过度 */
         #qrcode {
-            background: white; padding: 20px; border-radius: 20px;
-            margin: 20px auto; display: inline-block;
+            background: #FFFFFF !important; 
+            padding: 15px; 
+            border-radius: 20px;
+            margin: 20px auto; 
+            display: inline-block;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            line-height: 0; /* 移除底部间隙 */
+        }
+        #qrcode img {
+            display: block;
         }
 
         .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
@@ -336,14 +343,12 @@
     let isAttendedToday = false;
     let attendanceListenerUnsubscribe = null;
 
-    // --- 暗色模式逻辑 ---
     window.toggleDarkMode = () => {
         const isDark = document.getElementById('dark-mode-toggle').checked;
         document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
         localStorage.setItem('semsira_theme', isDark ? 'dark' : 'light');
     };
 
-    // 初始化主题
     const savedTheme = localStorage.getItem('semsira_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
     document.getElementById('dark-mode-toggle').checked = (savedTheme === 'dark');
@@ -415,12 +420,6 @@
             return false;
         }
         return true;
-    }
-
-    function triggerNativePrivacy(enabled) {
-        if (navigator.userAgent.includes('median')) {
-            window.location.href = `median://security/setPrivacyScreen?enabled=${enabled}&disableScreenshots=${enabled}`;
-        }
     }
 
     function applyWatermark(info) {
@@ -499,9 +498,7 @@
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
         if (user) {
-            // 显示加载提示
             loadingOverlay.style.display = 'flex';
-            
             const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
             if (snap.exists()) {
                 const userData = snap.data();
@@ -510,14 +507,11 @@
                     return;
                 }
                 window.currentUserData = userData;
-                
-                // 模拟一个短暂的延迟让用户看到 "Login in..."
                 setTimeout(() => {
                     document.getElementById('page-login').classList.remove('active');
                     document.getElementById('page-register').classList.remove('active');
                     document.getElementById('main-app').style.display = 'block';
                     loadingOverlay.style.display = 'none';
-                    
                     applyWatermark(`${userData.name} (${userData.ic})`);
                     loadHomeData();
                     setupAccountPage();
@@ -540,12 +534,7 @@
         const instEl = document.getElementById('scan-instruction');
         const timerEl = document.getElementById('qr-timer');
 
-        const q = query(
-            collection(db, ATTENDANCE_LOGS),
-            where("ic", "==", studentIc),
-            where("date", "==", todayStr)
-        );
-
+        const q = query(collection(db, ATTENDANCE_LOGS), where("ic", "==", studentIc), where("date", "==", todayStr));
         if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
 
         attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
@@ -553,15 +542,12 @@
                 const data = snapshot.docs[0].data();
                 isAttendedToday = true;
                 if(qrUpdateInterval) { clearInterval(qrUpdateInterval); qrUpdateInterval = null; }
-
                 const status = data.status;
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
-                
                 qrcEl.style.opacity = "0.3";
                 instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
                 timerEl.innerText = "SIGNED IN";
-
                 const timestamp = data.timestamp;
                 if (timestamp) {
                     const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -597,7 +583,6 @@
                 }
                 if(labels.includes('post')) {
                     let contentHtml = issue.body.replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">');
-                    // 添加 glass 效果到每条帖子
                     list.innerHTML += `<div class="post-card glass"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
                 }
             });
@@ -619,7 +604,14 @@
         const qrContainer = document.getElementById('qrcode');
         if (!qr) {
             qrContainer.innerHTML = "";
-            qr = new QRCode(qrContainer, { width: 200, height: 200 });
+            // 重点修改：强制黑块白底，这是扫码兼容性最好的组合
+            qr = new QRCode(qrContainer, { 
+                width: 200, 
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
         }
         
         const updateQR = () => {
@@ -658,27 +650,18 @@
         const newPhone = document.getElementById('upd-phone').value;
         const newClass = document.getElementById('upd-class').value;
         const newAddress = document.getElementById('upd-address').value;
-
         if(!newName || !newId || !newPhone) return alert("Sila isi semua maklumat!");
-
         try {
             const newSemester = await getSemesterForClass(newClass);
             await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), {
-                name: newName,
-                studentId: newId,
-                phone: newPhone,
-                address: newAddress,
-                className: newClass,
-                semester: newSemester
+                name: newName, studentId: newId, phone: newPhone, address: newAddress, className: newClass, semester: newSemester
             });
-            
             window.currentUserData.name = newName;
             window.currentUserData.studentId = newId;
             window.currentUserData.phone = newPhone;
             window.currentUserData.className = newClass;
             window.currentUserData.semester = newSemester;
             window.currentUserData.address = newAddress;
-            
             setupAccountPage();
             applyWatermark(`${newName} (${window.currentUserData.ic})`);
             alert("Kemaskini Berjaya!");
@@ -695,12 +678,6 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
         document.getElementById(tabId).classList.add('active');
         el.classList.add('active-nav');
-        const watermark = document.getElementById('watermark-layer');
-        if (tabId === 'tab-scan') {
-            watermark.style.display = "flex"; triggerNativePrivacy(true); 
-        } else {
-            watermark.style.display = "none"; triggerNativePrivacy(false);
-        }
     }
 
     lucide.createIcons();
