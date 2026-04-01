@@ -164,6 +164,7 @@
     const startOverlay = document.getElementById('start-overlay');
     
     let isProcessing = false;
+    let isSwitching = false; // 防止重复点击切换
 
     lucide.createIcons();
 
@@ -179,9 +180,24 @@
             if (cameras && cameras.length > 0) {
                 cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
                 
-                cameraSelect.addEventListener('change', (e) => {
-                    if (e.target.value) {
-                        html5QrCode.stop().then(() => startScanning(e.target.value));
+                cameraSelect.addEventListener('change', async (e) => {
+                    if (isSwitching) return;
+                    const newId = e.target.value;
+                    if (newId) {
+                        isSwitching = true;
+                        cameraSelect.disabled = true; // 切换时禁用选择，防止连续操作
+                        try {
+                            // 关键修复：确保旧摄像头完全停止
+                            if (html5QrCode.isScanning) {
+                                await html5QrCode.stop();
+                            }
+                            await startScanning(newId);
+                        } catch (err) {
+                            console.error("Switch Camera Error:", err);
+                        } finally {
+                            isSwitching = false;
+                            cameraSelect.disabled = false;
+                        }
                     }
                 });
 
@@ -192,46 +208,36 @@
         }).catch(err => console.error("Camera access error", err));
     }
 
-    function startScanning(cameraId) {
-        // --- 针对 Windows 外接 WebCam 的对焦优化逻辑 ---
+    async function startScanning(cameraId) {
         const config = {
-            fps: 20,          // 增加帧率，提高识别机会
+            fps: 20,
             qrbox: { width: 280, height: 280 },
-            aspectRatio: 1.0, // 强制 1:1 比例，有助于外接摄像头聚焦中心
+            aspectRatio: 1.0,
             videoConstraints: {
                 deviceId: cameraId,
-                // 尝试强制开启连续对焦
                 focusMode: "continuous",
-                // 某些外接头需要 advanced 语法
                 advanced: [
                     { focusMode: "continuous" },
-                    { exposureMode: "continuous" },
-                    { whiteBalanceMode: "continuous" }
+                    { exposureMode: "continuous" }
                 ]
             }
         };
 
-        html5QrCode.start(cameraId, config, onScanSuccess)
+        return html5QrCode.start(cameraId, config, onScanSuccess)
         .then(() => {
-            // 启动成功后，尝试手动锁定对焦（如果 API 支持）
             applyManualFocus();
-        })
-        .catch(err => console.error("Start Scan Error", err));
+        });
     }
 
     async function applyManualFocus() {
         try {
             const track = html5QrCode.getRunningTrack();
             const capabilities = track.getCapabilities();
-            
-            // 如果 Windows 驱动支持通过浏览器调节焦距
             const constraints = { advanced: [] };
             
             if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
                 constraints.advanced.push({ focusMode: 'continuous' });
             }
-            
-            // 解决 Windows 外接摄像头画面太暗导致无法识别的问题
             if (capabilities.brightness) {
                 constraints.advanced.push({ brightness: capabilities.brightness.max * 0.7 });
             }
@@ -240,7 +246,7 @@
                 await track.applyConstraints(constraints);
             }
         } catch (e) {
-            console.warn("Manual focus constraints not supported by this webcam driver.");
+            console.warn("Camera controls not supported.");
         }
     }
 
@@ -248,7 +254,7 @@
         if (isProcessing) return;
         isProcessing = true;
         playBeep();
-        showResult("Processing...", "Checking Database...", "wait");
+        showResult("Sila Tunggu", "Sedang diproses...", "wait");
 
         try {
             const parts = decodedText.split('|');
@@ -256,7 +262,7 @@
 
             const scannedIC = parts[0];
             const qrTimeStr = parts[1];
-            if (!validateTime(qrTimeStr, 15)) throw new Error("QR Expired. Sila scan kod baru.");
+            if (!validateTime(qrTimeStr, 15)) throw new Error("QR Expired. Sila guna kod baru.");
 
             const timeSettingsSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
             let lateThreshold = "07:30"; 
@@ -275,7 +281,7 @@
 
             const checkQuery = query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", todayStr));
             const existingDocs = await getDocs(checkQuery);
-            if (!existingDocs.empty) throw new Error("Dah scan untuk hari ini.");
+            if (!existingDocs.empty) throw new Error("Sudah mendaftar hari ini.");
 
             const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
             const snap = await getDocs(q);
@@ -295,7 +301,7 @@
                 status: status
             });
 
-            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya!", "success", fullTime);
+            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir!", "success", fullTime);
             setTimeout(resetResultPanel, 2500);
 
         } catch (error) {
