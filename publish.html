@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Semsira Admin Panel</title>
     <link rel="icon" href="semsira.png" type="image/png">
+    <link rel="apple-touch-icon" href="semsira.png">
     <style>
         :root {
             --primary: #007AFF;
@@ -66,6 +67,7 @@
         .tag { font-size: 10px; padding: 2px 8px; border-radius: 5px; font-weight: 700; text-transform: uppercase; }
         .tag-post { background: #E3F2FD; color: #1976D2; }
         .tag-poster { background: #FFF3E0; color: #F57C00; }
+        .tag-close { background: #EBEBEB; color: #8E8E93; }
         .tag-none { background: #EEEEEE; color: #999; }
 
         .del-btn { background: #FF3B30; width: auto; padding: 6px 14px; font-size: 12px; border-radius: 8px; }
@@ -109,12 +111,12 @@
         <textarea id="body" rows="5" placeholder="Kandungan..."></textarea>
         
         <button id="btn-pub" onclick="publish()">Terbitkan Sekarang</button>
-        <center><button class="secondary-btn" style="background:none; border:none; color:#8E8E93; margin-top:15px;" onclick="clearToken()">Log Keluar / Tukar Token</button></center>
+        <center><button class="secondary-btn" style="background:none; border:none; color:#8E8E93; margin-top:15px; cursor:pointer;" onclick="clearToken()">Log Keluar / Tukar Token</button></center>
     </div>
 
     <div class="glass">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="margin:0; font-size: 18px;">Senarai Issues</h3>
+            <h3 style="margin:0; font-size: 18px;">Senarai Terkini</h3>
             <button onclick="fetchIssues()" style="width:auto; padding:6px 12px; font-size:12px; background:#8E8E93">Segarkan</button>
         </div>
         <div id="list">Memuatkan...</div>
@@ -177,7 +179,7 @@
                 body: JSON.stringify({ 
                     title: t, 
                     body: b, 
-                    labels: [l] // Pastikan nama label di GitHub tepat 'post' atau 'poster'
+                    labels: [l]
                 })
             });
 
@@ -188,7 +190,7 @@
                 setTimeout(fetchIssues, 1000);
             } else {
                 const err = await res.json();
-                alert("Gagal: " + err.message + "\nPastikan Token anda mempunyai izin 'repo'.");
+                alert("Gagal: " + err.message);
             }
         } catch (e) {
             alert("Ralat sambungan.");
@@ -200,19 +202,26 @@
     async function fetchIssues() {
         const listDiv = document.getElementById('list');
         try {
-            // Gunakan cache: 'no-store' atau timestamp untuk paksa data baru
             const res = await fetch(`https://api.github.com/repos/${REPO}/issues?state=open&t=${Date.now()}`, {
                 headers: { 'Authorization': `token ${AUTH_TOKEN}` }
             });
             const data = await res.json();
             
             if (!Array.isArray(data)) {
-                listDiv.innerHTML = "Tiada akses atau ralat API.";
+                listDiv.innerHTML = "Tiada akses.";
                 return;
             }
 
-            listDiv.innerHTML = data.map(i => {
-                const labelObj = i.labels.find(lb => lb.name === 'post' || lb.name === 'poster');
+            // 过滤掉包含 'close' 标签的 issue，确保列表干净
+            const activeIssues = data.filter(i => !i.labels.some(l => l.name === 'close'));
+
+            if (activeIssues.length === 0) {
+                listDiv.innerHTML = "<center style='color:#999; padding:20px;'>Tiada kandungan aktif.</center>";
+                return;
+            }
+
+            listDiv.innerHTML = activeIssues.map(i => {
+                const labelObj = i.labels.find(lb => lb.name === 'post' || lb.name === 'poster' || lb.name === 'close');
                 const labelName = labelObj ? labelObj.name : "Tiada Label";
                 const tagClass = labelObj ? `tag-${labelObj.name}` : 'tag-none';
                 
@@ -227,15 +236,16 @@
                 `;
             }).join('');
         } catch(e) {
-            listDiv.innerHTML = "Gagal memuatkan senarai.";
+            listDiv.innerHTML = "Gagal memuatkan.";
         }
     }
 
     async function removeIssue(num) {
-        if(!confirm("Adakah anda pasti ingin memadam (tutup) makluman ini?")) return;
+        if(!confirm("Pindah ke arkib (tukar label ke 'close')?")) return;
         
-        showToast("Memadam...");
+        showToast("Mengemaskini...");
         try {
+            // 这里执行核心逻辑：修改 labels 为 ['close']，并关闭 issue
             const res = await fetch(`https://api.github.com/repos/${REPO}/issues/${num}`, {
                 method: 'PATCH',
                 headers: {
@@ -243,15 +253,18 @@
                     'Accept': 'application/vnd.github+json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ state: 'closed' })
+                body: JSON.stringify({ 
+                    labels: ['close'],
+                    state: 'closed' // 同时也设为 closed，双重保险
+                })
             });
             
             if(res.ok) {
-                showToast("🗑️ Telah dipadam");
-                fetchIssues(); // Refresh list
+                showToast("🗑️ Berjaya dipadam");
+                fetchIssues();
             } else {
                 const err = await res.json();
-                alert("Gagal memadam: " + err.message);
+                alert("Gagal: " + err.message);
             }
         } catch(e) { 
             alert("Ralat teknikal."); 
