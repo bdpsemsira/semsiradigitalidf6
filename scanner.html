@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semsira Scanner - Focused</title>
+    <title>Semsira Scanner - Stable Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -24,6 +24,7 @@
             min-height: 100vh;
         }
 
+        /* 启动遮罩 */
         #start-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -53,26 +54,42 @@
 
         .header {
             width: 100%;
-            padding: 10px 0;
+            padding: 12px 0;
             background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
         }
 
-        .header img { width: 45px; height: 45px; border-radius: 8px; }
+        .header img { width: 40px; height: 40px; border-radius: 8px; }
         .header-text h2 { margin: 0; font-size: 18px; }
         .header-text p { margin: 0; font-size: 12px; color: #888; }
+
+        .controls-container {
+            width: 90%;
+            max-width: 500px;
+            margin: 15px 0 5px;
+        }
+
+        #camera-select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            background: white;
+            outline: none;
+        }
 
         #reader {
             width: 90%;
             max-width: 500px;
-            margin: 15px auto;
-            border-radius: 15px;
+            margin: 10px auto;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             background: #000;
         }
 
@@ -80,21 +97,21 @@
             width: 85%;
             max-width: 400px;
             background: white;
-            padding: 15px;
-            border-radius: 15px;
-            margin-top: 5px;
-            min-height: 120px; 
+            padding: 20px;
+            border-radius: 20px;
+            margin-top: 10px;
+            min-height: 100px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             text-align: center;
         }
 
         .status-icon {
-            width: 50px;
-            height: 50px;
-            margin: 0 auto 5px;
+            width: 45px;
+            height: 45px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -108,22 +125,22 @@
 <body>
 
 <div id="start-overlay">
-    <img src="/semsira.png" style="width: 120px; margin-bottom: 30px; border-radius: 25px;">
+    <img src="/semsira.png" style="width: 100px; margin-bottom: 30px; border-radius: 20px;">
     <button class="start-btn" id="start-btn">
-        <i data-lucide="bell-ring"></i> Aktifkan Scanner
+        <i data-lucide="camera"></i> Mula Scanner
     </button>
 </div>
 
 <div class="header">
-    <img src="/semsira.png" alt="Logo Semsira">
+    <img src="/semsira.png" alt="Logo">
     <div class="header-text">
         <h2>Semsira Attendance</h2>
-        <p>Sila imbas Kod QR Pelajar</p>
+        <p>Sistem Imbasan Kehadiran</p>
     </div>
 </div>
 
-<div class="camera-controls" style="width: 90%; max-width: 500px; margin-top: 10px;">
-    <select id="camera-select" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; font-size: 14px; background: white;">
+<div class="controls-container">
+    <select id="camera-select">
         <option value="">Mengesan Kamera...</option>
     </select>
 </div>
@@ -132,9 +149,9 @@
 
 <div id="result-card" class="result-card">
     <div id="status-icon" class="status-icon">
-        <i data-lucide="qr-code" style="color:#ccc"></i>
+        <i data-lucide="scan-line" style="color:#ccc"></i>
     </div>
-    <h3 id="res-name" style="margin:5px 0; color:#888; font-size: 16px;">Menunggu imbasan...</h3>
+    <h3 id="res-name" style="margin:5px 0; color:#888; font-size: 16px;">Sila halakan kod QR</h3>
     <p id="res-msg" style="margin:2px 0; font-size:14px; color:#666"></p>
     <p id="res-time" style="font-size:12px; color:#999"></p>
 </div>
@@ -145,6 +162,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // Firebase 配置保持不变
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
         authDomain: "bdpsemsira-5c274.firebaseapp.com",
@@ -167,86 +185,102 @@
 
     lucide.createIcons();
 
-    startBtn.addEventListener('click', function() {
-        beepSound.play().catch(e => {}); 
+    // 1. 点击启动（解锁音频和相机）
+    startBtn.addEventListener('click', () => {
+        beepSound.play().catch(() => {});
         startOverlay.style.opacity = '0';
         setTimeout(() => startOverlay.style.display = 'none', 500);
-        initCamera();
+        initCameraList();
     }, { once: true });
 
-    function initCamera() {
+    // 2. 初始化相机列表
+    function initCameraList() {
         Html5Qrcode.getCameras().then(cameras => {
             if (cameras && cameras.length > 0) {
                 cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
                 
-                cameraSelect.addEventListener('change', (e) => {
-                    const newId = e.target.value;
-                    if (newId) {
-                        html5QrCode.stop().then(() => startScanning(newId));
-                    }
-                });
+                // 监听切换选择
+                cameraSelect.onchange = () => {
+                    const newId = cameraSelect.value;
+                    if (newId) switchCamera(newId);
+                };
 
+                // 默认启动第一个
                 startScanning(cameras[0].id);
             } else {
-                cameraSelect.innerHTML = '<option value="">Tiada Kamera</option>';
+                cameraSelect.innerHTML = '<option value="">No Camera Found</option>';
             }
-        }).catch(err => console.error(err));
+        }).catch(err => console.error("GetCameras fail:", err));
     }
 
+    // 3. 切换相机逻辑（安全停止后再启动）
+    async function switchCamera(cameraId) {
+        try {
+            await html5QrCode.stop();
+            // 给硬件 200ms 的释放时间，防止占用冲突
+            setTimeout(() => startScanning(cameraId), 200);
+        } catch (err) {
+            console.error("Stop fail:", err);
+            startScanning(cameraId); // 强制尝试启动
+        }
+    }
+
+    // 4. 启动扫描（关键改动：简化配置保证成功率）
     function startScanning(cameraId) {
-        // --- 核心优化：针对外接 WebCam 的 Constraints ---
         const config = {
-            fps: 20, // 提高帧率，更快捕捉清晰瞬间
-            qrbox: { width: 280, height: 280 },
-            aspectRatio: 1.0,
-            videoConstraints: {
-                deviceId: cameraId,
-                // 强制要求自动对焦（如果硬件支持）
-                focusMode: "continuous",
-                // 尝试提升曝光，Windows 外接头通常偏暗
-                advanced: [
-                    { focusMode: "continuous" },
-                    { exposureMode: "continuous" }
-                ]
-            }
+            fps: 20, 
+            qrbox: { width: 260, height: 260 },
+            aspectRatio: 1.0
         };
 
+        // 先以最基础的配置启动，确保“能看见画面”
         html5QrCode.start(cameraId, config, onScanSuccess)
         .then(() => {
-            applyAdvancedSettings(); // 启动后尝试二次锁定硬件参数
+            console.log("Camera started, applying enhancements...");
+            applyAdvancedSettings(); // 画面出来后，再去后台调对焦
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+            console.error("Start fail:", err);
+            // 保底方案：如果配置失败，用最原始模式启动
+            html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess);
+        });
     }
 
+    // 5. 持续对焦和亮度增强（静默执行，失败不报错）
     async function applyAdvancedSettings() {
         try {
             const track = html5QrCode.getRunningTrack();
-            const capabilities = track.getCapabilities();
+            if (!track) return;
+            
+            const caps = track.getCapabilities();
             const constraints = { advanced: [] };
 
-            // 1. 如果支持连续对焦
-            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+            // 持续对焦
+            if (caps.focusMode && caps.focusMode.includes('continuous')) {
                 constraints.advanced.push({ focusMode: 'continuous' });
             }
             
-            // 2. 适当增加亮度，外接摄像头识别二维码时，亮一点更好扫
-            if (capabilities.brightness) {
-                constraints.advanced.push({ brightness: capabilities.brightness.max * 0.6 });
+            // 提高一点亮度（外接头通常偏暗）
+            if (caps.brightness) {
+                const targetBrightness = caps.brightness.max * 0.7;
+                constraints.advanced.push({ brightness: targetBrightness });
             }
 
             if (constraints.advanced.length > 0) {
                 await track.applyConstraints(constraints);
+                console.log("Hardware focus/brightness optimized.");
             }
         } catch (e) {
-            console.warn("Hardware focus control not supported on this webcam driver.");
+            console.warn("Hardware does not support auto-focus control.");
         }
     }
 
+    // 6. 扫码成功逻辑（Firebase 交互）
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
         playBeep();
-        showResult("Sila Tunggu", "Memproses data...", "wait");
+        showResult("Processing", "Checking data...", "wait");
 
         try {
             const parts = decodedText.split('|');
@@ -254,82 +288,70 @@
 
             const scannedIC = parts[0];
             const qrTimeStr = parts[1];
-            if (!validateTime(qrTimeStr, 15)) throw new Error("QR Expired. Sila scan baru.");
+            if (!validateTime(qrTimeStr, 20)) throw new Error("Kod Expired (20s).");
 
-            const timeSettingsSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
-            let lateThreshold = "07:30"; 
-            let absentThreshold = "08:30"; 
-            if (timeSettingsSnap.exists()) {
-                lateThreshold = timeSettingsSnap.data().lateTime;
-                absentThreshold = timeSettingsSnap.data().absentTime;
+            const timeSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
+            let late = "07:30", absent = "08:30";
+            if (timeSnap.exists()) {
+                late = timeSnap.data().lateTime;
+                absent = timeSnap.data().absentTime;
             }
 
             const now = new Date();
-            const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            if (currentTimeStr > absentThreshold) throw new Error(`Masa tamat (${absentThreshold}).`);
+            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            if (timeStr > absent) throw new Error(`Masa tamat (${absent}).`);
 
-            let status = currentTimeStr > lateThreshold ? "Lewat" : "Hadir";
-            const todayStr = now.toLocaleDateString('en-CA'); 
+            const today = now.toLocaleDateString('en-CA');
+            const check = await getDocs(query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", today)));
+            if (!check.empty) throw new Error("Dah scan hari ini.");
 
-            const checkQuery = query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", todayStr));
-            const existingDocs = await getDocs(checkQuery);
-            if (!existingDocs.empty) throw new Error("Dah scan hari ini.");
+            const studentSnap = await getDocs(query(collection(db, "studentInform"), where("ic", "==", scannedIC)));
+            if (studentSnap.empty) throw new Error("Pelajar tidak berdaftar.");
 
-            const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
-            const snap = await getDocs(q);
-            if (snap.empty) throw new Error("Pelajar tidak dijumpai.");
-
-            const student = snap.docs[0].data();
-            const fullTime = now.toLocaleString('ms-MY');
+            const student = studentSnap.docs[0].data();
+            const status = timeStr > late ? "Lewat" : "Hadir";
 
             await addDoc(collection(db, "attendanceLogs"), {
-                studentId: student.studentId,
                 name: student.name,
-                className: student.className,
                 ic: student.ic,
-                timestamp: serverTimestamp(),
-                date: todayStr,
-                timeFull: fullTime,
-                status: status
+                className: student.className,
+                status: status,
+                date: today,
+                timeFull: now.toLocaleString('ms-MY'),
+                timestamp: serverTimestamp()
             });
 
-            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir!", "success", fullTime);
-            setTimeout(resetResultPanel, 2500);
+            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir!", "success", now.toLocaleTimeString());
+            setTimeout(resetResult, 2500);
 
-        } catch (error) {
-            showResult("Gagal", error.message, "error");
-            setTimeout(resetResultPanel, 2500);
+        } catch (err) {
+            showResult("Gagal", err.message, "error");
+            setTimeout(resetResult, 2500);
         }
     }
 
+    // 辅助工具函数
     function playBeep() {
         beepSound.currentTime = 0;
-        beepSound.play().catch(e => {});
+        beepSound.play().catch(() => {});
     }
 
-    function resetResultPanel() {
+    function resetResult() {
         isProcessing = false;
         const icon = document.getElementById('status-icon');
         icon.className = 'status-icon';
-        icon.innerHTML = '<i data-lucide="qr-code" style="color:#ccc"></i>';
-        document.getElementById('res-name').innerText = "Menunggu imbasan...";
+        icon.innerHTML = '<i data-lucide="scan-line" style="color:#ccc"></i>';
+        document.getElementById('res-name').innerText = "Sila halakan kod QR";
         document.getElementById('res-name').style.color = "#888";
         document.getElementById('res-msg').innerText = "";
         document.getElementById('res-time').innerText = "";
         lucide.createIcons();
     }
 
-    function validateTime(qrTimeStr, limitSec) {
-        if (qrTimeStr.length !== 14) return false;
-        const qrDate = new Date(
-            qrTimeStr.substring(0, 4),
-            parseInt(qrTimeStr.substring(4, 6)) - 1,
-            qrTimeStr.substring(6, 8),
-            qrTimeStr.substring(8, 10),
-            qrTimeStr.substring(10, 12),
-            qrTimeStr.substring(12, 14)
-        );
-        return Math.abs(new Date().getTime() - qrDate.getTime()) <= (limitSec * 1000);
+    function validateTime(str, limit) {
+        if (str.length !== 14) return false;
+        const qrDate = new Date(str.substring(0,4), parseInt(str.substring(4,6))-1, str.substring(6,8), str.substring(8,10), str.substring(10,12), str.substring(12,14));
+        return Math.abs(new Date() - qrDate) <= (limit * 1000);
     }
 
     function showResult(name, msg, type, time = "") {
@@ -340,10 +362,10 @@
         document.getElementById('res-time').innerText = time;
         if (type === 'success') {
             icon.className = 'status-icon success';
-            icon.innerHTML = '<i data-lucide="check-circle"></i>';
+            icon.innerHTML = '<i data-lucide="check"></i>';
         } else if (type === 'error') {
             icon.className = 'status-icon error';
-            icon.innerHTML = '<i data-lucide="alert-circle"></i>';
+            icon.innerHTML = '<i data-lucide="x"></i>';
         } else {
             icon.className = 'status-icon';
             icon.innerHTML = '...';
