@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semsira Scanner - Windows Focus Optimized</title>
+    <title>Semsira Scanner - Focused</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -164,12 +164,11 @@
     const startOverlay = document.getElementById('start-overlay');
     
     let isProcessing = false;
-    let isSwitching = false; // 防止重复点击切换
 
     lucide.createIcons();
 
     startBtn.addEventListener('click', function() {
-        beepSound.play().catch(err => console.log("Audio unlock fail"));
+        beepSound.play().catch(e => {}); 
         startOverlay.style.opacity = '0';
         setTimeout(() => startOverlay.style.display = 'none', 500);
         initCamera();
@@ -180,42 +179,31 @@
             if (cameras && cameras.length > 0) {
                 cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
                 
-                cameraSelect.addEventListener('change', async (e) => {
-                    if (isSwitching) return;
+                cameraSelect.addEventListener('change', (e) => {
                     const newId = e.target.value;
                     if (newId) {
-                        isSwitching = true;
-                        cameraSelect.disabled = true; // 切换时禁用选择，防止连续操作
-                        try {
-                            // 关键修复：确保旧摄像头完全停止
-                            if (html5QrCode.isScanning) {
-                                await html5QrCode.stop();
-                            }
-                            await startScanning(newId);
-                        } catch (err) {
-                            console.error("Switch Camera Error:", err);
-                        } finally {
-                            isSwitching = false;
-                            cameraSelect.disabled = false;
-                        }
+                        html5QrCode.stop().then(() => startScanning(newId));
                     }
                 });
 
                 startScanning(cameras[0].id);
             } else {
-                cameraSelect.innerHTML = '<option value="">No Camera Found</option>';
+                cameraSelect.innerHTML = '<option value="">Tiada Kamera</option>';
             }
-        }).catch(err => console.error("Camera access error", err));
+        }).catch(err => console.error(err));
     }
 
-    async function startScanning(cameraId) {
+    function startScanning(cameraId) {
+        // --- 核心优化：针对外接 WebCam 的 Constraints ---
         const config = {
-            fps: 20,
+            fps: 20, // 提高帧率，更快捕捉清晰瞬间
             qrbox: { width: 280, height: 280 },
             aspectRatio: 1.0,
             videoConstraints: {
                 deviceId: cameraId,
+                // 强制要求自动对焦（如果硬件支持）
                 focusMode: "continuous",
+                // 尝试提升曝光，Windows 外接头通常偏暗
                 advanced: [
                     { focusMode: "continuous" },
                     { exposureMode: "continuous" }
@@ -223,30 +211,34 @@
             }
         };
 
-        return html5QrCode.start(cameraId, config, onScanSuccess)
+        html5QrCode.start(cameraId, config, onScanSuccess)
         .then(() => {
-            applyManualFocus();
-        });
+            applyAdvancedSettings(); // 启动后尝试二次锁定硬件参数
+        })
+        .catch(err => console.error(err));
     }
 
-    async function applyManualFocus() {
+    async function applyAdvancedSettings() {
         try {
             const track = html5QrCode.getRunningTrack();
             const capabilities = track.getCapabilities();
             const constraints = { advanced: [] };
-            
+
+            // 1. 如果支持连续对焦
             if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
                 constraints.advanced.push({ focusMode: 'continuous' });
             }
+            
+            // 2. 适当增加亮度，外接摄像头识别二维码时，亮一点更好扫
             if (capabilities.brightness) {
-                constraints.advanced.push({ brightness: capabilities.brightness.max * 0.7 });
+                constraints.advanced.push({ brightness: capabilities.brightness.max * 0.6 });
             }
 
             if (constraints.advanced.length > 0) {
                 await track.applyConstraints(constraints);
             }
         } catch (e) {
-            console.warn("Camera controls not supported.");
+            console.warn("Hardware focus control not supported on this webcam driver.");
         }
     }
 
@@ -254,7 +246,7 @@
         if (isProcessing) return;
         isProcessing = true;
         playBeep();
-        showResult("Sila Tunggu", "Sedang diproses...", "wait");
+        showResult("Sila Tunggu", "Memproses data...", "wait");
 
         try {
             const parts = decodedText.split('|');
@@ -262,7 +254,7 @@
 
             const scannedIC = parts[0];
             const qrTimeStr = parts[1];
-            if (!validateTime(qrTimeStr, 15)) throw new Error("QR Expired. Sila guna kod baru.");
+            if (!validateTime(qrTimeStr, 15)) throw new Error("QR Expired. Sila scan baru.");
 
             const timeSettingsSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
             let lateThreshold = "07:30"; 
@@ -274,14 +266,14 @@
 
             const now = new Date();
             const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            if (currentTimeStr > absentThreshold) throw new Error(`Tamat masa (${absentThreshold}).`);
+            if (currentTimeStr > absentThreshold) throw new Error(`Masa tamat (${absentThreshold}).`);
 
             let status = currentTimeStr > lateThreshold ? "Lewat" : "Hadir";
             const todayStr = now.toLocaleDateString('en-CA'); 
 
             const checkQuery = query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", todayStr));
             const existingDocs = await getDocs(checkQuery);
-            if (!existingDocs.empty) throw new Error("Sudah mendaftar hari ini.");
+            if (!existingDocs.empty) throw new Error("Dah scan hari ini.");
 
             const q = query(collection(db, "studentInform"), where("ic", "==", scannedIC));
             const snap = await getDocs(q);
