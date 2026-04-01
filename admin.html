@@ -24,7 +24,7 @@
         /* Main Layout */
         #admin-content { display: none; max-width: 1000px; margin: 0 auto; padding-top: 100px; }
         
-        /* Fixed Navigation Bar - Fixed Clipping Issue */
+        /* Fixed Navigation Bar */
         .nav-container { 
             position: fixed; top: 0; left: 0; right: 0; 
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px); 
@@ -47,6 +47,13 @@
         .nav-btns button { padding: 8px 12px; font-size: 11px; flex-shrink: 0; height: 34px; border-radius: 8px; }
         
         .nav-right-box { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        /* 优化后的登出按钮样式 */
+        .nav-right-box button.btn-logout { 
+            padding: 8px 10px; 
+            min-width: 40px; 
+            height: 34px; 
+            font-size: 11px;
+        }
 
         #live-clock {
             font-size: 10px; font-weight: 700; color: #1c1c1e;
@@ -56,10 +63,10 @@
 
         @media (max-width: 768px) {
             #admin-content { padding-top: 80px; }
-            .nav-container { padding: 8px 10px; }
+            .nav-container { padding: 8px 5px; } /* 缩小导航边距 */
             #live-clock { display: none; }
-            .nav-right-box button { padding: 8px; width: 40px; }
-            .nav-right-box button span { display: none; } /* Hide "Log Keluar" text on mobile */
+            .nav-right-box button.btn-logout { padding: 8px; width: 36px; gap: 0; }
+            .nav-right-box button span { display: none; } 
         }
 
         .btn-logout { background: var(--danger) !important; }
@@ -71,17 +78,24 @@
         .group-box { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f2f2f7; }
         
         .table-container { width: 100%; overflow-x: auto; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; min-width: 650px; }
-        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; min-width: 650px; table-layout: fixed; }
+        th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 13px; word-wrap: break-word; }
         th { background: #f9f9fb; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
         
+        /* 针对列宽的调整 */
+        .col-nama { width: 140px; white-space: normal; line-height: 1.4; }
+        .col-ic { width: 120px; white-space: nowrap; }
+        .col-kelas { width: 100px; }
+        .col-sem { width: 50px; }
+        .col-aksi { width: 110px; }
+
         .clickable { cursor: pointer; color: var(--primary); font-weight: 500; }
         .clickable:hover { text-decoration: underline; }
         .btn-small { padding: 6px 12px; font-size: 11px; margin: 2px; border-radius: 6px; border: 1px solid #ddd; background: white; cursor: pointer; }
         .btn-danger { color: var(--danger); border-color: var(--danger); }
         
         .time-item { display: flex; align-items: center; gap: 15px; margin: 12px 0; }
-        .address-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
+        .address-cell { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
         select { padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
 
         /* Modal */
@@ -180,7 +194,14 @@
         <div class="table-container">
             <table id="student-table">
                 <thead>
-                    <tr><th>Nama</th><th>Kelas</th><th>No. IC</th><th>Sem</th><th>Alamat</th><th>Aksi</th></tr>
+                    <tr>
+                        <th class="col-nama">Nama</th>
+                        <th class="col-kelas">Kelas</th>
+                        <th class="col-ic">No. IC</th>
+                        <th class="col-sem">Sem</th>
+                        <th>Alamat</th>
+                        <th class="col-aksi">Aksi</th>
+                    </tr>
                 </thead>
                 <tbody id="student-list"></tbody>
             </table>
@@ -224,7 +245,6 @@
         }
     };
 
-    // Helper: Format IC to 000000-00-0000
     function formatIC(ic) {
         if(!ic) return '-';
         let clean = ic.replace(/\D/g, '');
@@ -236,7 +256,6 @@
 
     function updateClock() {
         const now = new Date();
-        // Removed seconds from options
         const options = { weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
         const el = document.getElementById('live-clock');
         if(el) el.innerText = now.toLocaleString('ms-MY', options).replace(/,/g, '');
@@ -292,12 +311,12 @@
     function renderStudents(list) {
         document.getElementById('student-list').innerHTML = list.map(s => `
             <tr>
-                <td class="clickable" onclick="showStudentDetails('${s.id}')"> ${s.name || '-'}</td>
-                <td>${s.className || '-'}</td>
-                <td>${formatIC(s.ic)}</td>
-                <td>${s.semester || '1'}</td>
+                <td class="clickable col-nama" onclick="showStudentDetails('${s.id}')"> ${s.name || '-'}</td>
+                <td class="col-kelas">${s.className || '-'}</td>
+                <td class="col-ic">${formatIC(s.ic)}</td>
+                <td class="col-sem">${s.semester || '1'}</td>
                 <td class="address-cell">${s.address || '-'}</td>
-                <td>
+                <td class="col-aksi">
                     <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Peranti</button>
                 </td>
             </tr>`).join('');
