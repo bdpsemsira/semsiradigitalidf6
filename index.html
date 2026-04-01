@@ -34,6 +34,27 @@
             --nav-bg: rgba(28, 28, 30, 0.9);
         }
 
+        /* --- 核心修改：强制扫码页始终为亮色模式 --- */
+        /* 无论父级 data-theme 是什么，只要在 tab-scan 内，就强制使用亮色变量 */
+        #tab-scan {
+            --bg: #F2F2F7 !important;
+            --card: rgba(255, 255, 255, 0.8) !important;
+            --text: #000000 !important;
+            --border: rgba(200, 200, 200, 0.3) !important;
+            background-color: var(--bg) !important;
+            color: var(--text) !important;
+        }
+        
+        #tab-scan .glass {
+            background: var(--card) !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        #tab-scan h3, #tab-scan p {
+            color: #000000 !important;
+        }
+        /* --- 修改结束 --- */
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg);
@@ -159,18 +180,10 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        /* 重点修改：无论主题如何，二维码容器强制保持白底，防止曝光过度 */
         #qrcode {
-            background: #FFFFFF !important; 
-            padding: 15px; 
-            border-radius: 20px;
-            margin: 20px auto; 
-            display: inline-block;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            line-height: 0; /* 移除底部间隙 */
-        }
-        #qrcode img {
-            display: block;
+            background: white; padding: 20px; border-radius: 20px;
+            margin: 20px auto; display: inline-block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
@@ -351,7 +364,8 @@
 
     const savedTheme = localStorage.getItem('semsira_theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
-    document.getElementById('dark-mode-toggle').checked = (savedTheme === 'dark');
+    const toggleInput = document.getElementById('dark-mode-toggle');
+    if(toggleInput) toggleInput.checked = (savedTheme === 'dark');
 
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
 
@@ -424,6 +438,7 @@
 
     function applyWatermark(info) {
         const layer = document.getElementById('watermark-layer');
+        if(!layer) return;
         layer.innerHTML = "";
         for (let i = 0; i < 40; i++) {
             const item = document.createElement('div');
@@ -604,14 +619,7 @@
         const qrContainer = document.getElementById('qrcode');
         if (!qr) {
             qrContainer.innerHTML = "";
-            // 重点修改：强制黑块白底，这是扫码兼容性最好的组合
-            qr = new QRCode(qrContainer, { 
-                width: 200, 
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
+            qr = new QRCode(qrContainer, { width: 200, height: 200 });
         }
         
         const updateQR = () => {
@@ -624,7 +632,6 @@
             qr.makeCode(`${window.currentUserData.ic}|${ts}`);
             document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
         };
-
         updateQR();
         if(qrUpdateInterval) clearInterval(qrUpdateInterval);
         qrUpdateInterval = setInterval(updateQR, 5000);
@@ -636,7 +643,6 @@
         document.getElementById('prof-name').innerText = d.name;
         document.getElementById('prof-ic').innerText = d.ic;
         document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
-        
         document.getElementById('upd-name').value = d.name || "";
         document.getElementById('upd-id').value = d.studentId || "";
         document.getElementById('upd-phone').value = d.phone || "";
