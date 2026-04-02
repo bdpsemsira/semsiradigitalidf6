@@ -74,6 +74,12 @@
             margin-bottom: 20px;
         }
 
+        /* 强制名单列表在打印时另起一页 */
+        .page-break-section {
+            break-before: page;
+            margin-top: 30px;
+        }
+
         canvas { max-width: 100%; margin-bottom: 30px; }
 
         table {
@@ -109,11 +115,11 @@
         .lewat-text { color: var(--lewat); font-weight: bold; }
 
         @media print {
-            @page { margin: 0.5cm; }
-            body { padding: 20px; background: white; }
+            @page { margin: 1cm; }
+            body { padding: 0; background: white; }
             .no-print { display: none !important; }
-            .dashboard-container { box-shadow: none; padding: 0; }
-            table { font-size: 11px; }
+            .dashboard-container { box-shadow: none; border: 1px solid #eee; }
+            table { font-size: 11px; width: 100%; }
             th, .summary-row, .total-label {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -159,7 +165,7 @@
     </table>
 </div>
 
-<div class="dashboard-container">
+<div class="dashboard-container page-break-section">
     <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
         <i data-lucide="user-x"></i> Senarai Murid Lewat Hari Ini
     </h3>
@@ -180,7 +186,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -194,7 +200,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 实时更新时间
     function updateLiveDateTime() {
         const now = new Date();
         document.getElementById('current-date').innerText = "Tarikh: " + now.toLocaleDateString('ms-MY');
@@ -204,7 +209,6 @@
     updateLiveDateTime();
 
     async function loadDashboard() {
-        // 加载学生基本数据
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classMasterData = {}; 
 
@@ -217,14 +221,12 @@
             classMasterData[className].total++;
         });
 
-        // 获取今日日期字符串 (YYYY-MM-DD)
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         const todayStr = `${year}-${month}-${day}`;
 
-        // 获取今日考勤记录
         const attendQuery = query(collection(db, "attendanceLogs"), where("date", "==", todayStr));
         const attendSnap = await getDocs(attendQuery);
         
@@ -232,7 +234,7 @@
 
         attendSnap.forEach(doc => {
             const data = doc.data();
-            const status = data.status; // Hadir 或 Lewat
+            const status = data.status; 
             
             if (classMasterData[data.className]) {
                 if (status === "Lewat") {
@@ -255,13 +257,11 @@
         let labels = [];
         let dataPresent = [];
         let dataLate = [];
-        
         let grandTotalMurid = 0;
         let grandTotalHadir = 0;
         let grandTotalLewat = 0;
 
         tableBody.innerHTML = "";
-
         const sortedClasses = Object.keys(data).sort();
 
         sortedClasses.forEach(className => {
@@ -277,7 +277,7 @@
             dataPresent.push(item.present);
             dataLate.push(item.late);
 
-            const row = `
+            tableBody.innerHTML += `
                 <tr>
                     <td>${className}</td>
                     <td>${item.total}</td>
@@ -287,7 +287,6 @@
                     <td>${percent}%</td>
                 </tr>
             `;
-            tableBody.innerHTML += row;
         });
 
         const totalAllHadir = grandTotalHadir + grandTotalLewat;
@@ -302,13 +301,13 @@
             <td>${grandPercent}%</td>
         `;
 
-        // 更新迟到名单表
+        // 更新名单列表，处理 time 字段
         if (lateStudents.length > 0) {
             lateTableBody.innerHTML = lateStudents.map(s => `
                 <tr>
                     <td style="text-align:left;">${s.name}</td>
                     <td>${s.className}</td>
-                    <td>${s.time || '--:--'}</td>
+                    <td>${s.time ? s.time : '--:--'}</td>
                     <td class="lewat-text">LEWAT</td>
                 </tr>
             `).join('');
@@ -322,7 +321,10 @@
 
     function renderChart(labels, presentData, lateData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
-        new Chart(ctx, {
+        // 销毁旧图表以防打印时重叠
+        if(window.myChart) window.myChart.destroy();
+        
+        window.myChart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
@@ -350,9 +352,6 @@
                         stacked: true,
                         title: { display: true, text: 'Bilangan Murid' }
                     }
-                },
-                plugins: {
-                    legend: { position: 'top' }
                 }
             }
         });
