@@ -135,7 +135,7 @@
             border-top: 1px solid var(--border); z-index: 1000;
         }
 
-        .nav-item { text-align: center; color: #8E8E93; font-size: 12px; cursor: pointer; }
+        .nav-item { text-align: center; color: #8E8E8E; font-size: 12px; cursor: pointer; }
         .nav-item.active-nav { color: var(--primary); }
 
         #poster-slider {
@@ -257,7 +257,7 @@
     </div>
 
     <div id="tab-scan" class="page" style="text-align:center">
-        <audio id="beep-sound" src="/beep.mp3" preload="auto"></audio>
+        <audio id="beep-sound" src="/beep.mp3" preload="auto" playsinline></audio>
         <div class="header-container" style="justify-content: flex-start; text-align: left;">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
             <h3>Kehadiran Digital</h3>
@@ -272,6 +272,7 @@
             <div id="attendance-time" class="status-time">-- : -- : --</div>
         </div>
     </div>
+
     <div id="tab-account" class="page">
         <div class="header-container">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
@@ -500,7 +501,11 @@
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
-        try { await signInWithEmailAndPassword(auth, email, pw); } 
+        try { 
+            // 核心修复：登录点击时解锁音频权限
+            playBeep(true); 
+            await signInWithEmailAndPassword(auth, email, pw); 
+        } 
         catch (e) { alert("Log Masuk Gagal: " + e.message); }
     }
 
@@ -540,12 +545,23 @@
         }
     });
 
-    // 播放提示音函数
-    function playBeep() {
+    // 核心修复：播放提示音函数优化
+    function playBeep(isSilent = false) {
         const audio = document.getElementById('beep-sound');
         if (audio) {
-            audio.currentTime = 0;
-            audio.play().catch(e => console.log("Audio play blocked"));
+            if (isSilent) {
+                // 静音播放以解锁移动端浏览器权限
+                audio.muted = true;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.muted = false;
+                }).catch(e => console.log("Unlock blocked"));
+            } else {
+                audio.currentTime = 0;
+                audio.play().catch(e => {
+                    console.log("Audio play blocked, needs user interaction");
+                });
+            }
         }
     }
 
@@ -561,9 +577,14 @@
         if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
 
         attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
+            // 获取当前显示的文本状态，用于对比
+            const currentStatus = statusEl.innerText.trim();
+
             if (!snapshot.empty) {
-                // 如果是刚从“未到”变为“已到”，触发提示音
-                if (!isAttendedToday) playBeep();
+                // 核心逻辑：只有当前状态是 "TIDAK HADIR" 时切换，才播放声音
+                if (currentStatus === "TIDAK HADIR") {
+                    playBeep();
+                }
 
                 const data = snapshot.docs[0].data();
                 isAttendedToday = true;
@@ -688,23 +709,19 @@
     window.showPage = (id) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-    }
+        // 核心修复：点击切换页面时静音播放一次音频以解锁权限
+        playBeep(true);
+    };
 
-    window.switchTab = (tabId, el) => {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
-        document.getElementById(tabId).classList.add('active');
+    window.switchTab = (id, el) => {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
         el.classList.add('active-nav');
+        showPage(id);
         lucide.createIcons();
-
-        // 核心：点击 Imbas 按钮时，静音加载一下音频，解锁 iOS/Android 的自动播放权限
-        if (tabId === 'tab-scan') {
-            const audio = document.getElementById('beep-sound');
-            if (audio) audio.load();
-        }
     };
 
     lucide.createIcons();
 </script>
+
 </body>
 </html>
