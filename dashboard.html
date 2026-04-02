@@ -92,7 +92,6 @@
             margin-bottom: 20px;
         }
 
-        /* Manual Input Panel */
         .manual-panel {
             display: none;
             background: #E5E5EA;
@@ -155,10 +154,12 @@
 
         .lewat-text { color: var(--lewat); font-weight: bold; }
 
+        /* 关键 CSS：在打印模式下，如果 manual 激活，隐藏迟到表格 */
         @media print {
             @page { margin: 1cm; }
             body { padding: 0; background: white; }
             .no-print { display: none !important; }
+            .hide-on-manual-print { display: none !important; }
             .dashboard-container { box-shadow: none; border: 1px solid #eee; }
             table { font-size: 11px; width: 100%; }
             th, .summary-row, .total-label {
@@ -191,13 +192,11 @@
 </div>
 
 <div id="manualPanel" class="manual-panel no-print">
-    <h3>Input Data Manual</h3>
+    <h3>Input Data Manual (Mode K1 & K2)</h3>
     <p style="font-size: 0.9em; color: #666;">Pilih kelas dan masukkan kehadiran (Contoh: 8/10)</p>
     <div id="manualInputs">
         <div class="input-row">
-            <select class="m-class-select">
-                <option value="">Memuatkan kelas...</option>
-            </select>
+            <select class="m-class-select"></select>
             <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
             <button class="btn-print" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
         </div>
@@ -205,13 +204,12 @@
     <div style="margin-top:15px; display:flex; gap:10px;">
         <button class="btn-print" style="background:#34C759;" onclick="addRow()">+ Tambah Baris</button>
         <button class="btn-print" onclick="applyManualData()">Jana Laporan</button>
-        <button class="btn-print" style="background:#8E8E93;" onclick="loadDashboard()">Reset ke Data Firebase</button>
+        <button class="btn-print" style="background:#8E8E93;" onclick="resetToFirebase()">Reset ke Data Firebase</button>
     </div>
 </div>
 
 <div class="dashboard-container">
     <canvas id="attendanceChart" height="100"></canvas>
-
     <table id="attendanceTable">
         <thead>
             <tr>
@@ -230,7 +228,7 @@
     </table>
 </div>
 
-<div class="dashboard-container page-break-section">
+<div id="lateSection" class="dashboard-container page-break-section">
     <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
         <i data-lucide="user-x"></i> Senarai Murid Lewat Hari Ini
     </h3>
@@ -266,9 +264,19 @@
     const db = getFirestore(app);
 
     window.myChart = null;
-    let existingClasses = [];
 
-    // Panel controls
+    // 硬编码班级列表 (K1 & K2)
+    const k1Classes = ["6 SUM", "6 Kemanusiaan 1", "6 Kemanusiaan 2", "6 Kemanusiaan 3"];
+    const k2Classes = ["5 SUM", "5 Kemanusiaan 1", "5 Kemanusiaan 2", "5 Kemanusiaan 3"];
+    const allStaticClasses = [...k1Classes, ...k2Classes].sort();
+
+    // 初始化下拉菜单选项
+    function initSelects() {
+        const selects = document.querySelectorAll('.m-class-select');
+        const options = allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+        selects.forEach(s => s.innerHTML = options);
+    }
+
     window.toggleManualPanel = () => {
         const p = document.getElementById('manualPanel');
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
@@ -279,7 +287,7 @@
         div.className = 'input-row';
         div.innerHTML = `
             <select class="m-class-select">
-                ${existingClasses.map(c => `<option value="${c}">${c}</option>`).join('')}
+                ${allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('')}
             </select>
             <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
             <button class="btn-print" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
@@ -290,9 +298,9 @@
     window.removeRow = (btn) => btn.parentElement.remove();
 
     window.applyManualData = () => {
-        const selects = document.getElementsByClassName('m-class-select');
-        const datas = document.getElementsByClassName('m-data');
-        let manualClassMaster = {};
+        const selects = document.querySelectorAll('.m-class-select');
+        const datas = document.querySelectorAll('.m-data');
+        let manualData = {};
 
         for(let i=0; i<selects.length; i++) {
             const name = selects[i].value;
@@ -300,16 +308,23 @@
             if(name && val.includes('/')) {
                 const [h, t] = val.split('/').map(Number);
                 if(!isNaN(h) && !isNaN(t)) {
-                    manualClassMaster[name] = { total: t, present: h, late: 0 };
+                    manualData[name] = { total: t, present: h, late: 0 };
                 }
             }
         }
 
-        if(Object.keys(manualClassMaster).length > 0) {
-            updateUI(manualClassMaster, []); 
+        if(Object.keys(manualData).length > 0) {
+            // 设置打印标记：隐藏迟到名单
+            document.getElementById('lateSection').classList.add('hide-on-manual-print');
+            updateUI(manualData, []); 
         } else {
-            alert("Sila pilih kelas和输入正确的格式 (e.g. 8/10)");
+            alert("Sila masukkan data yang sah (e.g. 8/10)");
         }
+    };
+
+    window.resetToFirebase = () => {
+        document.getElementById('lateSection').classList.remove('hide-on-manual-print');
+        loadDashboard();
     };
 
     function updateLiveDateTime() {
@@ -333,10 +348,6 @@
             classMasterData[className].total++;
         });
 
-        // 保存现有班级列表用于下拉菜单
-        existingClasses = Object.keys(classMasterData).sort();
-        updateSelectOptions();
-
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
@@ -359,14 +370,6 @@
         updateUI(classMasterData, lateStudents);
     }
 
-    function updateSelectOptions() {
-        const selects = document.getElementsByClassName('m-class-select');
-        const options = existingClasses.map(c => `<option value="${c}">${c}</option>`).join('');
-        for(let sel of selects) {
-            sel.innerHTML = options;
-        }
-    }
-
     function updateUI(data, lateStudents) {
         const tableBody = document.getElementById('tableBody');
         const totalRow = document.getElementById('totalRow');
@@ -375,9 +378,7 @@
         let labels = [];
         let dataPresent = [];
         let dataLate = [];
-        let grandTotalMurid = 0;
-        let grandTotalHadir = 0;
-        let grandTotalLewat = 0;
+        let gTotalMurid = 0, gTotalHadir = 0, gTotalLewat = 0;
 
         tableBody.innerHTML = "";
         const sortedClasses = Object.keys(data).sort();
@@ -387,13 +388,8 @@
             const totalHadirKelas = item.present + item.late;
             const percent = item.total > 0 ? ((totalHadirKelas / item.total) * 100).toFixed(2) : "0.00";
             
-            grandTotalMurid += item.total;
-            grandTotalHadir += item.present;
-            grandTotalLewat += item.late;
-
-            labels.push(className);
-            dataPresent.push(item.present);
-            dataLate.push(item.late);
+            gTotalMurid += item.total; gTotalHadir += item.present; gTotalLewat += item.late;
+            labels.push(className); dataPresent.push(item.present); dataLate.push(item.late);
 
             tableBody.innerHTML += `
                 <tr>
@@ -407,37 +403,29 @@
             `;
         });
 
-        const totalAllHadir = grandTotalHadir + grandTotalLewat;
-        const grandPercent = grandTotalMurid > 0 ? ((totalAllHadir / grandTotalMurid) * 100).toFixed(2) : "0.00";
+        const totalAllHadir = gTotalHadir + gTotalLewat;
+        const grandPercent = gTotalMurid > 0 ? ((totalAllHadir / gTotalMurid) * 100).toFixed(2) : "0.00";
         
         totalRow.innerHTML = `
             <td class="total-label">JUMLAH KESELURUHAN</td>
-            <td>${grandTotalMurid}</td>
-            <td>${grandTotalHadir}</td>
-            <td>${grandTotalLewat}</td>
+            <td>${gTotalMurid}</td>
+            <td>${gTotalHadir}</td>
+            <td>${gTotalLewat}</td>
             <td>${totalAllHadir}</td>
             <td>${grandPercent}%</td>
         `;
 
         if (lateStudents.length > 0) {
             lateTableBody.innerHTML = lateStudents.map(s => {
-                let displayTime = "--:--";
+                let dTime = "--:--";
                 if (s.timeFull && typeof s.timeFull === 'string') {
                     const parts = s.timeFull.split(',');
-                    displayTime = parts.length > 1 ? parts[1].trim() : s.timeFull;
-                } else if (s.time) displayTime = s.time;
-
-                return `
-                    <tr>
-                        <td style="text-align:left;">${s.name}</td>
-                        <td>${s.className}</td>
-                        <td>${displayTime}</td>
-                        <td class="lewat-text">LEWAT</td>
-                    </tr>
-                `;
+                    dTime = parts.length > 1 ? parts[1].trim() : s.timeFull;
+                } else if (s.time) dTime = s.time;
+                return `<tr><td style="text-align:left;">${s.name}</td><td>${s.className}</td><td>${dTime}</td><td class="lewat-text">LEWAT</td></tr>`;
             }).join('');
         } else {
-            lateTableBody.innerHTML = `<tr><td colspan="4">Tiada rekod murid lewat / Mode Manual Aktif.</td></tr>`;
+            lateTableBody.innerHTML = `<tr><td colspan="4">Tiada rekod lewat / Mode Manual Aktif.</td></tr>`;
         }
 
         renderChart(labels, dataPresent, dataLate);
@@ -447,7 +435,6 @@
     function renderChart(labels, presentData, lateData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
-        
         window.myChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -461,13 +448,13 @@
                 responsive: true,
                 scales: {
                     x: { stacked: true },
-                    y: { beginAtZero: true, stacked: true, title: { display: true, text: 'Bilangan Murid' } }
+                    y: { beginAtZero: true, stacked: true }
                 }
             }
         });
     }
 
-    window.loadDashboard = loadDashboard;
+    initSelects();
     loadDashboard();
 </script>
 </body>
