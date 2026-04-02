@@ -93,6 +93,14 @@
             position: relative;
         }
 
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        /* 手动输入面板改为放在日期下方 */
         .manual-panel {
             display: none;
             background: #E5E5EA;
@@ -147,14 +155,15 @@
         .hide-lewat-column { display: none !important; }
 
         @media print {
-            .no-print, .btn-action { display: none !important; }
+            .no-print, .btn-action, .section-header { display: none !important; }
             body { padding: 0; background: white; }
             .dashboard-container { box-shadow: none; border: none; }
             .screenshot-target { padding: 0; }
         }
 
         .is-capturing .no-print, 
-        .is-capturing .btn-action { 
+        .is-capturing .btn-action, 
+        .is-capturing .section-header { 
             display: none !important; 
         }
     </style>
@@ -167,14 +176,14 @@
             <img src="/semsira.png" alt="Logo Semsira">
             <div>
                 <h2 style="margin:0;">Analisis Kehadiran Murid</h2>
-                <small style="color:#666;">Semsira Dashboard</small>
+                <small id="display-day-top" style="color:#666;">Hari: --</small>
             </div>
         </div>
         <div class="button-group no-print">
             <button class="btn-action bg-purple" onclick="toggleManualPanel()">
                 <i data-lucide="edit-3"></i> Input
             </button>
-            <button class="btn-action bg-primary" onclick="window.print()">
+            <button class="btn-action bg-primary" onclick="captureFullReport('all')">
                 <i data-lucide="camera"></i> Screenshot
             </button>
         </div>
@@ -182,11 +191,11 @@
 
     <div class="date-time-info">
         <span id="current-date">Tarikh: --/--/----</span>
-        <span id="current-time">Masa: --:--:--</span>
+        <span id="current-time">Masa: --:--</span>
     </div>
 
     <div id="manualPanel" class="manual-panel no-print">
-        <h3 style="margin-top:0;">Input Data Manual</h3>
+        <h3>Input Data Manual</h3>
         <div id="manualInputs">
             <div class="input-row">
                 <select class="m-class-select"></select>
@@ -225,23 +234,23 @@
             </tfoot>
         </table>
     </div>
-</div>
 
-<div id="lateSection" class="dashboard-container no-print">
-    <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
-        <i data-lucide="user-x"></i> Senarai Murid Lewat
-    </h3>
-    <table id="lateStudentsTable">
-        <thead>
-            <tr>
-                <th>NAMA</th>
-                <th>KELAS</th>
-                <th>WAKTU</th>
-                <th>STATUS</th>
-            </tr>
-        </thead>
-        <tbody id="lateTableBody"></tbody>
-    </table>
+    <div id="lateSection" class="dashboard-container">
+        <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat); margin-top:0;">
+            <i data-lucide="user-x"></i> Senarai Murid Lewat
+        </h3>
+        <table id="lateStudentsTable">
+            <thead>
+                <tr>
+                    <th>NAMA</th>
+                    <th>KELAS</th>
+                    <th>WAKTU</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+            <tbody id="lateTableBody"></tbody>
+        </table>
+    </div>
 </div>
 
 <script type="module">
@@ -270,14 +279,50 @@
         return allStaticClasses.indexOf(classA) - allStaticClasses.indexOf(classB);
     }
 
+    // 截图全屏功能
+    window.captureFullReport = async (type) => {
+        const wrapper = document.getElementById('fullReportWrapper');
+        wrapper.classList.add('is-capturing');
+        
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0,10).replace(/-/g, '');
+        const timeStr = now.getHours() + "" + now.getMinutes();
+        const fileName = `semsira_report_${dateStr}_${timeStr}.png`;
+
+        try {
+            const canvas = await html2canvas(wrapper, {
+                useCORS: true,
+                scale: 2,
+                backgroundColor: "#F2F2F7",
+                ignoreElements: (el) => el.classList.contains('no-print')
+            });
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        } catch (e) {
+            alert("Ralat tangkapan skrin.");
+        } finally {
+            wrapper.classList.remove('is-capturing');
+        }
+    };
+
     function updateLiveDateTime() {
         const now = new Date();
         const days = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
         const dayName = days[now.getDay()];
-        const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
+        const dateFormatted = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
         
-        document.getElementById('current-date').innerText = `Tarikh: ${dateStr} ${dayName}`;
-        document.getElementById('current-time').innerText = "Masa: " + now.toLocaleTimeString('ms-MY');
+        // 修改日期显示，增加星期名称 (2/4/2026 Khamis)
+        document.getElementById('current-date').innerText = `Tarikh: ${dateFormatted} ${dayName}`;
+        
+        // Waktu 只要小时和分钟
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const ampm = now.getHours() >= 12 ? 'PTG' : 'PG';
+        document.getElementById('current-time').innerText = `Masa: ${hours}:${minutes} ${ampm}`;
+        
+        document.getElementById('display-day-top').innerText = "Hari: " + dayName;
     }
 
     async function loadDashboard() {
@@ -298,7 +343,17 @@
         attendSnap.forEach(doc => {
             const data = doc.data();
             if (classMasterData[data.className]) {
-                let displayTime = data.time || "--:--";
+                let displayTime = "--:--";
+                // 提取 timeFull 中的小时和分钟
+                if (data.timeFull && data.timeFull.includes(",")) {
+                    const timePart = data.timeFull.split(",")[1].trim(); // "9:15:21 PG"
+                    const timeSplit = timePart.split(" "); // ["9:15:21", "PG"]
+                    const hm = timeSplit[0].split(":").slice(0,2).join(":"); // "9:15"
+                    displayTime = hm + " " + (timeSplit[1] || "");
+                } else {
+                    displayTime = data.time || "--:--";
+                }
+
                 if (data.status === "Lewat") {
                     classMasterData[data.className].late++;
                     lateStudents.push({ ...data, time: displayTime });
@@ -351,7 +406,7 @@
 
         document.getElementById('lateTableBody').innerHTML = lateStudents.length > 0 ? 
             lateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : 
-            `<tr><td colspan="4">Tiada rekod lewat.</td></tr>`;
+            `<tr><td colspan="4">Tiada rekod lewat hari ini.</td></tr>`;
 
         renderChart(labels, percentPresent, isNoLewat ? [] : percentLate);
         lucide.createIcons();
@@ -394,7 +449,7 @@
         const div = document.createElement('div');
         div.className = 'input-row';
         div.innerHTML = `<select class="m-class-select">${allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-                         <input type="text" placeholder="8/10" class="m-data">
+                         <input type="text" placeholder="e.g. 8/10" class="m-data">
                          <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>`;
         document.getElementById('manualInputs').appendChild(div);
     };
@@ -403,11 +458,9 @@
         const s = document.querySelectorAll('.m-class-select'), d = document.querySelectorAll('.m-data');
         let m = {};
         for(let i=0; i<s.length; i++){
-            const val = d[i].value;
-            if(val.includes('/')){
-                const [h, t] = val.split('/').map(Number);
-                if(!isNaN(h)) m[s[i].value] = { total: t || 0, present: h, late: 0 };
-            }
+            if(!d[i].value.includes('/')) continue;
+            const [h, t] = d[i].value.split('/').map(Number);
+            if(!isNaN(h)) m[s[i].value] = { total: t || 0, present: h, late: 0 };
         }
         document.body.classList.add('print-no-lewat');
         updateUI(m, []);
@@ -417,7 +470,6 @@
         loadDashboard();
     };
 
-    // 初始化下拉菜单
     const selects = document.querySelectorAll('.m-class-select');
     const opts = allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('');
     selects.forEach(s => s.innerHTML = opts);
