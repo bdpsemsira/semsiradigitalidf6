@@ -92,6 +92,11 @@
             margin-bottom: 20px;
         }
 
+        /* 用于分页的类 */
+        .chart-page {
+            break-after: page;
+        }
+
         .manual-panel {
             display: none;
             background: #E5E5EA;
@@ -115,12 +120,7 @@
             min-width: 150px;
         }
 
-        .page-break-section {
-            break-before: page;
-            margin-top: 30px;
-        }
-
-        canvas { max-width: 100%; margin-bottom: 30px; }
+        canvas { max-width: 100%; margin-bottom: 10px; }
 
         table {
             width: 100%;
@@ -154,13 +154,44 @@
 
         .lewat-text { color: var(--lewat); font-weight: bold; }
 
+        /* 打印专用样式 */
         @media print {
-            @page { margin: 1cm; }
-            body { padding: 0; background: white; }
-            .no-print { display: none !important; }
-            .hide-on-manual-print { display: none !important; }
-            .dashboard-container { box-shadow: none; border: 1px solid #eee; }
-            table { font-size: 11px; width: 100%; }
+            @page { 
+                margin: 0.5cm; 
+            }
+            body { 
+                padding: 0; 
+                background: white; 
+            }
+            
+            /* 隐藏 Header 和 Footer (日期时间) 以及按钮 */
+            .header-container, .date-time-info, .no-print, .manual-panel { 
+                display: none !important; 
+            }
+            
+            .hide-on-manual-print { 
+                display: none !important; 
+            }
+
+            .dashboard-container { 
+                box-shadow: none; 
+                border: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            /* 强制图表一页，表格一页 */
+            .chart-section {
+                break-after: page;
+                display: block;
+                width: 100%;
+            }
+
+            table { 
+                font-size: 11px; 
+                width: 100%; 
+            }
+
             th, .summary-row, .total-label {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -207,8 +238,11 @@
     </div>
 </div>
 
+<div class="dashboard-container chart-section">
+    <canvas id="attendanceChart" height="120"></canvas>
+</div>
+
 <div class="dashboard-container">
-    <canvas id="attendanceChart" height="100"></canvas>
     <table id="attendanceTable">
         <thead>
             <tr>
@@ -227,7 +261,7 @@
     </table>
 </div>
 
-<div id="lateSection" class="dashboard-container page-break-section">
+<div id="lateSection" class="dashboard-container">
     <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
         <i data-lucide="user-x"></i> Senarai Murid Lewat Hari Ini
     </h3>
@@ -264,7 +298,6 @@
 
     window.myChart = null;
 
-    // 已更新的完整班级列表
     const allStaticClasses = [
         "6 AISHAH", "6 FATIMAH", "6 KHADIJAH", "6 RUQAYYAH", 
         "6 SARAH", "6 SUMAYYAH", "6 UMMU KALYHOM", "6 ZAINAB",
@@ -272,7 +305,6 @@
         "6 AL RAZI", "6 IBNU KHALDUN", "6 IBNU RUSYD"
     ].sort();
 
-    // 初始化下拉菜单选项
     function initSelects() {
         const selects = document.querySelectorAll('.m-class-select');
         const options = allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -316,7 +348,6 @@
         }
 
         if(Object.keys(manualData).length > 0) {
-            // 标记打印时隐藏迟到名单
             document.getElementById('lateSection').classList.add('hide-on-manual-print');
             updateUI(manualData, []); 
         } else {
@@ -448,6 +479,7 @@
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     x: { stacked: true },
                     y: { beginAtZero: true, stacked: true }
