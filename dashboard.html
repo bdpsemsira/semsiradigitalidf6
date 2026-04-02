@@ -149,8 +149,13 @@
 
         .lewat-text { color: var(--lewat); font-weight: bold; }
 
+        /* 隐藏列的通用样式 */
+        .hide-lewat-column {
+            display: none !important;
+        }
+
         @media print {
-            @page { margin: 1cm; }
+            @page { margin: 0.5cm; }
             body { padding: 0; background: white; }
             .header-container, .date-time-info, .no-print, .manual-panel { 
                 display: none !important; 
@@ -162,19 +167,27 @@
                 margin: 0;
             }
             .chart-section {
+                display: block !important;
+                height: 400px !important;
+                width: 100% !important;
+                page-break-after: always !important;
                 break-after: page;
-                height: 80vh; 
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                margin-bottom: 30px !important;
+                overflow: hidden;
             }
-            .hide-lewat-column {
-                display: none !important;
+            canvas {
+                height: 400px !important;
+                width: 100% !important;
+            }
+            #attendanceTable {
+                page-break-before: always !important;
+                break-before: page;
+                margin-top: 20px !important;
+                font-size: 11px;
             }
             #lateSection {
                 display: none !important;
             }
-            table { font-size: 11px; width: 100%; }
             th, .summary-row, .total-label {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -221,7 +234,7 @@
 </div>
 
 <div class="dashboard-container chart-section">
-    <canvas id="attendanceChart" height="480"></canvas>
+    <canvas id="attendanceChart" height="400"></canvas>
 </div>
 
 <div class="dashboard-container">
@@ -394,7 +407,6 @@
             
             gTotalMurid += item.total; gTotalHadir += item.present; gTotalLewat += item.late;
             
-            // 计算百分比供图表使用
             labels.push(className); 
             percentPresent.push(item.total > 0 ? (item.present / item.total * 100).toFixed(2) : 0);
             percentLate.push(item.total > 0 ? (item.late / item.total * 100).toFixed(2) : 0);
@@ -435,11 +447,16 @@
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
 
+        const isManyClasses = labels.length > 10;
+        const barSize = isManyClasses ? 25 : 45;
+        const fontSize = isManyClasses ? 10 : 12;
+
         const datasets = [{ 
             label: 'Hadir (%)', 
             data: presentData, 
             backgroundColor: '#007AFF', 
-            borderRadius: 5 
+            borderRadius: 4,
+            maxBarThickness: barSize
         }];
         
         if(lateData.length > 0) {
@@ -447,7 +464,8 @@
                 label: 'Lewat (%)', 
                 data: lateData, 
                 backgroundColor: '#FF9500', 
-                borderRadius: 5 
+                borderRadius: 4,
+                maxBarThickness: barSize
             });
         }
 
@@ -458,33 +476,32 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: true },
+                    x: { 
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: fontSize },
+                            maxRotation: isManyClasses ? 45 : 0,
+                            minRotation: isManyClasses ? 45 : 0
+                        }
+                    },
                     y: { 
                         stacked: true,
                         min: 0,
-                        max: 100, // 强制 Y 轴显示到 100%
+                        max: 100,
                         ticks: {
-                            stepSize: 10,
-                            callback: function(value) {
-                                return value + "%"; // 在刻度后添加百分号
-                            }
+                            stepSize: 20,
+                            callback: value => value + "%"
                         },
                         title: {
                             display: true,
-                            text: 'Peratus Kehadiran (%)',
+                            text: 'Peratus (%)',
                             font: { weight: 'bold' }
                         }
                     }
                 },
                 plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ": " + context.raw + "%";
-                            }
-                        }
-                    }
+                    legend: { position: 'bottom', labels: { boxWidth: 12 } }
                 }
             }
         });
