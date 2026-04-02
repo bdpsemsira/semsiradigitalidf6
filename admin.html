@@ -47,7 +47,6 @@
         .nav-btns button { padding: 8px 12px; font-size: 11px; flex-shrink: 0; height: 34px; border-radius: 8px; }
         
         .nav-right-box { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        /* 优化后的登出按钮样式 */
         .nav-right-box button.btn-logout { 
             padding: 8px 10px; 
             min-width: 40px; 
@@ -63,7 +62,7 @@
 
         @media (max-width: 768px) {
             #admin-content { padding-top: 80px; }
-            .nav-container { padding: 8px 5px; } /* 缩小导航边距 */
+            .nav-container { padding: 8px 5px; }
             #live-clock { display: none; }
             .nav-right-box button.btn-logout { padding: 8px; width: 36px; gap: 0; }
             .nav-right-box button span { display: none; } 
@@ -82,7 +81,6 @@
         th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #f2f2f7; font-size: 13px; word-wrap: break-word; }
         th { background: #f9f9fb; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        /* 针对列宽的调整 */
         .col-nama { width: 140px; white-space: normal; line-height: 1.4; }
         .col-ic { width: 120px; white-space: nowrap; }
         .col-kelas { width: 100px; }
@@ -98,7 +96,6 @@
         .address-cell { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
         select { padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
 
-        /* Modal */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.4); backdrop-filter: blur(5px);
@@ -226,7 +223,6 @@
     const db = getFirestore(app);
 
     const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
-    const EXEMPTED_NAMES = [""]; 
     const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Summayah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
     let allStudents = [];
@@ -341,14 +337,6 @@
 
     window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
 
-    window.updateField = async (id, field, label, currentVal) => {
-        const newVal = prompt(`Masukkan ${label} baru:`, currentVal);
-        if (newVal !== null && newVal !== currentVal) {
-            await updateDoc(doc(db, STUDENT_COL, id), { [field]: newVal.trim() });
-            loadStudents();
-        }
-    };
-
     window.resetDevice = async (id) => {
         if(confirm("Reset pendaftaran peranti pelajar ini?")) {
             await updateDoc(doc(db, STUDENT_COL, id), { registeredDeviceId: "" });
@@ -390,6 +378,7 @@
         renderStudents(allStudents.filter(s => (s.name||'').toLowerCase().includes(v) || (s.ic||'').includes(v)));
     };
 
+    // 重点修改：更详细的 Laporan 逻辑
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir sekarang?")) return;
         const btn = document.getElementById('btn-report');
@@ -397,7 +386,17 @@
 
         try {
             const now = new Date();
-            const todayStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+            // 格式化日期: DD/MM/YYYY
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            const todayStr = `${d}/${m}/${y}`;
+            
+            // 获取马来文星期
+            const days = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+            const dayName = days[now.getDay()];
+
+            // 获取当天的签到记录
             const logsSnap = await getDocs(query(collection(db, LOGS_COL), where("timeFull", ">=", todayStr), where("timeFull", "<=", todayStr + "\uf8ff")));
             const presentICs = new Set();
             logsSnap.forEach(doc => presentICs.add(doc.data().ic));
@@ -409,17 +408,35 @@
             for(let cls of ALL_CLASSES) {
                 const chatId = teacherMap[cls];
                 if(!chatId) continue;
-                const absents = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()) && !presentICs.has(s.ic));
-                if(absents.length > 0) await sendTelegram(chatId, cls, absents);
+                
+                const absents = allStudents.filter(s => (s.className||'').toLowerCase() === cls.toLowerCase() && !presentICs.has(s.ic));
+                
+                if(absents.length > 0) {
+                    await sendTelegram(chatId, cls, absents, todayStr, dayName);
+                }
             }
             alert("Laporan berjaya dihantar!");
-        } catch (e) { alert("Ralat memproses."); }
-        finally { btn.innerText = "Hantar Laporan Sekarang"; btn.disabled = false; }
+        } catch (e) { 
+            console.error(e);
+            alert("Ralat memproses."); 
+        } finally { btn.innerText = "Hantar Laporan Sekarang"; btn.disabled = false; }
     };
 
-    async function sendTelegram(chatId, cls, list) {
-        let text = `⚠️ *LAPORAN TIDAK HADIR: ${cls.toUpperCase()}*\n\n`;
-        list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
+    // 重点修改：详细的 Telegram 消息模版
+    async function sendTelegram(chatId, cls, list, dateStr, dayName) {
+        let text = `⚠️ *LAPORAN TIDAK HADIR SEMSIRA*\n\n`;
+        text += `📅 *TARIKH:* ${dateStr}\n`;
+        text += `🗓️ *HARI:* ${dayName}\n`;
+        text += `🏫 *KELAS:* ${cls.toUpperCase()}\n`;
+        text += `👥 *BILANGAN TIDAK HADIR:* ${list.length} Orang\n\n`;
+        text += `*SENARAI NAMA:*\n`;
+        
+        list.forEach((s, i) => {
+            text += `${i + 1}. ${s.name.toUpperCase()}\n`;
+        });
+
+        text += `\n_Sila ambil tindakan sewajarnya. Terima kasih._`;
+
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
