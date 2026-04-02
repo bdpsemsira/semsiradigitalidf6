@@ -25,6 +25,7 @@
             --nav-bg: rgba(255, 255, 255, 0.9);
         }
 
+        /* 暗色模式变量 */
         [data-theme="dark"] {
             --bg: #1C1C1E;
             --card: rgba(44, 44, 46, 0.8);
@@ -33,6 +34,7 @@
             --nav-bg: rgba(28, 28, 30, 0.9);
         }
 
+        /* --- 核心修改：强制扫码页始终为亮色模式 --- */
         #tab-scan {
             --bg: #F2F2F7 !important;
             --card: rgba(255, 255, 255, 0.8) !important;
@@ -50,6 +52,7 @@
         #tab-scan h3, #tab-scan p {
             color: #000000 !important;
         }
+        /* --- 修改结束 --- */
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -63,12 +66,11 @@
             transition: background-color 0.3s ease;
         }
 
-        /* 水印层默认隐藏 */
         #watermark-layer {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
             pointer-events: none; z-index: 9999;
-            opacity: 0.12; display: none; 
+            opacity: 0.15; display: none; 
             flex-wrap: wrap; justify-content: space-around; align-content: space-around;
             overflow: hidden;
         }
@@ -76,9 +78,10 @@
         .watermark-item {
             transform: rotate(-30deg);
             font-size: 14px; white-space: nowrap; padding: 40px;
-            color: #888; font-weight: bold;
+            color: var(--text); font-weight: bold;
         }
 
+        /* 自动登录加载层 */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 10001;
@@ -144,8 +147,11 @@
         #poster-slider img.show { opacity: 1; }
 
         .post-card {
-            margin-top: 15px; margin-bottom: 15px; padding: 15px;
-            border-radius: 12px; word-wrap: break-word;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            word-wrap: break-word;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
@@ -154,8 +160,13 @@
             border-radius: 10px; margin-top: 8px; display: block;
         }
 
-        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .setting-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -186,8 +197,6 @@
     </style>
 </head>
 <body oncontextmenu="return false;">
-
-<audio id="beepAudio" src="beep.mp3" preload="auto"></audio>
 
 <div id="loading-overlay">
     <div class="glass" style="padding: 30px; text-align: center; border-radius: 20px;">
@@ -248,6 +257,7 @@
     </div>
 
     <div id="tab-scan" class="page" style="text-align:center">
+        <audio id="beep-sound" src="/beep.mp3" preload="auto"></audio>
         <div class="header-container" style="justify-content: flex-start; text-align: left;">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
             <h3>Kehadiran Digital</h3>
@@ -262,7 +272,6 @@
             <div id="attendance-time" class="status-time">-- : -- : --</div>
         </div>
     </div>
-
     <div id="tab-account" class="page">
         <div class="header-container">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
@@ -289,12 +298,16 @@
             
             <label style="font-size: 12px; color: #888;">Nama Penuh:</label>
             <input type="text" id="upd-name">
+
             <label style="font-size: 12px; color: #888;">No. Matrik:</label>
             <input type="text" id="upd-id">
+
             <label style="font-size: 12px; color: #888;">No. Telefon:</label>
             <input type="tel" id="upd-phone">
+
             <label style="font-size: 12px; color: #888;">Alamat Rumah:</label>
             <input type="text" id="upd-address">
+
             <label style="font-size: 12px; color: #888;">Kelas:</label>
             <select id="upd-class">
                 <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
@@ -318,7 +331,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -342,28 +355,6 @@
     let isAttendedToday = false;
     let attendanceListenerUnsubscribe = null;
 
-    // --- 音频触发逻辑 ---
-    function playBeep() {
-        const audio = document.getElementById('beepAudio');
-        if(audio) {
-            audio.currentTime = 0;
-            audio.play().catch(e => console.log("Audio play blocked:", e));
-        }
-    }
-
-    // --- 水印生成 ---
-    function generateWatermark(info) {
-        const layer = document.getElementById('watermark-layer');
-        if(!layer) return;
-        layer.innerHTML = "";
-        for (let i = 0; i < 40; i++) {
-            const item = document.createElement('div');
-            item.className = 'watermark-item';
-            item.innerText = info;
-            layer.appendChild(item);
-        }
-    }
-
     window.toggleDarkMode = () => {
         const isDark = document.getElementById('dark-mode-toggle').checked;
         document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -375,72 +366,215 @@
     const toggleInput = document.getElementById('dark-mode-toggle');
     if(toggleInput) toggleInput.checked = (savedTheme === 'dark');
 
-    // 辅助函数：根据班级判断学期
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+
     async function getSemesterForClass(className) {
-        try {
-            const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
-            const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
-            let semK1 = k1Snap.exists() ? k1Snap.data().semester : "1";
-            let semK2 = k2Snap.exists() ? k2Snap.data().semester : "1";
-            let classNameLower = className.toLowerCase();
-            let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
-            return isK1 ? semK1 : semK2;
-        } catch(e) { return "1"; }
+        const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
+        const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
+        let semK1 = k1Snap.exists() ? k1Snap.data().semester : "1";
+        let semK2 = k2Snap.exists() ? k2Snap.data().semester : "1";
+        let classNameLower = className.toLowerCase();
+        let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
+        return isK1 ? semK1 : semK2;
     }
 
-    // --- 核心切换逻辑 ---
-    window.switchTab = (tabId, el) => {
-        // 1. 切换页面显示
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
+    async function sendTelegramAlert(userData, currentUid) {
+        const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
+        const chatId = "@semsirasecurity29482910472"; 
+        let currentDeviceId = localStorage.getItem('semsira_device_id');
         
-        // 2. 切换导航高亮
-        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active-nav'));
-        el.classList.add('active-nav');
+        let intruderData = { name: "Tidak Dikenali", studentId: "Unknown", ic: "Unknown", className: "Unknown", phone: "undefined" };
+        try {
+            const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
+            const intruderSnap = await getDocs(qIntruder);
+            if (!intruderSnap.empty) {
+                intruderData = intruderSnap.docs[0].data();
+            }
+        } catch (e) { console.error("Error identifying intruder:", e); }
 
-        // 3. 水印控制：仅在 Imbas 页面显示
-        const wmLayer = document.getElementById('watermark-layer');
-        if(tabId === 'tab-scan') {
-            wmLayer.style.display = "flex";
-            // 激活音频上下文（解决手机浏览器静音限制）
-            const audio = document.getElementById('beepAudio');
-            audio.play().then(() => { audio.pause(); }).catch(() => {});
-        } else {
-            wmLayer.style.display = "none";
+        const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan Peranti)*\n\n` +
+                        `🚨 *${intruderData.name}* sedang mencuba menceroboh akaun *${userData.name}*!\n\n` +
+                        `👤 *PEMILIK AKAUN (MANGSA):*\n` +
+                        `• Nama: ${userData.name}\n` +
+                        `• No. Matrik: \`${userData.studentId}\`\n` +
+                        `• IC: \`${userData.ic}\`\n` +
+                        `• Kelas: ${userData.className}\n` +
+                        `• No. Tel: [${userData.phone}](tel:${userData.phone})\n\n` +
+                        `🚫 *IDENTITI PENCEROBOH:*\n` +
+                        `• Nama: ${intruderData.name}\n` +
+                        `• No. Matrik: \`${intruderData.studentId}\`\n` +
+                        `• IC: \`${intruderData.ic}\`\n` +
+                        `• Kelas: ${intruderData.className}\n` +
+                        `• No. Tel: [${intruderData.phone}](tel:${intruderData.phone})\n\n` +
+                        `📱 Device ID Penceroboh: \`${currentDeviceId}\`\n\n` +
+                        `_Akses telah disekat secara automatik._`;
+
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        try {
+            await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }) });
+        } catch (e) { console.error(e); }
+    }
+
+    async function verifyDevice(user, userData) {
+        let deviceId = localStorage.getItem('semsira_device_id');
+        if (!deviceId) {
+            deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now();
+            localStorage.setItem('semsira_device_id', deviceId);
         }
-    };
+        const studentRef = doc(db, COLLECTION_NAME, user.uid);
+        if (!userData.registeredDeviceId) {
+            await updateDoc(studentRef, { registeredDeviceId: deviceId });
+            return true; 
+        } 
+        if (userData.registeredDeviceId !== deviceId) {
+            await sendTelegramAlert(userData, user.uid);
+            alert("Akaun ini terikat pada peranti lain. Sila hubungi Admin.");
+            handleLogout();
+            return false;
+        }
+        return true;
+    }
 
-    // --- 监听考勤 ---
+    function applyWatermark(info) {
+        const layer = document.getElementById('watermark-layer');
+        if(!layer) return;
+        layer.innerHTML = "";
+        for (let i = 0; i < 40; i++) {
+            const item = document.createElement('div');
+            item.className = 'watermark-item';
+            item.innerText = info;
+            layer.appendChild(item);
+        }
+    }
+
+    window.autoFillIC = (ic) => {
+        if(ic.length >= 12) {
+            const yy = ic.substring(0,2);
+            const mm = ic.substring(2,4);
+            const dd = ic.substring(4,6);
+            const year = parseInt(yy) > 26 ? "19"+yy : "20"+yy;
+            document.getElementById('reg-dob').value = `${year}/${mm}/${dd}`;
+            const lastDigit = parseInt(ic.charAt(11));
+            document.getElementById('reg-gender').value = (lastDigit % 2 === 0) ? "PEREMPUAN" : "LELAKI";
+        }
+    }
+
+    window.handleRegister = async () => {
+        const email = document.getElementById('reg-email').value;
+        const pw1 = document.getElementById('reg-pw1').value;
+        const pw2 = document.getElementById('reg-pw2').value;
+        const ic = document.getElementById('reg-ic').value;
+        const phone = document.getElementById('reg-phone').value;
+        const className = document.getElementById('reg-class').value;
+        
+        if(!email || !pw1 || !ic || !phone || !className) return alert("Sila isi semua maklumat bertanda *");
+        if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
+
+        try {
+            const q = query(collection(db, COLLECTION_NAME), where("ic", "==", ic));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                return alert("No. IC ini telah didaftarkan!");
+            }
+
+            const assignedSemester = await getSemesterForClass(className);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
+            await setDoc(doc(db, COLLECTION_NAME, userCredential.user.uid), {
+                studentId: document.getElementById('reg-id').value,
+                ic: ic,
+                name: document.getElementById('reg-name').value,
+                phone: phone,
+                className: className,
+                semester: assignedSemester,
+                dob: document.getElementById('reg-dob').value,
+                gender: document.getElementById('reg-gender').value,
+                address: document.getElementById('reg-address').value,
+                email: email,
+                createdAt: new Date()
+            });
+            alert("Pendaftaran Berjaya!");
+            location.reload();
+        } catch (e) { alert(e.message); }
+    }
+
+    window.handleLogin = async () => {
+        const email = document.getElementById('login-email').value;
+        const pw = document.getElementById('login-pw').value;
+        try { await signInWithEmailAndPassword(auth, email, pw); } 
+        catch (e) { alert("Log Masuk Gagal: " + e.message); }
+    }
+
+    window.handleLogout = () => {
+        if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
+        signOut(auth).then(() => location.reload());
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (user) {
+            loadingOverlay.style.display = 'flex';
+            const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
+            if (snap.exists()) {
+                const userData = snap.data();
+                if (!(await verifyDevice(user, userData))) {
+                    loadingOverlay.style.display = 'none';
+                    return;
+                }
+                window.currentUserData = userData;
+                setTimeout(() => {
+                    document.getElementById('page-login').classList.remove('active');
+                    document.getElementById('page-register').classList.remove('active');
+                    document.getElementById('main-app').style.display = 'block';
+                    loadingOverlay.style.display = 'none';
+                    applyWatermark(`${userData.name} (${userData.ic})`);
+                    loadHomeData();
+                    setupAccountPage();
+                    listenToAttendance(userData.ic);
+                    startQRGenerator();
+                }, 1200);
+            }
+        } else {
+            loadingOverlay.style.display = 'none';
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('page-login').classList.add('active');
+        }
+    });
+
+    // 播放提示音函数
+    function playBeep() {
+        const audio = document.getElementById('beep-sound');
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Audio play blocked"));
+        }
+    }
+
     function listenToAttendance(studentIc) {
         const todayStr = new Date().toLocaleDateString('en-CA');
         const statusEl = document.getElementById('attendance-status');
         const timeEl = document.getElementById('attendance-time');
         const qrcEl = document.getElementById('qrcode');
         const instEl = document.getElementById('scan-instruction');
+        const timerEl = document.getElementById('qr-timer');
 
         const q = query(collection(db, ATTENDANCE_LOGS), where("ic", "==", studentIc), where("date", "==", todayStr));
         if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
 
         attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-                const data = snapshot.docs[0].data();
-                
-                // 如果是从未打卡变更为已打卡，播放提示音
-                if (!isAttendedToday) {
-                    playBeep();
-                }
+                // 如果是刚从“未到”变为“已到”，触发提示音
+                if (!isAttendedToday) playBeep();
 
+                const data = snapshot.docs[0].data();
                 isAttendedToday = true;
                 if(qrUpdateInterval) { clearInterval(qrUpdateInterval); qrUpdateInterval = null; }
-                
-                const status = data.status || data.s; 
+                const status = data.status;
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
-                qrcEl.style.opacity = "0.1";
+                qrcEl.style.opacity = "0.3";
                 instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
-                
-                const timestamp = data.timestamp || data.t; 
+                timerEl.innerText = "SIGNED IN";
+                const timestamp = data.timestamp;
                 if (timestamp) {
                     const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
                     timeEl.innerText = d.toLocaleString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
@@ -455,69 +589,6 @@
                 if (!qrUpdateInterval) startQRGenerator();
             }
         });
-    }
-
-    // --- 自动登录与初始化 ---
-    onAuthStateChanged(auth, async (user) => {
-        const loadingOverlay = document.getElementById('loading-overlay');
-        if (user) {
-            loadingOverlay.style.display = 'flex';
-            const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
-            if (snap.exists()) {
-                const userData = snap.data();
-                window.currentUserData = userData;
-                
-                // 初始化水印数据
-                generateWatermark(`${userData.name} (${userData.ic})`);
-                
-                setTimeout(() => {
-                    document.getElementById('page-login').classList.remove('active');
-                    document.getElementById('main-app').style.display = 'block';
-                    loadingOverlay.style.display = 'none';
-                    loadHomeData();
-                    setupAccountPage();
-                    listenToAttendance(userData.ic);
-                    startQRGenerator();
-                    lucide.createIcons();
-                }, 1000);
-            }
-        } else {
-            loadingOverlay.style.display = 'none';
-            document.getElementById('main-app').style.display = 'none';
-            document.getElementById('page-login').classList.add('active');
-        }
-    });
-
-    // --- 其余功能逻辑保持不变 ---
-    window.handleLogin = async () => {
-        const email = document.getElementById('login-email').value;
-        const pw = document.getElementById('login-pw').value;
-        try { await signInWithEmailAndPassword(auth, email, pw); } 
-        catch (e) { alert("Log Masuk Gagal: " + e.message); }
-    };
-
-    window.handleLogout = () => {
-        if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
-        signOut(auth).then(() => location.reload());
-    };
-
-    let qr;
-    function startQRGenerator() {
-        const qrContainer = document.getElementById('qrcode');
-        if (!qr) {
-            qrContainer.innerHTML = "";
-            qr = new QRCode(qrContainer, { width: 200, height: 200 });
-        }
-        const updateQR = () => {
-            if (isAttendedToday) return;
-            const now = new Date();
-            const ts = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
-            qr.makeCode(`${window.currentUserData.ic}|${ts}`);
-            document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
-        };
-        updateQR();
-        if(qrUpdateInterval) clearInterval(qrUpdateInterval);
-        qrUpdateInterval = setInterval(updateQR, 5000);
     }
 
     async function loadHomeData() {
@@ -554,6 +625,29 @@
         } catch (e) { console.error(e); }
     }
 
+    let qr;
+    function startQRGenerator() {
+        const qrContainer = document.getElementById('qrcode');
+        if (!qr) {
+            qrContainer.innerHTML = "";
+            qr = new QRCode(qrContainer, { width: 200, height: 200 });
+        }
+        
+        const updateQR = () => {
+            if (isAttendedToday) {
+                if(qrUpdateInterval) clearInterval(qrUpdateInterval);
+                return;
+            }
+            const now = new Date();
+            const ts = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
+            qr.makeCode(`${window.currentUserData.ic}|${ts}`);
+            document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
+        };
+        updateQR();
+        if(qrUpdateInterval) clearInterval(qrUpdateInterval);
+        qrUpdateInterval = setInterval(updateQR, 5000);
+    }
+
     function setupAccountPage() {
         const d = window.currentUserData;
         document.getElementById('prof-id').innerText = d.studentId;
@@ -567,10 +661,50 @@
         document.getElementById('upd-class').value = d.className;
     }
 
+    window.updateProfile = async () => {
+        const newName = document.getElementById('upd-name').value;
+        const newId = document.getElementById('upd-id').value;
+        const newPhone = document.getElementById('upd-phone').value;
+        const newClass = document.getElementById('upd-class').value;
+        const newAddress = document.getElementById('upd-address').value;
+        if(!newName || !newId || !newPhone) return alert("Sila isi semua maklumat!");
+        try {
+            const newSemester = await getSemesterForClass(newClass);
+            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), {
+                name: newName, studentId: newId, phone: newPhone, address: newAddress, className: newClass, semester: newSemester
+            });
+            window.currentUserData.name = newName;
+            window.currentUserData.studentId = newId;
+            window.currentUserData.phone = newPhone;
+            window.currentUserData.className = newClass;
+            window.currentUserData.semester = newSemester;
+            window.currentUserData.address = newAddress;
+            setupAccountPage();
+            applyWatermark(`${newName} (${window.currentUserData.ic})`);
+            alert("Kemaskini Berjaya!");
+        } catch(e) { alert(e.message); }
+    }
+
     window.showPage = (id) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
+    }
+
+    window.switchTab = (tabId, el) => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+        document.getElementById(tabId).classList.add('active');
+        el.classList.add('active-nav');
+        lucide.createIcons();
+
+        // 核心：点击 Imbas 按钮时，静音加载一下音频，解锁 iOS/Android 的自动播放权限
+        if (tabId === 'tab-scan') {
+            const audio = document.getElementById('beep-sound');
+            if (audio) audio.load();
+        }
     };
+
+    lucide.createIcons();
 </script>
 </body>
 </html>
