@@ -154,7 +154,6 @@
 
         .lewat-text { color: var(--lewat); font-weight: bold; }
 
-        /* 关键 CSS：在打印模式下，如果 manual 激活，隐藏迟到表格 */
         @media print {
             @page { margin: 1cm; }
             body { padding: 0; background: white; }
@@ -265,10 +264,13 @@
 
     window.myChart = null;
 
-    // 硬编码班级列表 (K1 & K2)
-    const k1Classes = ["6 SUM", "6 Kemanusiaan 1", "6 Kemanusiaan 2", "6 Kemanusiaan 3"];
-    const k2Classes = ["5 SUM", "5 Kemanusiaan 1", "5 Kemanusiaan 2", "5 Kemanusiaan 3"];
-    const allStaticClasses = [...k1Classes, ...k2Classes].sort();
+    // 已更新的完整班级列表
+    const allStaticClasses = [
+        "6 AISHAH", "6 FATIMAH", "6 KHADIJAH", "6 RUQAYYAH", 
+        "6 SARAH", "6 SUMAYYAH", "6 UMMU KALYHOM", "6 ZAINAB",
+        "6 AL FARABI", "6 AL GHAZALI", "6 AL KHINDI", "6 AL MAWARDI", 
+        "6 AL RAZI", "6 IBNU KHALDUN", "6 IBNU RUSYD"
+    ].sort();
 
     // 初始化下拉菜单选项
     function initSelects() {
@@ -314,7 +316,7 @@
         }
 
         if(Object.keys(manualData).length > 0) {
-            // 设置打印标记：隐藏迟到名单
+            // 标记打印时隐藏迟到名单
             document.getElementById('lateSection').classList.add('hide-on-manual-print');
             updateUI(manualData, []); 
         } else {
