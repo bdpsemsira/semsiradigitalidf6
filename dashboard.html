@@ -52,7 +52,7 @@
             background: white;
             padding: 10px 15px;
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 10px; /* 减小间距以容纳下方的 Input Panel */
             display: flex;
             justify-content: space-between;
             font-weight: 600;
@@ -93,19 +93,14 @@
             position: relative;
         }
 
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
+        /* 调整后的 Manual Panel 样式 */
         .manual-panel {
             display: none;
             background: #E5E5EA;
-            padding: 20px;
-            border-radius: 15px;
+            padding: 15px;
+            border-radius: 12px;
             margin-bottom: 20px;
+            border: 1px solid #d1d1d6;
         }
 
         .input-row {
@@ -153,18 +148,16 @@
         .lewat-text { color: var(--lewat); font-weight: bold; }
         .hide-lewat-column { display: none !important; }
 
-        /* 打印和截图隐藏逻辑 */
         @media print {
-            .no-print, .btn-action, .section-header { display: none !important; }
+            .no-print, .btn-action, .manual-panel { display: none !important; }
             body { padding: 0; background: white; }
             .dashboard-container { box-shadow: none; border: none; }
             .screenshot-target { padding: 0; }
         }
 
-        /* 专门用于截图时的临时类 */
         .is-capturing .no-print, 
-        .is-capturing .btn-action, 
-        .is-capturing .section-header { 
+        .is-capturing .btn-action,
+        .is-capturing .manual-panel { 
             display: none !important; 
         }
     </style>
@@ -184,36 +177,40 @@
             <button class="btn-action bg-purple" onclick="toggleManualPanel()">
                 <i data-lucide="edit-3"></i> Input
             </button>
-            <button class="btn-action bg-primary" onclick="window.print()">
-                <i data-lucide="printer"></i> Cetak
+            <button class="btn-action bg-primary" onclick="captureFullReport('full')">
+                <i data-lucide="camera"></i> Screenshot
             </button>
         </div>
     </div>
 
     <div class="date-time-info">
-        <span id="current-date">Tarikh: --/--/----</span>
+        <span id="current-date">Tarikh: 2/4/2026 Khamis</span>
         <span id="current-time">Masa: --:--:--</span>
     </div>
 
-    <div class="dashboard-container" id="graphSection">
-        <div class="section-header no-print">
-            <h4 style="margin:0;">Visualisasi Peratus (%)</h4>
-            <button class="btn-action bg-green" onclick="captureFullReport('graph')">
-                <i data-lucide="camera"></i> Screenshot Graph
-            </button>
+    <div id="manualPanel" class="manual-panel no-print">
+        <h4 style="margin-top:0;">Input Data Manual</h4>
+        <div id="manualInputs">
+            <div class="input-row">
+                <select class="m-class-select"></select>
+                <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
+                <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
+            </div>
         </div>
+        <div style="margin-top:10px; display:flex; gap:10px;">
+            <button class="btn-action bg-green" onclick="addRow()">+ Tambah Baris</button>
+            <button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button>
+            <button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button>
+        </div>
+    </div>
+
+    <div class="dashboard-container" id="graphSection">
         <div class="chart-wrapper">
             <canvas id="attendanceChart" height="400"></canvas>
         </div>
     </div>
 
     <div class="dashboard-container" id="reportSection">
-        <div class="section-header no-print">
-            <h4 style="margin:0;">Statistik Kelas</h4>
-            <button class="btn-action bg-green" onclick="captureFullReport('report')">
-                <i data-lucide="camera"></i> Screenshot Result
-            </button>
-        </div>
         <table id="attendanceTable">
             <thead>
                 <tr>
@@ -230,22 +227,6 @@
                 <tr id="totalRow" class="summary-row"></tr>
             </tfoot>
         </table>
-    </div>
-</div>
-
-<div id="manualPanel" class="manual-panel no-print">
-    <h3>Input Data Manual</h3>
-    <div id="manualInputs">
-        <div class="input-row">
-            <select class="m-class-select"></select>
-            <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
-            <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
-        </div>
-    </div>
-    <div style="margin-top:15px; display:flex; gap:10px;">
-        <button class="btn-action bg-green" onclick="addRow()">+ Tambah</button>
-        <button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button>
-        <button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button>
     </div>
 </div>
 
@@ -284,7 +265,6 @@
 
     window.myChart = null;
 
-    // 班级排序参考图表：Sem 2 先，Sem 1 后
     const sem2Classes = ["6 AISHAH", "6 FATIMAH", "6 KHADIJAH", "6 RUQAYYAH", "6 SARAH", "6 SUMAYYAH", "6 UMMU KALYHOM", "6 ZAINAB"];
     const sem1Classes = ["6 AL FARABI", "6 AL GHAZALI", "6 AL KHINDI", "6 AL MAWARDI", "6 AL RAZI", "6 IBNU KHALDUN", "6 IBNU RUSYD"];
     const allStaticClasses = [...sem2Classes, ...sem1Classes];
@@ -293,20 +273,18 @@
         return allStaticClasses.indexOf(classA) - allStaticClasses.indexOf(classB);
     }
 
-    // 修改后的截图功能：确保隐藏所有按钮
     window.captureFullReport = async (type) => {
         const wrapper = document.getElementById('fullReportWrapper');
-        wrapper.classList.add('is-capturing'); // 临时增加隐藏按钮的样式类
+        wrapper.classList.add('is-capturing');
         
         const date = new Date().toISOString().slice(0,10).replace(/-/g, '');
-        const fileName = `semsira_${type}_${date}.png`;
+        const fileName = `semsira_report_${date}.png`;
 
         try {
             const canvas = await html2canvas(wrapper, {
                 useCORS: true,
                 scale: 2,
-                backgroundColor: "#F2F2F7",
-                ignoreElements: (el) => el.classList.contains('no-print') // 额外保险
+                backgroundColor: "#F2F2F7"
             });
             const link = document.createElement('a');
             link.download = fileName;
@@ -315,14 +293,15 @@
         } catch (e) {
             alert("Ralat tangkapan skrin.");
         } finally {
-            wrapper.classList.remove('is-capturing'); // 截图完恢复显示
+            wrapper.classList.remove('is-capturing');
         }
     };
 
     function updateLiveDateTime() {
         const now = new Date();
         const days = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
-        document.getElementById('current-date').innerText = "Tarikh: " + now.toLocaleDateString('ms-MY');
+        // 强制显示 2/4/2026 Khamis 样式
+        document.getElementById('current-date').innerText = "Tarikh: 2/4/2026 " + days[now.getDay()];
         document.getElementById('current-time').innerText = "Masa: " + now.toLocaleTimeString('ms-MY');
         document.getElementById('display-day').innerText = "Hari: " + days[now.getDay()];
     }
@@ -349,7 +328,6 @@
                 if (data.timeFull && data.timeFull.includes(",")) {
                     displayTime = data.timeFull.split(",")[1].trim().split(" ")[0];
                 }
-
                 if (data.status === "Lewat") {
                     classMasterData[data.className].late++;
                     lateStudents.push({ ...data, time: displayTime });
@@ -368,8 +346,6 @@
         let gT = 0, gP = 0, gL = 0;
 
         tableBody.innerHTML = "";
-        
-        // 使用自定义顺序排序班级
         const sortedClassKeys = Object.keys(data).sort(sortClasses);
 
         sortedClassKeys.forEach(className => {
@@ -413,7 +389,6 @@
     function renderChart(labels, pData, lData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
-
         const isMany = labels.length > 10;
         window.myChart = new Chart(ctx, {
             type: 'bar',
@@ -428,10 +403,7 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { 
-                        stacked: true, 
-                        ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } 
-                    },
+                    x: { stacked: true, ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } },
                     y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v+"%" } }
                 },
                 plugins: { legend: { position: 'bottom' } }
@@ -441,7 +413,7 @@
 
     window.toggleManualPanel = () => {
         const p = document.getElementById('manualPanel');
-        p.style.display = p.style.display === 'block' ? 'none' : 'block';
+        p.style.display = (p.style.display === 'block') ? 'none' : 'block';
     };
     window.addRow = () => {
         const div = document.createElement('div');
@@ -467,6 +439,7 @@
         loadDashboard();
     };
 
+    // 初始化下拉菜单
     const selects = document.querySelectorAll('.m-class-select');
     const opts = allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('');
     selects.forEach(s => s.innerHTML = opts);
