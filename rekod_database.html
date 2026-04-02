@@ -10,44 +10,58 @@
 
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --ios-blue: #007AFF; --ios-bg: #F2F2F7; --ios-red: #FF3B30; }
-        body { font-family: -apple-system, sans-serif; background: var(--ios-bg); margin: 0; color: #1c1c1e; }
+        :root { --ios-blue: #007AFF; --ios-bg: #F2F2F7; --ios-red: #FF3B30; --ios-grey: #8e8e93; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--ios-bg); margin: 0; color: #1c1c1e; }
         
+        /* Header & Breadcrumbs */
         .nav-header { 
-            background: white; padding: 10px 15px; position: sticky; top: 0; z-index: 100; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px;
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+            padding: 10px 15px; position: sticky; top: 0; z-index: 100; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 12px;
         }
         .nav-logo { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
         .breadcrumbs { font-size: 14px; color: var(--ios-blue); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-        .breadcrumbs span:last-child { color: #8e8e93; cursor: default; }
+        .breadcrumbs span:last-child { color: var(--ios-grey); cursor: default; }
 
-        .stats-bar { display: flex; gap: 10px; padding: 15px; }
-        .stat-card { flex: 1; background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .stat-card h4 { margin: 0; font-size: 12px; color: #8e8e93; text-transform: uppercase; }
-        .stat-card p { margin: 5px 0 0; font-size: 20px; font-weight: bold; color: #1c1c1e; }
+        /* Storage Progress Bar */
+        .storage-box { background: white; padding: 15px; border-radius: 14px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .storage-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: var(--ios-grey); font-weight: 600; text-transform: uppercase; }
+        .progress-bg { background: #E5E5EA; height: 6px; border-radius: 3px; overflow: hidden; }
+        .progress-fill { background: var(--ios-blue); height: 100%; width: 0%; transition: 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .storage-info { font-size: 11px; color: #aeaeb2; margin-top: 6px; }
 
+        /* Stats Card */
+        .stats-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+        .stat-card { flex: 1; background: white; padding: 15px; border-radius: 14px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .stat-card h4 { margin: 0; font-size: 11px; color: var(--ios-grey); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card p { margin: 5px 0 0; font-size: 22px; font-weight: 800; color: #1c1c1e; }
+
+        /* List Styling */
         .container { padding: 15px; }
         .list-item { 
-            background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; 
+            background: white; padding: 14px; border-radius: 14px; margin-bottom: 10px; 
             display: flex; justify-content: space-between; align-items: center; transition: 0.2s; 
         }
-        .list-item:active { background: #ebebeb; }
+        .list-item:active { transform: scale(0.98); background: #f9f9f9; }
         .item-content { display: flex; align-items: center; gap: 12px; flex: 1; cursor: pointer; }
         .icon-box { background: #f2f2f7; padding: 8px; border-radius: 10px; color: var(--ios-blue); display: flex; }
         .text-group h3 { margin: 0; font-size: 16px; font-weight: 600; }
-        .text-group p { margin: 3px 0 0; font-size: 13px; color: #8e8e93; }
+        .text-group p { margin: 2px 0 0; font-size: 13px; color: var(--ios-grey); }
         
-        .delete-btn { color: #c7c7cc; padding: 8px; cursor: pointer; transition: 0.2s; }
+        .delete-btn { color: #d1d1d6; padding: 8px; cursor: pointer; transition: 0.2s; }
         .delete-btn:hover { color: var(--ios-red); }
 
-        .badge { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+        .badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-hadir { background: #EAF9EE; color: #34C759; }
         .badge-lewat { background: #FFF4E5; color: #FF9500; }
 
+        /* Utilities */
         .hidden { display: none; }
-        .loading { text-align: center; padding: 80px 20px; color: #8e8e93; }
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .loading { text-align: center; padding: 80px 20px; color: var(--ios-grey); }
+        .spin { animation: rotate 1s linear infinite; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -58,10 +72,26 @@
 </div>
 
 <div class="container">
-    <div id="loading-spinner" class="loading"><i data-lucide="loader-2"></i><div>Sila tunggu...</div></div>
+    <div id="storage-panel" class="storage-box hidden">
+        <div class="storage-header">
+            <span>Awan Semsira (Anggaran)</span>
+            <span id="storage-percent">0%</span>
+        </div>
+        <div class="progress-bg">
+            <div id="storage-bar" class="progress-fill"></div>
+        </div>
+        <div class="storage-info" id="storage-text">Menganalisis data...</div>
+    </div>
+
+    <div id="loading-spinner" class="loading">
+        <i data-lucide="loader-2" class="spin"></i>
+        <div style="margin-top:10px">Memuatkan Pangkalan Data...</div>
+    </div>
+
     <div id="view-years" class="hidden fade-in"></div>
     <div id="view-months" class="hidden fade-in"></div>
     <div id="view-days" class="hidden fade-in"></div>
+
     <div id="view-details" class="hidden fade-in">
         <div class="stats-bar">
             <div class="stat-card"><h4>Hadir</h4><p id="count-hadir">0</p></div>
@@ -73,7 +103,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, orderBy, query, where, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, orderBy, query, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -90,30 +120,55 @@
     const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "OGOS", "SEPT", "OKT", "NOV", "DIS"];
 
     async function fetchData() {
-        const q = query(collection(db, "attendanceLogs"), orderBy("timestamp", "desc"));
-        const snap = await getDocs(q);
-        // 保存原始文档引用以便删除
-        allLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        document.getElementById('loading-spinner').classList.add('hidden');
-        showYears();
+        try {
+            const q = query(collection(db, "attendanceLogs"), orderBy("timestamp", "desc"));
+            const snap = await getDocs(q);
+            allLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            updateStorageUI(allLogs.length);
+            document.getElementById('loading-spinner').classList.add('hidden');
+            showYears();
+        } catch (e) {
+            alert("Ralat sambungan Firebase. Sila muat semula.");
+        }
     }
 
-    // 批量删除辅助函数
-    async function deleteCollection(targetLogs, label) {
+    // --- Storage Logic ---
+    function updateStorageUI(count) {
+        const limit = 1000000; // Est. 1 million records per 1GB
+        const percent = Math.min(((count / limit) * 100), 100).toFixed(2);
+        const panel = document.getElementById('storage-panel');
+        const bar = document.getElementById('storage-bar');
+        
+        panel.classList.remove('hidden');
+        bar.style.width = percent + '%';
+        document.getElementById('storage-percent').innerText = percent + '%';
+        
+        const usedMB = (count * 0.5 / 1024).toFixed(2);
+        document.getElementById('storage-text').innerText = 
+            `Guna: ${usedMB} MB / 1,024 MB (${count.toLocaleString()} rekod)`;
+        
+        if (percent > 80) bar.style.background = 'var(--ios-red)';
+    }
+
+    // --- Delete Logic (Double Confirmation) ---
+    async function safeDelete(targetLogs, label) {
         if (!confirm(`Padam SEMUA rekod untuk ${label}?`)) return;
-        if (!confirm(`TINDAKAN INI TIDAK BOLEH DIUNDUR. Padam ${targetLogs.length} rekod sekarang?`)) return;
+        if (!confirm(`Sahkan sekali lagi. ${targetLogs.length} rekod akan dibuang selama-lamanya.`)) return;
 
         const batch = writeBatch(db);
-        targetLogs.forEach(log => {
-            const docRef = doc(db, "attendanceLogs", log.id);
-            batch.delete(docRef);
-        });
+        targetLogs.forEach(log => batch.delete(doc(db, "attendanceLogs", log.id)));
 
-        await batch.commit();
-        alert("Data telah dipadam.");
-        location.reload(); // 刷新数据
+        try {
+            await batch.commit();
+            alert("Berjaya dipadam.");
+            location.reload();
+        } catch (e) {
+            alert("Ralat semasa memadam.");
+        }
     }
 
+    // --- Views Rendering ---
     window.showYears = () => {
         updateBreadcrumbs([]);
         switchView('view-years');
@@ -122,7 +177,7 @@
             <div class="list-item">
                 <div class="item-content" onclick="showMonths('${y}')">
                     <div class="icon-box"><i data-lucide="calendar"></i></div>
-                    <div class="text-group"><h3>Tahun ${y}</h3><p>Padam arkib di sini</p></div>
+                    <div class="text-group"><h3>Tahun ${y}</h3><p>Lihat Arkib Bulanan</p></div>
                 </div>
                 <div class="delete-btn" onclick="deleteYear('${y}')"><i data-lucide="trash-2"></i></div>
             </div>
@@ -130,7 +185,7 @@
         lucide.createIcons();
     };
 
-    window.deleteYear = (year) => deleteCollection(allLogs.filter(l => l.date.startsWith(year)), `Tahun ${year}`);
+    window.deleteYear = (year) => safeDelete(allLogs.filter(l => l.date.startsWith(year)), `Tahun ${year}`);
 
     window.showMonths = (year) => {
         updateBreadcrumbs([year]);
@@ -148,7 +203,7 @@
         lucide.createIcons();
     };
 
-    window.deleteMonth = (year, m) => deleteCollection(allLogs.filter(l => l.date.startsWith(`${year}-${m}`)), `${monthNames[parseInt(m)-1]} ${year}`);
+    window.deleteMonth = (year, m) => safeDelete(allLogs.filter(l => l.date.startsWith(`${year}-${m}`)), `${monthNames[parseInt(m)-1]} ${year}`);
 
     window.showDays = (year, month) => {
         updateBreadcrumbs([year, monthNames[parseInt(month)-1]]);
@@ -166,7 +221,7 @@
         lucide.createIcons();
     };
 
-    window.deleteDay = (day) => deleteCollection(allLogs.filter(l => l.date === day), `Tarikh ${day}`);
+    window.deleteDay = (day) => safeDelete(allLogs.filter(l => l.date === day), `Tarikh ${day}`);
 
     window.showDetails = (fullDate) => {
         const parts = fullDate.split('-');
@@ -196,12 +251,12 @@
 
     window.deleteSingleRecord = async (id, name) => {
         if (!confirm(`Padam rekod untuk ${name}?`)) return;
-        if (!confirm(`Sahkan pemadaman?`)) return;
+        if (!confirm(`Sahkan?`)) return;
         await deleteDoc(doc(db, "attendanceLogs", id));
-        alert("Rekod dipadam.");
         location.reload();
     };
 
+    // --- Helpers ---
     function switchView(viewId) {
         ['view-years', 'view-months', 'view-days', 'view-details'].forEach(id => document.getElementById(id).classList.add('hidden'));
         document.getElementById(viewId).classList.remove('hidden');
