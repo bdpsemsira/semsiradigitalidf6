@@ -52,7 +52,7 @@
             background: white;
             padding: 10px 15px;
             border-radius: 10px;
-            margin-bottom: 10px; /* 减小间距以容纳下方的 Input Panel */
+            margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             font-weight: 600;
@@ -93,14 +93,12 @@
             position: relative;
         }
 
-        /* 调整后的 Manual Panel 样式 */
         .manual-panel {
             display: none;
             background: #E5E5EA;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 15px;
             margin-bottom: 20px;
-            border: 1px solid #d1d1d6;
         }
 
         .input-row {
@@ -149,15 +147,14 @@
         .hide-lewat-column { display: none !important; }
 
         @media print {
-            .no-print, .btn-action, .manual-panel { display: none !important; }
+            .no-print, .btn-action { display: none !important; }
             body { padding: 0; background: white; }
             .dashboard-container { box-shadow: none; border: none; }
             .screenshot-target { padding: 0; }
         }
 
         .is-capturing .no-print, 
-        .is-capturing .btn-action,
-        .is-capturing .manual-panel { 
+        .is-capturing .btn-action { 
             display: none !important; 
         }
     </style>
@@ -170,26 +167,26 @@
             <img src="/semsira.png" alt="Logo Semsira">
             <div>
                 <h2 style="margin:0;">Analisis Kehadiran Murid</h2>
-                <small id="display-day" style="color:#666;">Hari: --</small>
+                <small style="color:#666;">Semsira Dashboard</small>
             </div>
         </div>
         <div class="button-group no-print">
             <button class="btn-action bg-purple" onclick="toggleManualPanel()">
                 <i data-lucide="edit-3"></i> Input
             </button>
-            <button class="btn-action bg-primary" onclick="captureFullReport('full')">
+            <button class="btn-action bg-primary" onclick="window.print()">
                 <i data-lucide="camera"></i> Screenshot
             </button>
         </div>
     </div>
 
     <div class="date-time-info">
-        <span id="current-date">Tarikh: 2/4/2026 Khamis</span>
+        <span id="current-date">Tarikh: --/--/----</span>
         <span id="current-time">Masa: --:--:--</span>
     </div>
 
     <div id="manualPanel" class="manual-panel no-print">
-        <h4 style="margin-top:0;">Input Data Manual</h4>
+        <h3 style="margin-top:0;">Input Data Manual</h3>
         <div id="manualInputs">
             <div class="input-row">
                 <select class="m-class-select"></select>
@@ -197,7 +194,7 @@
                 <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
             </div>
         </div>
-        <div style="margin-top:10px; display:flex; gap:10px;">
+        <div style="margin-top:15px; display:flex; gap:10px;">
             <button class="btn-action bg-green" onclick="addRow()">+ Tambah Baris</button>
             <button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button>
             <button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button>
@@ -273,37 +270,14 @@
         return allStaticClasses.indexOf(classA) - allStaticClasses.indexOf(classB);
     }
 
-    window.captureFullReport = async (type) => {
-        const wrapper = document.getElementById('fullReportWrapper');
-        wrapper.classList.add('is-capturing');
-        
-        const date = new Date().toISOString().slice(0,10).replace(/-/g, '');
-        const fileName = `semsira_report_${date}.png`;
-
-        try {
-            const canvas = await html2canvas(wrapper, {
-                useCORS: true,
-                scale: 2,
-                backgroundColor: "#F2F2F7"
-            });
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        } catch (e) {
-            alert("Ralat tangkapan skrin.");
-        } finally {
-            wrapper.classList.remove('is-capturing');
-        }
-    };
-
     function updateLiveDateTime() {
         const now = new Date();
         const days = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
-        // 强制显示 2/4/2026 Khamis 样式
-        document.getElementById('current-date').innerText = "Tarikh: 2/4/2026 " + days[now.getDay()];
+        const dayName = days[now.getDay()];
+        const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
+        
+        document.getElementById('current-date').innerText = `Tarikh: ${dateStr} ${dayName}`;
         document.getElementById('current-time').innerText = "Masa: " + now.toLocaleTimeString('ms-MY');
-        document.getElementById('display-day').innerText = "Hari: " + days[now.getDay()];
     }
 
     async function loadDashboard() {
@@ -325,9 +299,6 @@
             const data = doc.data();
             if (classMasterData[data.className]) {
                 let displayTime = data.time || "--:--";
-                if (data.timeFull && data.timeFull.includes(",")) {
-                    displayTime = data.timeFull.split(",")[1].trim().split(" ")[0];
-                }
                 if (data.status === "Lewat") {
                     classMasterData[data.className].late++;
                     lateStudents.push({ ...data, time: displayTime });
@@ -389,6 +360,7 @@
     function renderChart(labels, pData, lData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
+
         const isMany = labels.length > 10;
         window.myChart = new Chart(ctx, {
             type: 'bar',
@@ -403,7 +375,10 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: true, ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } },
+                    x: { 
+                        stacked: true, 
+                        ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } 
+                    },
                     y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v+"%" } }
                 },
                 plugins: { legend: { position: 'bottom' } }
@@ -413,7 +388,7 @@
 
     window.toggleManualPanel = () => {
         const p = document.getElementById('manualPanel');
-        p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+        p.style.display = p.style.display === 'block' ? 'none' : 'block';
     };
     window.addRow = () => {
         const div = document.createElement('div');
@@ -428,8 +403,11 @@
         const s = document.querySelectorAll('.m-class-select'), d = document.querySelectorAll('.m-data');
         let m = {};
         for(let i=0; i<s.length; i++){
-            const [h, t] = d[i].value.split('/').map(Number);
-            if(!isNaN(h)) m[s[i].value] = { total: t || 0, present: h, late: 0 };
+            const val = d[i].value;
+            if(val.includes('/')){
+                const [h, t] = val.split('/').map(Number);
+                if(!isNaN(h)) m[s[i].value] = { total: t || 0, present: h, late: 0 };
+            }
         }
         document.body.classList.add('print-no-lewat');
         updateUI(m, []);
