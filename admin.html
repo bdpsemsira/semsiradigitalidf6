@@ -419,7 +419,7 @@
 
     async function sendTelegram(chatId, cls, list) {
         let text = `⚠️ *LAPORAN TIDAK HADIR: ${cls.toUpperCase()}*\n\n`;
-        text += `📅 *TARIKH:* ${dateStr}\n`;
+        text += `📅 *TARIKH:* ${todayStr}\n`;
         text += `📊 *BILANGAN TIDAK HADIR:* ${list.length} Orang\n`;
         text += `------------------------------------------\n`;
         list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
