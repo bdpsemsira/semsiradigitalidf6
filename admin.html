@@ -209,7 +209,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, getDoc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -224,7 +224,6 @@
     const db = getFirestore(app);
 
     const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
-    // 修正拼写 Sumayyah
     const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Sumayyah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
     let allStudents = [];
@@ -360,7 +359,14 @@
     window.saveTeacherIDs = async () => {
         for(let cls of ALL_CLASSES) {
             const val = document.getElementById(`t-id-${cls}`).value;
-            if(val) await setDoc(doc(db, TEACHER_COL, cls), { chatId: val.trim() });
+            if(val) {
+                // 严格按照要求的三个字段保存
+                await setDoc(doc(db, TEACHER_COL, cls), { 
+                    chatId: val.trim(), 
+                    lastUpdated: serverTimestamp(), 
+                    status: "Active" 
+                });
+            }
         }
         alert("ID Guru dikemaskini!");
     };
@@ -368,7 +374,6 @@
     window.saveSemSettings = async () => {
         const s1 = document.getElementById('sem-k1').value;
         const s2 = document.getElementById('sem-k2').value;
-        // 修正拼写 sumayyah
         const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'sumayyah', 'ummukalthom', 'zainab'];
         const ps = allStudents.map(s => {
             let isK1 = k1_keywords.some(k => (s.className||'').toLowerCase().includes(k));
@@ -393,14 +398,18 @@
             const now = new Date();
             const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
             
-            // 优化查询逻辑，匹配当天打卡记录
             const logsSnap = await getDocs(query(collection(db, LOGS_COL), where("timeFull", ">=", dateStr), where("timeFull", "<=", dateStr + "\uf8ff")));
             const presentICs = new Set();
             logsSnap.forEach(doc => presentICs.add(doc.data().ic));
 
             const teacherSnap = await getDocs(collection(db, TEACHER_COL));
             let teacherMap = {};
-            teacherSnap.forEach(s => teacherMap[s.id] = s.data().chatId);
+            teacherSnap.forEach(s => {
+                // 确保只取 Active 状态的 chatId
+                if(s.data().status === "Active") {
+                    teacherMap[s.id] = s.data().chatId;
+                }
+            });
 
             for(let cls of ALL_CLASSES) {
                 const chatId = teacherMap[cls];
@@ -409,7 +418,6 @@
                 const absents = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()) && !presentICs.has(s.ic));
                 
                 if(absents.length > 0) {
-                    // 传递 dateStr 修复未定义错误
                     await sendTelegram(chatId, cls, absents, dateStr);
                 }
             }
