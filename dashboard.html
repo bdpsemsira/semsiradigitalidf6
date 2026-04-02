@@ -100,7 +100,6 @@
             margin-bottom: 15px;
         }
 
-        /* 手动输入面板改为放在日期下方 */
         .manual-panel {
             display: none;
             background: #E5E5EA;
@@ -279,7 +278,6 @@
         return allStaticClasses.indexOf(classA) - allStaticClasses.indexOf(classB);
     }
 
-    // 截图全屏功能
     window.captureFullReport = async (type) => {
         const wrapper = document.getElementById('fullReportWrapper');
         wrapper.classList.add('is-capturing');
@@ -311,12 +309,10 @@
         const now = new Date();
         const days = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
         const dayName = days[now.getDay()];
-        const dateFormatted = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
+        const dateFormatted = now.toLocaleDateString('en-GB'); 
         
-        // 修改日期显示，增加星期名称 (2/4/2026 Khamis)
         document.getElementById('current-date').innerText = `Tarikh: ${dateFormatted} ${dayName}`;
         
-        // Waktu 只要小时和分钟
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const ampm = now.getHours() >= 12 ? 'PTG' : 'PG';
@@ -335,8 +331,13 @@
             classMasterData[className].total++;
         });
 
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
+        // 匹配逻辑：使用 YYYY-MM-DD 字符串匹配数据库中的 date 字段
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
         const attendSnap = await getDocs(query(collection(db, "attendanceLogs"), where("date", "==", todayStr)));
         
         let lateStudents = [];
@@ -344,11 +345,12 @@
             const data = doc.data();
             if (classMasterData[data.className]) {
                 let displayTime = "--:--";
-                // 提取 timeFull 中的小时和分钟
+                
+                // 处理 timeFull: "3/4/2026, 2:48:55 PG" -> 提取 "2:48 PG"
                 if (data.timeFull && data.timeFull.includes(",")) {
-                    const timePart = data.timeFull.split(",")[1].trim(); // "9:15:21 PG"
-                    const timeSplit = timePart.split(" "); // ["9:15:21", "PG"]
-                    const hm = timeSplit[0].split(":").slice(0,2).join(":"); // "9:15"
+                    const timePart = data.timeFull.split(",")[1].trim(); 
+                    const timeSplit = timePart.split(" "); 
+                    const hm = timeSplit[0].split(":").slice(0,2).join(":"); 
                     displayTime = hm + " " + (timeSplit[1] || "");
                 } else {
                     displayTime = data.time || "--:--";
@@ -357,7 +359,7 @@
                 if (data.status === "Lewat") {
                     classMasterData[data.className].late++;
                     lateStudents.push({ ...data, time: displayTime });
-                } else {
+                } else if (data.status === "Hadir") {
                     classMasterData[data.className].present++;
                 }
             }
