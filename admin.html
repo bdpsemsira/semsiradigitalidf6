@@ -10,7 +10,6 @@
         :root { --primary: #007AFF; --bg: #F2F2F7; --success: #34C759; --danger: #FF3B30; --secondary: #8e8e93; }
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 20px; user-select: none; scroll-behavior: smooth; }
         
-        /* Login Overlay */
         #login-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: white; display: flex; flex-direction: column; 
@@ -21,10 +20,8 @@
         button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
         button:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* Main Layout */
         #admin-content { display: none; max-width: 1000px; margin: 0 auto; padding-top: 100px; }
         
-        /* Fixed Navigation Bar */
         .nav-container { 
             position: fixed; top: 0; left: 0; right: 0; 
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(25px); 
@@ -175,7 +172,7 @@
     <div class="card" id="section-semester">
         <h3><i data-lucide="layers"></i> Pengurusan Semester</h3>
         <div class="group-box">
-            <span>Kumpulan 1 (Sarah, Sumayyah, etc.)</span>
+            <span>Kumpulan 1 (Aishah, Sarah, etc.)</span>
             <select id="sem-k1"><option value="1">Sem 1</option><option value="2">Sem 2</option><option value="3">Sem 3</option></select>
         </div>
         <div class="group-box">
@@ -223,7 +220,6 @@
     const db = getFirestore(app);
 
     const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
-    const EXEMPTED_NAMES = [""]; 
     const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Summayah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
     let allStudents = [];
@@ -287,7 +283,6 @@
         }
     }
 
-    // 新增：加载 systemSettings 里的默认 Semester 值
     async function loadSemesterSettings() {
         const semSnap = await getDoc(doc(db, SETTINGS_COL, "semester_config"));
         if(semSnap.exists()) {
@@ -375,7 +370,6 @@
         const s1 = document.getElementById('sem-k1').value;
         const s2 = document.getElementById('sem-k2').value;
         
-        // 同时保存在 systemSettings 方便下次加载
         await setDoc(doc(db, SETTINGS_COL, "semester_config"), { k1: s1, k2: s2 });
 
         const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
@@ -400,13 +394,11 @@
 
         try {
             const now = new Date();
-            // 修正日期格式补零
             const d = String(now.getDate()).padStart(2, '0');
             const m = String(now.getMonth() + 1).padStart(2, '0');
             const y = now.getFullYear();
             const todayStr = `${d}/${m}/${y}`;
             
-            // 获取今日签到记录
             const logsSnap = await getDocs(query(collection(db, LOGS_COL), where("timeFull", ">=", todayStr), where("timeFull", "<=", todayStr + "\uf8ff")));
             const presentICs = new Set();
             logsSnap.forEach(doc => presentICs.add(doc.data().ic));
@@ -426,13 +418,12 @@
             alert("Laporan berjaya dihantar!");
         } catch (e) { 
             console.error(e);
-            alert("Ralat memproses."); 
+            alert("Ralat memproses: " + e.message); 
         }
         finally { btn.innerText = "Hantar Laporan Sekarang"; btn.disabled = false; }
     };
 
     async function sendTelegram(chatId, cls, list, dateStr) {
-        // 构建详细报告内容
         let text = `📅 *TARIKH:* ${dateStr}\n`;
         text += `🏫 *KELAS:* ${cls.toUpperCase()}\n`;
         text += `📊 *BILANGAN TIDAK HADIR:* ${list.length} Orang\n`;
@@ -445,11 +436,16 @@
         
         text += `\n_Laporan ini dijanakan secara automatik oleh Sistem Semsira._`;
 
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
-        });
+        try {
+            const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
+            });
+            if (!response.ok) throw new Error("Telegram API Error");
+        } catch (err) {
+            console.error(`Gagal menghantar ke ${cls}:`, err);
+        }
     }
 
     window.logout = () => { localStorage.removeItem("semsira_isLoggedIn"); location.reload(); };
