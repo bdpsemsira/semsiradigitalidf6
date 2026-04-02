@@ -235,7 +235,7 @@
         <input type="tel" id="reg-phone" placeholder="No. Telefon (601xxxxxxxxx)*">
         <select id="reg-class">
             <option value="">Pilih Kelas</option>
-            <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+            <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
             <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
             <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
             <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
@@ -317,7 +317,7 @@
             <input type="text" id="upd-address">
             <label style="font-size: 12px; color: #888;">Kelas:</label>
             <select id="upd-class">
-                <option>6 SUMMAYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+                <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
                 <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
                 <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
                 <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
@@ -401,7 +401,7 @@
     const toggleInput = document.getElementById('dark-mode-toggle');
     if(toggleInput) toggleInput.checked = (savedTheme === 'dark');
 
-    const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+    const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'sumayyah', 'ummukalthom', 'zainab'];
 
     async function getSemesterForClass(className) {
         const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
