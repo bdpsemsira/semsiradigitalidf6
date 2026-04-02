@@ -108,7 +108,7 @@
             flex-wrap: wrap;
         }
 
-        .input-row input {
+        .input-row select, .input-row input {
             padding: 10px;
             border-radius: 8px;
             border: 1px solid #ccc;
@@ -192,17 +192,20 @@
 
 <div id="manualPanel" class="manual-panel no-print">
     <h3>Input Data Manual</h3>
-    <p style="font-size: 0.9em; color: #666;">Format: Masukkan Nama Kelas dan Kehadiran (Contoh: 8/10)</p>
+    <p style="font-size: 0.9em; color: #666;">Pilih kelas dan masukkan kehadiran (Contoh: 8/10)</p>
     <div id="manualInputs">
         <div class="input-row">
-            <input type="text" placeholder="Nama Kelas (e.g. 6 SUM)" class="m-class">
+            <select class="m-class-select">
+                <option value="">Memuatkan kelas...</option>
+            </select>
             <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
             <button class="btn-print" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
         </div>
     </div>
     <div style="margin-top:15px; display:flex; gap:10px;">
-        <button class="btn-print" style="background:#34C759;" onclick="addRow()">+ Tambah Kelas</button>
+        <button class="btn-print" style="background:#34C759;" onclick="addRow()">+ Tambah Baris</button>
         <button class="btn-print" onclick="applyManualData()">Jana Laporan</button>
+        <button class="btn-print" style="background:#8E8E93;" onclick="loadDashboard()">Reset ke Data Firebase</button>
     </div>
 </div>
 
@@ -262,9 +265,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Global variable to store current chart and raw data
     window.myChart = null;
-    let lateStudentsData = [];
+    let existingClasses = [];
 
     // Panel controls
     window.toggleManualPanel = () => {
@@ -276,7 +278,9 @@
         const div = document.createElement('div');
         div.className = 'input-row';
         div.innerHTML = `
-            <input type="text" placeholder="Nama Kelas" class="m-class">
+            <select class="m-class-select">
+                ${existingClasses.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
             <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
             <button class="btn-print" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
         `;
@@ -286,23 +290,25 @@
     window.removeRow = (btn) => btn.parentElement.remove();
 
     window.applyManualData = () => {
-        const classes = document.getElementsByClassName('m-class');
+        const selects = document.getElementsByClassName('m-class-select');
         const datas = document.getElementsByClassName('m-data');
         let manualClassMaster = {};
 
-        for(let i=0; i<classes.length; i++) {
-            const name = classes[i].value.trim();
+        for(let i=0; i<selects.length; i++) {
+            const name = selects[i].value;
             const val = datas[i].value.trim();
             if(name && val.includes('/')) {
                 const [h, t] = val.split('/').map(Number);
-                manualClassMaster[name] = { total: t, present: h, late: 0 };
+                if(!isNaN(h) && !isNaN(t)) {
+                    manualClassMaster[name] = { total: t, present: h, late: 0 };
+                }
             }
         }
 
         if(Object.keys(manualClassMaster).length > 0) {
-            updateUI(manualClassMaster, []); // Manual mode hides late list as we don't have names
+            updateUI(manualClassMaster, []); 
         } else {
-            alert("Sila masukkan data yang sah (e.g. 8/10)");
+            alert("Sila pilih kelas和输入正确的格式 (e.g. 8/10)");
         }
     };
 
@@ -327,6 +333,10 @@
             classMasterData[className].total++;
         });
 
+        // 保存现有班级列表用于下拉菜单
+        existingClasses = Object.keys(classMasterData).sort();
+        updateSelectOptions();
+
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
@@ -347,6 +357,14 @@
         });
 
         updateUI(classMasterData, lateStudents);
+    }
+
+    function updateSelectOptions() {
+        const selects = document.getElementsByClassName('m-class-select');
+        const options = existingClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+        for(let sel of selects) {
+            sel.innerHTML = options;
+        }
     }
 
     function updateUI(data, lateStudents) {
@@ -449,6 +467,7 @@
         });
     }
 
+    window.loadDashboard = loadDashboard;
     loadDashboard();
 </script>
 </body>
