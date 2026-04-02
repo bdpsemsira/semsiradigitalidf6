@@ -74,7 +74,6 @@
             margin-bottom: 20px;
         }
 
-        /* 强制名单列表在打印时另起一页 */
         .page-break-section {
             break-before: page;
             margin-top: 30px;
@@ -301,16 +300,34 @@
             <td>${grandPercent}%</td>
         `;
 
-        // 更新名单列表，处理 time 字段
+        // 更新名单列表：特别处理 timeFull 字段
         if (lateStudents.length > 0) {
-            lateTableBody.innerHTML = lateStudents.map(s => `
-                <tr>
-                    <td style="text-align:left;">${s.name}</td>
-                    <td>${s.className}</td>
-                    <td>${s.time ? s.time : '--:--'}</td>
-                    <td class="lewat-text">LEWAT</td>
-                </tr>
-            `).join('');
+            lateTableBody.innerHTML = lateStudents.map(s => {
+                let displayTime = "--:--";
+                
+                // 如果 timeFull 存在，尝试截取时间部分
+                if (s.timeFull && typeof s.timeFull === 'string') {
+                    // 假设格式为 "31/3/2026, 2:28:00 PG"
+                    // 我们用逗号分割并取第二部分
+                    const parts = s.timeFull.split(',');
+                    if (parts.length > 1) {
+                        displayTime = parts[1].trim(); // 得到 "2:28:00 PG"
+                    } else {
+                        displayTime = s.timeFull; // 兜底显示全文
+                    }
+                } else if (s.time) {
+                    displayTime = s.time; // 如果有简单的 time 字段也可以显示
+                }
+
+                return `
+                    <tr>
+                        <td style="text-align:left;">${s.name}</td>
+                        <td>${s.className}</td>
+                        <td>${displayTime}</td>
+                        <td class="lewat-text">LEWAT</td>
+                    </tr>
+                `;
+            }).join('');
         } else {
             lateTableBody.innerHTML = `<tr><td colspan="4">Tiada murid lewat hari ini.</td></tr>`;
         }
@@ -321,7 +338,6 @@
 
     function renderChart(labels, presentData, lateData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
-        // 销毁旧图表以防打印时重叠
         if(window.myChart) window.myChart.destroy();
         
         window.myChart = new Chart(ctx, {
