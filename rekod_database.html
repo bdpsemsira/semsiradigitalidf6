@@ -13,7 +13,6 @@
         :root { --ios-blue: #007AFF; --ios-bg: #F2F2F7; --ios-red: #FF3B30; --ios-grey: #8e8e93; }
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--ios-bg); margin: 0; color: #1c1c1e; }
         
-        /* Header & Breadcrumbs */
         .nav-header { 
             background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
             padding: 10px 15px; position: sticky; top: 0; z-index: 100; 
@@ -28,15 +27,13 @@
         .storage-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: var(--ios-grey); font-weight: 600; text-transform: uppercase; }
         .progress-bg { background: #E5E5EA; height: 6px; border-radius: 3px; overflow: hidden; }
         .progress-fill { background: var(--ios-blue); height: 100%; width: 0%; transition: 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .storage-info { font-size: 11px; color: #aeaeb2; margin-top: 6px; }
+        .storage-info { font-size: 11px; color: #aeaeb2; margin-top: 6px; line-height: 1.4; }
 
-        /* Stats Card */
         .stats-bar { display: flex; gap: 10px; margin-bottom: 15px; }
         .stat-card { flex: 1; background: white; padding: 15px; border-radius: 14px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         .stat-card h4 { margin: 0; font-size: 11px; color: var(--ios-grey); text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-card p { margin: 5px 0 0; font-size: 22px; font-weight: 800; color: #1c1c1e; }
 
-        /* List Styling */
         .container { padding: 15px; }
         .list-item { 
             background: white; padding: 14px; border-radius: 14px; margin-bottom: 10px; 
@@ -55,7 +52,6 @@
         .badge-hadir { background: #EAF9EE; color: #34C759; }
         .badge-lewat { background: #FFF4E5; color: #FF9500; }
 
-        /* Utilities */
         .hidden { display: none; }
         .loading { text-align: center; padding: 80px 20px; color: var(--ios-grey); }
         .spin { animation: rotate 1s linear infinite; }
@@ -74,13 +70,13 @@
 <div class="container">
     <div id="storage-panel" class="storage-box hidden">
         <div class="storage-header">
-            <span>Awan Semsira (Anggaran)</span>
+            <span>Awan Semsira (Anggaran Penuh)</span>
             <span id="storage-percent">0%</span>
         </div>
         <div class="progress-bg">
             <div id="storage-bar" class="progress-fill"></div>
         </div>
-        <div class="storage-info" id="storage-text">Menganalisis data...</div>
+        <div id="storage-text" class="storage-info">Menganalisis semua koleksi...</div>
     </div>
 
     <div id="loading-spinner" class="loading">
@@ -119,65 +115,91 @@
     let allLogs = [];
     const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "OGOS", "SEPT", "OKT", "NOV", "DIS"];
 
+    // 所有需要被计算在内的 Collection
+    const collectionsToTrack = [
+        "attendanceLogs",
+        "classSettings",
+        "logs",
+        "studentInform",
+        "students",
+        "systemSettings"
+    ];
+
     async function fetchData() {
         try {
+            // 1. 获取考勤记录用于 UI 显示
             const q = query(collection(db, "attendanceLogs"), orderBy("timestamp", "desc"));
-            const snap = await getDocs(q);
-            allLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const logSnap = await getDocs(q);
+            allLogs = logSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            // 2. 并发计算所有 Collection 的总文档数
+            const counts = await Promise.all(
+                collectionsToTrack.map(async (col) => {
+                    const snap = await getDocs(collection(db, col));
+                    return snap.size;
+                })
+            );
+
+            const totalCount = counts.reduce((a, b) => a + b, 0);
             
-            updateStorageUI(allLogs.length);
+            // 3. 更新全量空间 UI
+            updateStorageUI(totalCount);
+            
             document.getElementById('loading-spinner').classList.add('hidden');
             showYears();
         } catch (e) {
-            alert("Ralat sambungan Firebase. Sila muat semula.");
+            console.error(e);
+            alert("Ralat sambungan. Sila semak capaian Firebase anda.");
         }
     }
 
-    // --- Storage Logic ---
-    function updateStorageUI(count) {
-        const limit = 1000000; // Est. 1 million records per 1GB
-        const percent = Math.min(((count / limit) * 100), 100).toFixed(2);
+    function updateStorageUI(totalCount) {
+        // 基于 Spark Plan 1GB 免费额度的逻辑估算 (约 1,000,000 条记录)
+        const limit = 1000000; 
+        const percent = Math.min(((totalCount / limit) * 100), 100).toFixed(2);
+        
         const panel = document.getElementById('storage-panel');
         const bar = document.getElementById('storage-bar');
+        const text = document.getElementById('storage-text');
         
         panel.classList.remove('hidden');
         bar.style.width = percent + '%';
         document.getElementById('storage-percent').innerText = percent + '%';
         
-        const usedMB = (count * 0.5 / 1024).toFixed(2);
-        document.getElementById('storage-text').innerText = 
-            `Guna: ${usedMB} MB / 1,024 MB (${count.toLocaleString()} rekod)`;
+        // 假设混合数据平均单条 0.6KB (配置表通常比日志表大一点)
+        const estMB = (totalCount * 0.6 / 1024).toFixed(2);
+        
+        text.innerHTML = `Kapasiti Digunakan: <b>${totalCount.toLocaleString()}</b> rekod (semua koleksi)<br>` +
+                         `Anggaran saiz: ${estMB} MB daripada 1,024 MB`;
         
         if (percent > 80) bar.style.background = 'var(--ios-red)';
     }
 
-    // --- Delete Logic (Double Confirmation) ---
     async function safeDelete(targetLogs, label) {
         if (!confirm(`Padam SEMUA rekod untuk ${label}?`)) return;
-        if (!confirm(`Sahkan sekali lagi. ${targetLogs.length} rekod akan dibuang selama-lamanya.`)) return;
+        if (!confirm(`Sahkan sekali lagi. ${targetLogs.length} rekod akan dibuang selamanya.`)) return;
 
         const batch = writeBatch(db);
-        targetLogs.forEach(log => batch.delete(doc(db, "attendanceLogs", log.id)));
+        targetLogs.forEach(l => batch.delete(doc(db, "attendanceLogs", l.id)));
 
         try {
             await batch.commit();
             alert("Berjaya dipadam.");
             location.reload();
         } catch (e) {
-            alert("Ralat semasa memadam.");
+            alert("Gagal memadam data.");
         }
     }
 
-    // --- Views Rendering ---
     window.showYears = () => {
         updateBreadcrumbs([]);
         switchView('view-years');
-        const years = [...new Set(allLogs.map(log => log.date.split('-')[0]))].sort().reverse();
+        const years = [...new Set(allLogs.map(l => l.date.split('-')[0]))].sort().reverse();
         document.getElementById('view-years').innerHTML = years.map(y => `
             <div class="list-item">
                 <div class="item-content" onclick="showMonths('${y}')">
                     <div class="icon-box"><i data-lucide="calendar"></i></div>
-                    <div class="text-group"><h3>Tahun ${y}</h3><p>Lihat Arkib Bulanan</p></div>
+                    <div class="text-group"><h3>Tahun ${y}</h3><p>Arkib Rekod Kehadiran</p></div>
                 </div>
                 <div class="delete-btn" onclick="deleteYear('${y}')"><i data-lucide="trash-2"></i></div>
             </div>
@@ -185,7 +207,7 @@
         lucide.createIcons();
     };
 
-    window.deleteYear = (year) => safeDelete(allLogs.filter(l => l.date.startsWith(year)), `Tahun ${year}`);
+    window.deleteYear = (y) => safeDelete(allLogs.filter(l => l.date.startsWith(y)), `Tahun ${y}`);
 
     window.showMonths = (year) => {
         updateBreadcrumbs([year]);
@@ -203,12 +225,12 @@
         lucide.createIcons();
     };
 
-    window.deleteMonth = (year, m) => safeDelete(allLogs.filter(l => l.date.startsWith(`${year}-${m}`)), `${monthNames[parseInt(m)-1]} ${year}`);
+    window.deleteMonth = (y, m) => safeDelete(allLogs.filter(l => l.date.startsWith(`${y}-${m}`)), `${monthNames[parseInt(m)-1]} ${y}`);
 
-    window.showDays = (year, month) => {
-        updateBreadcrumbs([year, monthNames[parseInt(month)-1]]);
+    window.showDays = (y, m) => {
+        updateBreadcrumbs([y, monthNames[parseInt(m)-1]]);
         switchView('view-days');
-        const days = [...new Set(allLogs.filter(l => l.date.startsWith(`${year}-${month}`)).map(l => l.date))].sort().reverse();
+        const days = [...new Set(allLogs.filter(l => l.date.startsWith(`${y}-${m}`)).map(l => l.date))].sort().reverse();
         document.getElementById('view-days').innerHTML = days.map(d => `
             <div class="list-item">
                 <div class="item-content" onclick="showDetails('${d}')">
@@ -221,7 +243,7 @@
         lucide.createIcons();
     };
 
-    window.deleteDay = (day) => safeDelete(allLogs.filter(l => l.date === day), `Tarikh ${day}`);
+    window.deleteDay = (d) => safeDelete(allLogs.filter(l => l.date === d), `Tarikh ${d}`);
 
     window.showDetails = (fullDate) => {
         const parts = fullDate.split('-');
@@ -251,15 +273,13 @@
 
     window.deleteSingleRecord = async (id, name) => {
         if (!confirm(`Padam rekod untuk ${name}?`)) return;
-        if (!confirm(`Sahkan?`)) return;
         await deleteDoc(doc(db, "attendanceLogs", id));
         location.reload();
     };
 
-    // --- Helpers ---
-    function switchView(viewId) {
-        ['view-years', 'view-months', 'view-days', 'view-details'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        document.getElementById(viewId).classList.remove('hidden');
+    function switchView(id) {
+        ['view-years', 'view-months', 'view-days', 'view-details'].forEach(v => document.getElementById(v).classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
     }
 
     function updateBreadcrumbs(p) {
