@@ -10,6 +10,7 @@
     <style>
         :root {
             --primary: #007AFF;
+            --lewat: #FF9500;
             --bg: #F2F2F7;
             --card: #FFFFFF;
         }
@@ -21,12 +22,11 @@
             padding: 20px;
         }
 
-        /* Header Styling with Logo */
         .header-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .header-logo {
@@ -39,6 +39,18 @@
             width: 50px;
             height: 50px;
             border-radius: 10px;
+        }
+
+        .date-time-info {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            color: #1c1c1e;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
         .btn-print {
@@ -59,6 +71,7 @@
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
         }
 
         canvas { max-width: 100%; margin-bottom: 30px; }
@@ -76,7 +89,6 @@
             text-align: center;
         }
 
-        /* Table Coloring */
         th { 
             background-color: #D0E1F9 !important; 
             color: #000;
@@ -94,26 +106,14 @@
             -webkit-print-color-adjust: exact;
         }
 
-        /* Print Optimization */
+        .lewat-text { color: var(--lewat); font-weight: bold; }
+
         @media print {
-            @page {
-                margin: 0.5cm; /* 设置页边距，去除浏览器默认Header/Footer */
-            }
-            body { 
-                padding: 20px; 
-                background: white; 
-            }
-            .no-print { 
-                display: none !important; 
-            }
-            .dashboard-container { 
-                box-shadow: none; 
-                padding: 0;
-            }
-            table { 
-                font-size: 11px; 
-            }
-            /* 确保打印时保留颜色 */
+            @page { margin: 0.5cm; }
+            body { padding: 20px; background: white; }
+            .no-print { display: none !important; }
+            .dashboard-container { box-shadow: none; padding: 0; }
+            table { font-size: 11px; }
             th, .summary-row, .total-label {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -133,6 +133,11 @@
     </button>
 </div>
 
+<div class="date-time-info">
+    <span id="current-date">Tarikh: --/--/----</span>
+    <span id="current-time">Masa: --:--:--</span>
+</div>
+
 <div class="dashboard-container">
     <canvas id="attendanceChart" height="100"></canvas>
 
@@ -140,23 +145,42 @@
         <thead>
             <tr>
                 <th>KELAS</th>
-                <th>BILANGAN MURID</th>
-                <th>BIL. HADIR</th>
-                <th>PERATUS KEHADIRAN (%)</th>
+                <th>BIL. MURID</th>
+                <th>HADIR (TEPAT)</th>
+                <th>LEWAT</th>
+                <th>JUMLAH HADIR</th>
+                <th>% KEHADIRAN</th>
             </tr>
         </thead>
-        <tbody id="tableBody">
-            </tbody>
+        <tbody id="tableBody"></tbody>
         <tfoot>
-            <tr id="totalRow" class="summary-row">
-                </tr>
+            <tr id="totalRow" class="summary-row"></tr>
         </tfoot>
+    </table>
+</div>
+
+<div class="dashboard-container">
+    <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
+        <i data-lucide="user-x"></i> Senarai Murid Lewat Hari Ini
+    </h3>
+    <table id="lateStudentsTable">
+        <thead>
+            <tr>
+                <th>NAMA MURID</th>
+                <th>KELAS</th>
+                <th>WAKTU MASUK</th>
+                <th>STATUS</th>
+            </tr>
+        </thead>
+        <tbody id="lateTableBody">
+            <tr><td colspan="4">Memuatkan data...</td></tr>
+        </tbody>
     </table>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -170,7 +194,17 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 实时更新时间
+    function updateLiveDateTime() {
+        const now = new Date();
+        document.getElementById('current-date').innerText = "Tarikh: " + now.toLocaleDateString('ms-MY');
+        document.getElementById('current-time').innerText = "Masa: " + now.toLocaleTimeString('ms-MY');
+    }
+    setInterval(updateLiveDateTime, 1000);
+    updateLiveDateTime();
+
     async function loadDashboard() {
+        // 加载学生基本数据
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classMasterData = {}; 
 
@@ -178,33 +212,53 @@
             const data = doc.data();
             const className = data.className || "Lain-lain";
             if (!classMasterData[className]) {
-                classMasterData[className] = { total: 0, present: 0 };
+                classMasterData[className] = { total: 0, present: 0, late: 0 };
             }
             classMasterData[className].total++;
         });
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        // 获取今日日期字符串 (YYYY-MM-DD)
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        // 获取今日考勤记录
         const attendQuery = query(collection(db, "attendanceLogs"), where("date", "==", todayStr));
         const attendSnap = await getDocs(attendQuery);
+        
+        let lateStudents = [];
 
         attendSnap.forEach(doc => {
             const data = doc.data();
+            const status = data.status; // Hadir 或 Lewat
+            
             if (classMasterData[data.className]) {
-                classMasterData[data.className].present++;
+                if (status === "Lewat") {
+                    classMasterData[data.className].late++;
+                    lateStudents.push(data);
+                } else {
+                    classMasterData[data.className].present++;
+                }
             }
         });
 
-        updateUI(classMasterData);
+        updateUI(classMasterData, lateStudents);
     }
 
-    function updateUI(data) {
+    function updateUI(data, lateStudents) {
         const tableBody = document.getElementById('tableBody');
         const totalRow = document.getElementById('totalRow');
+        const lateTableBody = document.getElementById('lateTableBody');
+        
         let labels = [];
-        let percentages = [];
+        let dataPresent = [];
+        let dataLate = [];
         
         let grandTotalMurid = 0;
         let grandTotalHadir = 0;
+        let grandTotalLewat = 0;
 
         tableBody.innerHTML = "";
 
@@ -212,59 +266,93 @@
 
         sortedClasses.forEach(className => {
             const item = data[className];
-            const percent = item.total > 0 ? ((item.present / item.total) * 100).toFixed(2) : "0.00";
+            const totalHadirKelas = item.present + item.late;
+            const percent = item.total > 0 ? ((totalHadirKelas / item.total) * 100).toFixed(2) : "0.00";
             
             grandTotalMurid += item.total;
             grandTotalHadir += item.present;
+            grandTotalLewat += item.late;
 
             labels.push(className);
-            percentages.push(percent);
+            dataPresent.push(item.present);
+            dataLate.push(item.late);
 
             const row = `
                 <tr>
                     <td>${className}</td>
                     <td>${item.total}</td>
                     <td>${item.present}</td>
+                    <td class="lewat-text">${item.late}</td>
+                    <td>${totalHadirKelas}</td>
                     <td>${percent}%</td>
                 </tr>
             `;
             tableBody.innerHTML += row;
         });
 
-        const grandPercent = grandTotalMurid > 0 ? ((grandTotalHadir / grandTotalMurid) * 100).toFixed(2) : "0.00";
+        const totalAllHadir = grandTotalHadir + grandTotalLewat;
+        const grandPercent = grandTotalMurid > 0 ? ((totalAllHadir / grandTotalMurid) * 100).toFixed(2) : "0.00";
+        
         totalRow.innerHTML = `
             <td class="total-label">JUMLAH KESELURUHAN</td>
             <td>${grandTotalMurid}</td>
             <td>${grandTotalHadir}</td>
+            <td>${grandTotalLewat}</td>
+            <td>${totalAllHadir}</td>
             <td>${grandPercent}%</td>
         `;
 
-        renderChart(labels, percentages);
+        // 更新迟到名单表
+        if (lateStudents.length > 0) {
+            lateTableBody.innerHTML = lateStudents.map(s => `
+                <tr>
+                    <td style="text-align:left;">${s.name}</td>
+                    <td>${s.className}</td>
+                    <td>${s.time || '--:--'}</td>
+                    <td class="lewat-text">LEWAT</td>
+                </tr>
+            `).join('');
+        } else {
+            lateTableBody.innerHTML = `<tr><td colspan="4">Tiada murid lewat hari ini.</td></tr>`;
+        }
+
+        renderChart(labels, dataPresent, dataLate);
         lucide.createIcons();
     }
 
-    function renderChart(labels, values) {
+    function renderChart(labels, presentData, lateData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Peratus Kehadiran (%)',
-                    data: values,
-                    backgroundColor: '#007AFF',
-                    borderRadius: 5
-                }]
+                datasets: [
+                    {
+                        label: 'Hadir (Tepat)',
+                        data: presentData,
+                        backgroundColor: '#007AFF',
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'Lewat',
+                        data: lateData,
+                        backgroundColor: '#FF9500',
+                        borderRadius: 5
+                    }
+                ]
             },
             options: {
                 responsive: true,
-                animation: {
-                    onComplete: function () {
-                        // 确保图表加载后再打印时可见
+                scales: {
+                    x: { stacked: true },
+                    y: { 
+                        beginAtZero: true, 
+                        stacked: true,
+                        title: { display: true, text: 'Bilangan Murid' }
                     }
                 },
-                scales: {
-                    y: { beginAtZero: true, max: 100 }
+                plugins: {
+                    legend: { position: 'top' }
                 }
             }
         });
