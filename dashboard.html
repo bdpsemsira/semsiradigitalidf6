@@ -53,8 +53,26 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
         .btn-print {
             background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+
+        .btn-manual {
+            background: #5856D6;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -72,6 +90,30 @@
             border-radius: 15px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             margin-bottom: 20px;
+        }
+
+        /* Manual Input Panel */
+        .manual-panel {
+            display: none;
+            background: #E5E5EA;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-row input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            flex: 1;
+            min-width: 150px;
         }
 
         .page-break-section {
@@ -133,14 +175,35 @@
         <img src="/semsira.png" alt="Logo Semsira">
         <h2>Analisis Kehadiran Murid (Harian)</h2>
     </div>
-    <button class="btn-print no-print" onclick="window.print()">
-        <i data-lucide="printer"></i> Cetak Laporan
-    </button>
+    <div class="button-group no-print">
+        <button class="btn-manual" onclick="toggleManualPanel()">
+            <i data-lucide="edit-3"></i> Input Manual
+        </button>
+        <button class="btn-print" onclick="window.print()">
+            <i data-lucide="printer"></i> Cetak Laporan
+        </button>
+    </div>
 </div>
 
 <div class="date-time-info">
     <span id="current-date">Tarikh: --/--/----</span>
     <span id="current-time">Masa: --:--:--</span>
+</div>
+
+<div id="manualPanel" class="manual-panel no-print">
+    <h3>Input Data Manual</h3>
+    <p style="font-size: 0.9em; color: #666;">Format: Masukkan Nama Kelas dan Kehadiran (Contoh: 8/10)</p>
+    <div id="manualInputs">
+        <div class="input-row">
+            <input type="text" placeholder="Nama Kelas (e.g. 6 SUM)" class="m-class">
+            <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
+            <button class="btn-print" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
+        </div>
+    </div>
+    <div style="margin-top:15px; display:flex; gap:10px;">
+        <button class="btn-print" style="background:#34C759;" onclick="addRow()">+ Tambah Kelas</button>
+        <button class="btn-print" onclick="applyManualData()">Jana Laporan</button>
+    </div>
 </div>
 
 <div class="dashboard-container">
@@ -199,6 +262,50 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Global variable to store current chart and raw data
+    window.myChart = null;
+    let lateStudentsData = [];
+
+    // Panel controls
+    window.toggleManualPanel = () => {
+        const p = document.getElementById('manualPanel');
+        p.style.display = p.style.display === 'block' ? 'none' : 'block';
+    };
+
+    window.addRow = () => {
+        const div = document.createElement('div');
+        div.className = 'input-row';
+        div.innerHTML = `
+            <input type="text" placeholder="Nama Kelas" class="m-class">
+            <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
+            <button class="btn-print" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
+        `;
+        document.getElementById('manualInputs').appendChild(div);
+    };
+
+    window.removeRow = (btn) => btn.parentElement.remove();
+
+    window.applyManualData = () => {
+        const classes = document.getElementsByClassName('m-class');
+        const datas = document.getElementsByClassName('m-data');
+        let manualClassMaster = {};
+
+        for(let i=0; i<classes.length; i++) {
+            const name = classes[i].value.trim();
+            const val = datas[i].value.trim();
+            if(name && val.includes('/')) {
+                const [h, t] = val.split('/').map(Number);
+                manualClassMaster[name] = { total: t, present: h, late: 0 };
+            }
+        }
+
+        if(Object.keys(manualClassMaster).length > 0) {
+            updateUI(manualClassMaster, []); // Manual mode hides late list as we don't have names
+        } else {
+            alert("Sila masukkan data yang sah (e.g. 8/10)");
+        }
+    };
+
     function updateLiveDateTime() {
         const now = new Date();
         document.getElementById('current-date').innerText = "Tarikh: " + now.toLocaleDateString('ms-MY');
@@ -221,22 +328,16 @@
         });
 
         const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         const attendQuery = query(collection(db, "attendanceLogs"), where("date", "==", todayStr));
         const attendSnap = await getDocs(attendQuery);
         
         let lateStudents = [];
-
         attendSnap.forEach(doc => {
             const data = doc.data();
-            const status = data.status; 
-            
             if (classMasterData[data.className]) {
-                if (status === "Lewat") {
+                if (data.status === "Lewat") {
                     classMasterData[data.className].late++;
                     lateStudents.push(data);
                 } else {
@@ -300,24 +401,13 @@
             <td>${grandPercent}%</td>
         `;
 
-        // 更新名单列表：特别处理 timeFull 字段
         if (lateStudents.length > 0) {
             lateTableBody.innerHTML = lateStudents.map(s => {
                 let displayTime = "--:--";
-                
-                // 如果 timeFull 存在，尝试截取时间部分
                 if (s.timeFull && typeof s.timeFull === 'string') {
-                    // 假设格式为 "31/3/2026, 2:28:00 PG"
-                    // 我们用逗号分割并取第二部分
                     const parts = s.timeFull.split(',');
-                    if (parts.length > 1) {
-                        displayTime = parts[1].trim(); // 得到 "2:28:00 PG"
-                    } else {
-                        displayTime = s.timeFull; // 兜底显示全文
-                    }
-                } else if (s.time) {
-                    displayTime = s.time; // 如果有简单的 time 字段也可以显示
-                }
+                    displayTime = parts.length > 1 ? parts[1].trim() : s.timeFull;
+                } else if (s.time) displayTime = s.time;
 
                 return `
                     <tr>
@@ -329,7 +419,7 @@
                 `;
             }).join('');
         } else {
-            lateTableBody.innerHTML = `<tr><td colspan="4">Tiada murid lewat hari ini.</td></tr>`;
+            lateTableBody.innerHTML = `<tr><td colspan="4">Tiada rekod murid lewat / Mode Manual Aktif.</td></tr>`;
         }
 
         renderChart(labels, dataPresent, dataLate);
@@ -345,29 +435,15 @@
             data: {
                 labels: labels,
                 datasets: [
-                    {
-                        label: 'Hadir (Tepat)',
-                        data: presentData,
-                        backgroundColor: '#007AFF',
-                        borderRadius: 5
-                    },
-                    {
-                        label: 'Lewat',
-                        data: lateData,
-                        backgroundColor: '#FF9500',
-                        borderRadius: 5
-                    }
+                    { label: 'Hadir (Tepat)', data: presentData, backgroundColor: '#007AFF', borderRadius: 5 },
+                    { label: 'Lewat', data: lateData, backgroundColor: '#FF9500', borderRadius: 5 }
                 ]
             },
             options: {
                 responsive: true,
                 scales: {
                     x: { stacked: true },
-                    y: { 
-                        beginAtZero: true, 
-                        stacked: true,
-                        title: { display: true, text: 'Bilangan Murid' }
-                    }
+                    y: { beginAtZero: true, stacked: true, title: { display: true, text: 'Bilangan Murid' } }
                 }
             }
         });
