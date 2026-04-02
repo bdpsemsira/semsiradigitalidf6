@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semsira Admin - Data Cleanup</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f4f4f9; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin-bottom: 20px; }
+        h2 { font-size: 18px; color: #333; margin-top: 0; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 5px; }
+        .btn-date { background: #007AFF; color: white; }
+        .btn-month { background: #5856D6; color: white; }
+        .btn-student { background: #FF9500; color: white; }
+        .btn-delete:hover { opacity: 0.8; }
+        #status { margin-top: 10px; font-size: 14px; color: #666; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <img src="/semsira.png" style="width: 60px; margin-bottom: 10px; border-radius: 12px;">
+    <h1 style="font-size: 20px;">Pengurusan Data Attendance</h1>
+
+    <div class="card">
+        <h2>1. Padam Mengikut Tarikh</h2>
+        <input type="date" id="input-date">
+        <button class="btn-date" onclick="deleteByDate()">Padam Hari Ini</button>
+    </div>
+
+    <div class="card">
+        <h2>2. Padam Mengikut Bulan</h2>
+        <input type="month" id="input-month">
+        <button class="btn-month" onclick="deleteByMonth()">Padam Seluruh Bulan</button>
+    </div>
+
+    <div class="card">
+        <h2>3. Padam Rekod Pelajar (IC)</h2>
+        <input type="text" id="input-ic" placeholder="Contoh: 050101020304">
+        <button class="btn-student" onclick="deleteByIC()">Padam Rekod Pelajar</button>
+    </div>
+
+    <div id="status">Sila pilih tindakan.</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+            authDomain: "bdpsemsira-5c274.firebaseapp.com",
+            projectId: "bdpsemsira-5c274",
+            storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+            messagingSenderId: "176946808975",
+            appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 通用批量删除函数
+        async function performBatchDelete(q, actionName) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = `Sedang mencari data...`;
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    statusDiv.innerText = `Tiada data dijumpai untuk ${actionName}.`;
+                    return;
+                }
+
+                if (!confirm(`Jumpa ${querySnapshot.size} rekod. Sahkan untuk PADAM?`)) {
+                    statusDiv.innerText = "Tindakan dibatalkan.";
+                    return;
+                }
+
+                const batch = writeBatch(db);
+                querySnapshot.forEach((document) => {
+                    batch.delete(document.ref);
+                });
+
+                await batch.commit();
+                statusDiv.innerText = `Berjaya! ${querySnapshot.size} rekod telah dipadam.`;
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = "Ralat: " + error.message;
+            }
+        }
+
+        // 1. 按日期删除逻辑
+        window.deleteByDate = async () => {
+            const dateVal = document.getElementById('input-date').value; // 格式: YYYY-MM-DD
+            if (!dateVal) return alert("Sila pilih tarikh!");
+            const q = query(collection(db, "attendanceLogs"), where("date", "==", dateVal));
+            await performBatchDelete(q, dateVal);
+        };
+
+        // 2. 按月份删除逻辑
+        window.deleteByMonth = async () => {
+            const monthVal = document.getElementById('input-month').value; // 格式: YYYY-MM
+            if (!monthVal) return alert("Sila pilih bulan!");
+            
+            // 查询所有以该月份开头的日期数据
+            const q = query(
+                collection(db, "attendanceLogs"), 
+                where("date", ">=", `${monthVal}-01`),
+                where("date", "<=", `${monthVal}-31`)
+            );
+            await performBatchDelete(q, `Bulan ${monthVal}`);
+        };
+
+        // 3. 按 IC 删除逻辑
+        window.deleteByIC = async () => {
+            const icVal = document.getElementById('input-ic').value.trim();
+            if (!icVal) return alert("Sila masukkan IC!");
+            const q = query(collection(db, "attendanceLogs"), where("ic", "==", icVal));
+            await performBatchDelete(q, `IC ${icVal}`);
+        };
+    </script>
+</body>
+</html>
