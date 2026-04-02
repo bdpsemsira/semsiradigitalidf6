@@ -4,7 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pengurusan Pelajar Semsira</title>
-    <link rel="icon" type="image/png" href="/semsira.png">
+    <link rel="icon" type="image/png" href="semsira.png">
+
+    <script>
+        (function() {
+            const isAuth = localStorage.getItem('semsira_auth') === 'true' || 
+                           sessionStorage.getItem('semsira_auth') === 'true';
+            if (!isAuth) {
+                alert('Akses tidak dibenarkan. Sila log masuk.');
+                window.location.href = 'firebase_admin.html';
+            }
+        })();
+    </script>
+
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
@@ -22,51 +34,9 @@
             color: #1c1c1e;
         }
 
-        /* 登录遮罩层 */
-        #login-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .login-box {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 300px;
-        }
-
-        .login-box input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        .btn-login {
-            background: var(--primary);
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
         .container {
             max-width: 900px;
             margin: 0 auto;
-            display: none;
         }
 
         .header {
@@ -97,7 +67,6 @@
 
         .semester-section { margin-bottom: 20px; }
 
-        /* 可折叠标题样式 */
         .section-title {
             display: flex;
             justify-content: space-between;
@@ -110,9 +79,7 @@
             transition: background 0.3s;
         }
 
-        .section-title:hover {
-            background: #f9f9fb;
-        }
+        .section-title:hover { background: #f9f9fb; }
 
         .title-left {
             display: flex;
@@ -125,20 +92,11 @@
             color: var(--primary);
         }
 
-        /* 旋转箭头 */
-        .collapsed .chevron-icon {
-            transform: rotate(-90deg);
-        }
+        .collapsed .chevron-icon { transform: rotate(-90deg); }
 
-        /* 折叠内容容器 */
-        .collapsible-content {
-            padding-top: 15px;
-            display: block; /* 默认展开 */
-        }
+        .collapsible-content { padding-top: 15px; display: block; }
 
-        .collapsed + .collapsible-content {
-            display: none; /* 收起 */
-        }
+        .collapsed + .collapsible-content { display: none; }
 
         .count-tag {
             background: #E5E5EA;
@@ -180,25 +138,18 @@
         .btn-delete-single:hover { color: var(--danger); }
 
         .loading { text-align: center; padding: 50px; color: #8e8e93; }
+        
+        .back-btn { margin-bottom: 20px; display: inline-flex; align-items: center; gap: 5px; color: var(--primary); text-decoration: none; font-size: 14px; font-weight: 600; }
     </style>
 </head>
 <body>
 
-<div id="login-overlay">
-    <div class="login-box">
-        <img src="/semsira.png" style="width:60px; margin-bottom:10px;">
-        <h3>Admin Login</h3>
-        <input type="text" id="admin-id" placeholder="ID Admin">
-        <input type="password" id="admin-pw" placeholder="Password">
-        <button class="btn-login" onclick="checkAuth()">Login</button>
-        <p id="login-err" style="color:red; font-size:12px; display:none; margin-top:10px;">ID atau Password Salah!</p>
-    </div>
-</div>
-
 <div class="container" id="main-content">
+    <a href="firebase_admin.html" class="back-btn"><i data-lucide="chevron-left"></i> Kembali ke Menu</a>
+    
     <div class="header">
         <div class="header-left">
-            <img src="/semsira.png" alt="Logo">
+            <img src="semsira.png" alt="Logo">
             <div>
                 <h1 style="margin:0; font-size: 20px;">Pengurusan Pelajar</h1>
                 <p style="margin:0; color: #8e8e93; font-size: 12px;">Sistem Pengurusan Semsira</p>
@@ -258,22 +209,9 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 展开/收起功能
     window.toggleSection = (id) => {
         const titleElement = document.querySelector(`#${id} .section-title`);
         titleElement.classList.toggle('collapsed');
-    };
-
-    window.checkAuth = () => {
-        const id = document.getElementById('admin-id').value;
-        const pw = document.getElementById('admin-pw').value;
-        if(id === "semsiraadmin" && pw === "pw123") {
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-            loadStudents();
-        } else {
-            document.getElementById('login-err').style.display = 'block';
-        }
     };
 
     async function loadStudents() {
@@ -332,6 +270,10 @@
             loadStudents();
         }
     };
+
+    // 页面进入后直接加载数据
+    loadStudents();
+    lucide.createIcons();
 </script>
 </body>
 </html>
