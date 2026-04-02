@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semsira Admin - Login</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --ios-blue: #007AFF; --ios-bg: #F2F2F7; }
+        body { font-family: -apple-system, sans-serif; background: var(--ios-bg); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        
+        .login-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; }
+        .logo { width: 64px; height: 64px; border-radius: 14px; margin-bottom: 15px; }
+        h2 { margin: 0 0 20px; font-size: 20px; font-weight: 600; }
+        
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d1d6; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
+        input:focus { border-color: var(--ios-blue); }
+        
+        .options { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: 14px; color: #8e8e93; margin: 10px 0; }
+        .options input { width: auto; margin: 0; }
+
+        button { width: 100%; padding: 12px; background: var(--ios-blue); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        button:active { opacity: 0.8; }
+
+        .admin-panel { display: none; }
+        .menu-btn { display: flex; align-items: center; gap: 12px; background: white; border: 1px solid #e5e5ea; padding: 15px; border-radius: 15px; margin-bottom: 12px; text-decoration: none; color: #1c1c1e; font-weight: 600; transition: 0.2s; }
+        .menu-btn:active { background: #f2f2f7; }
+        .icon-box { background: var(--ios-bg); padding: 8px; border-radius: 10px; color: var(--ios-blue); display: flex; }
+        .logout-link { display: block; margin-top: 20px; color: #ff3b30; font-size: 14px; cursor: pointer; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div id="login-section" class="login-card">
+    <img src="semsira.png" class="logo" alt="Logo">
+    <h2>Semsira Admin</h2>
+    <input type="text" id="username" placeholder="ID Pengguna">
+    <input type="password" id="password" placeholder="Kata Laluan">
+    <div class="options">
+        <input type="checkbox" id="remember"> <label for="remember">Simpan log masuk</label>
+    </div>
+    <button onclick="handleLogin()">Log Masuk</button>
+</div>
+
+<div id="menu-section" class="login-card admin-panel">
+    <img src="semsira.png" class="logo" alt="Logo">
+    <h2>Pilih Pengurusan</h2>
+    
+    <a href="rekod_database.html" class="menu-btn">
+        <div class="icon-box"><i data-lucide="clipboard-list"></i></div>
+        <span>Pengurusan Kehadiran</span>
+    </a>
+
+    <a href="firebase.html" class="menu-btn">
+        <div class="icon-box"><i data-lucide="users"></i></div>
+        <span>Pengurusan Pelajar</span>
+    </a>
+
+    <span class="logout-link" onclick="logout()">Log Keluar</span>
+</div>
+
+<script>
+    // 检查是否已经登录
+    window.onload = () => {
+        const auth = localStorage.getItem('semsira_auth') || sessionStorage.getItem('semsira_auth');
+        if (auth === 'true') {
+            showMenu();
+        }
+        lucide.createIcons();
+    };
+
+    function handleLogin() {
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const remember = document.getElementById('remember').checked;
+
+        if (user === 'semsiraadmin' && pass === 'pw123') {
+            if (remember) {
+                localStorage.setItem('semsira_auth', 'true');
+            } else {
+                sessionStorage.setItem('semsira_auth', 'true');
+            }
+            showMenu();
+        } else {
+            alert('ID atau Kata Laluan salah!');
+        }
+    }
+
+    function showMenu() {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('menu-section').style.display = 'block';
+    }
+
+    function logout() {
+        localStorage.removeItem('semsira_auth');
+        sessionStorage.removeItem('semsira_auth');
+        location.reload();
+    }
+</script>
+</body>
+</html>
