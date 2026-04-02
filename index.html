@@ -34,7 +34,7 @@
             --nav-bg: rgba(28, 28, 30, 0.9);
         }
 
-        /* --- 核心修改：强制扫码页始终为亮色模式 --- */
+        /* 强制扫码页始终为亮色模式 */
         #tab-scan {
             --bg: #F2F2F7 !important;
             --card: rgba(255, 255, 255, 0.8) !important;
@@ -341,22 +341,20 @@
 
     window.currentUserData = null;
     let qrUpdateInterval = null;
-    let isAttendedToday = false;
+    let isAttendedToday = false; 
     let attendanceListenerUnsubscribe = null;
     let isAudioUnlocked = false; 
 
-    // --- 核心修复：解锁音频的魔法 ---
+    // --- 核心修复：解锁音频权限 ---
     function unlockAudio() {
         if (!isAudioUnlocked) {
             const sound = document.getElementById('beep-sound');
             sound.play().then(() => {
-                sound.pause(); // 立即暂停
+                sound.pause(); 
                 sound.currentTime = 0;
                 isAudioUnlocked = true;
                 console.log("Audio Context Unlocked!");
-            }).catch(e => {
-                console.log("Audio unlock failed, waiting for user click.");
-            });
+            }).catch(e => console.log("Waiting for user interaction..."));
         }
     }
 
@@ -453,7 +451,7 @@
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
         try { 
-            unlockAudio(); // 登录点击也解锁一次
+            unlockAudio(); // 登录时顺便尝试解锁
             await signInWithEmailAndPassword(auth, email, pw); 
         } catch (e) { alert("Gagal: " + e.message); }
     }
@@ -498,11 +496,11 @@
 
         attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-                // --- 播放逻辑：状态从“未签到”变为“已签到”时播放 ---
+                // --- 修复重点：如果之前是未到，现在变已到，则播放 ---
                 if (!isAttendedToday) {
                     const sound = document.getElementById('beep-sound');
-                    // 只要之前解锁过，这里就能静默播放
-                    sound.play().catch(err => console.log("Audio play failed: ", err));
+                    // 因为切换Tab时已经解锁了，所以这里可以直接play
+                    sound.play().catch(err => console.log("Play failed, need click: ", err));
                 }
                 
                 const data = snapshot.docs[0].data();
@@ -599,13 +597,13 @@
     }
 
     window.showPage = (id) => { 
-        unlockAudio(); // 切换隐藏页时解锁
+        unlockAudio(); // 每次切换隐藏页面时触发解锁
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
         document.getElementById(id).classList.add('active'); 
     }
 
     window.switchTab = (tabId, el) => {
-        unlockAudio(); // 核心：切换标签时强制解锁音频权限
+        unlockAudio(); // 核心：用户点击导航栏时，强制解锁音频权限
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
         document.getElementById(tabId).classList.add('active');
