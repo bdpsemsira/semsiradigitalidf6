@@ -8,7 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
             --primary: #007AFF;
@@ -53,7 +52,7 @@
             background: white;
             padding: 10px 15px;
             border-radius: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             font-weight: 600;
@@ -101,15 +100,12 @@
             margin-bottom: 15px;
         }
 
-        /* 修复：Input Panel 样式 */
         .manual-panel {
             display: none;
-            background: #FFFFFF;
+            background: #E5E5EA;
             padding: 20px;
             border-radius: 15px;
             margin-bottom: 20px;
-            border: 2px solid var(--primary);
-            box-shadow: 0 4px 15px rgba(0,122,255,0.1);
         }
 
         .input-row {
@@ -129,8 +125,10 @@
 
         .chart-wrapper {
             width: 100%;
-            height: 400px;
+            overflow-x: auto;
         }
+
+        canvas { min-width: 600px; }
 
         table {
             width: 100%;
@@ -153,12 +151,21 @@
         .summary-row { background-color: #FFEB3B !important; font-weight: bold; }
         .total-label { background-color: #FF9800 !important; color: white !important; }
         .lewat-text { color: var(--lewat); font-weight: bold; }
-        
-        /* 截图控制类 */
-        .hide-for-shot { display: none !important; }
-        
+        .hide-lewat-column { display: none !important; }
+
+        /* 打印和截图隐藏逻辑 */
         @media print {
-            .no-print { display: none !important; }
+            .no-print, .btn-action, .section-header { display: none !important; }
+            body { padding: 0; background: white; }
+            .dashboard-container { box-shadow: none; border: none; }
+            .screenshot-target { padding: 0; }
+        }
+
+        /* 专门用于截图时的临时类 */
+        .is-capturing .no-print, 
+        .is-capturing .btn-action, 
+        .is-capturing .section-header { 
+            display: none !important; 
         }
     </style>
 </head>
@@ -177,7 +184,7 @@
             <button class="btn-action bg-purple" onclick="toggleManualPanel()">
                 <i data-lucide="edit-3"></i> Input
             </button>
-            <button class="btn-action bg-primary" onclick="exportFullPDF()">
+            <button class="btn-action bg-primary" onclick="window.print()">
                 <i data-lucide="printer"></i> Cetak
             </button>
         </div>
@@ -188,39 +195,22 @@
         <span id="current-time">Masa: --:--:--</span>
     </div>
 
-    <div id="manualPanel" class="manual-panel no-print">
-        <h3 style="margin-top:0;">Input Data Manual</h3>
-        <div id="manualInputs">
-            <div class="input-row">
-                <select class="m-class-select"></select>
-                <input type="text" placeholder="Hadir K1/Total (e.g. 8/10)" class="m-k1" style="border-color: #34C759;">
-                <input type="text" placeholder="Hadir K2/Total (e.g. 7/10)" class="m-k2" style="border-color: #007AFF;">
-                <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
-            </div>
-        </div>
-        <div style="margin-top:15px; display:flex; gap:10px;">
-            <button class="btn-action bg-green" onclick="addRow()">+ Tambah</button>
-            <button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button>
-            <button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button>
-        </div>
-    </div>
-
     <div class="dashboard-container" id="graphSection">
         <div class="section-header no-print">
             <h4 style="margin:0;">Visualisasi Peratus (%)</h4>
-            <button class="btn-action bg-green" onclick="captureSpecific('graph')">
+            <button class="btn-action bg-green" onclick="captureFullReport('graph')">
                 <i data-lucide="camera"></i> Screenshot Graph
             </button>
         </div>
         <div class="chart-wrapper">
-            <canvas id="attendanceChart"></canvas>
+            <canvas id="attendanceChart" height="400"></canvas>
         </div>
     </div>
 
     <div class="dashboard-container" id="reportSection">
         <div class="section-header no-print">
             <h4 style="margin:0;">Statistik Kelas</h4>
-            <button class="btn-action bg-green" onclick="captureSpecific('result')">
+            <button class="btn-action bg-green" onclick="captureFullReport('report')">
                 <i data-lucide="camera"></i> Screenshot Result
             </button>
         </div>
@@ -229,10 +219,9 @@
                 <tr>
                     <th>KELAS</th>
                     <th>BIL. MURID</th>
-                    <th>K1 (HADIR)</th>
-                    <th>K2 (HADIR)</th>
+                    <th>HADIR</th>
                     <th class="lewat-col">LEWAT</th>
-                    <th>JUMLAH</th>
+                    <th>JUMLAH HADIR</th>
                     <th>%</th>
                 </tr>
             </thead>
@@ -242,23 +231,39 @@
             </tfoot>
         </table>
     </div>
+</div>
 
-    <div id="lateSection" class="dashboard-container">
-        <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
-            <i data-lucide="user-x"></i> Senarai Murid Lewat
-        </h3>
-        <table id="lateStudentsTable">
-            <thead>
-                <tr>
-                    <th>NAMA</th>
-                    <th>KELAS</th>
-                    <th>WAKTU</th>
-                    <th>STATUS</th>
-                </tr>
-            </thead>
-            <tbody id="lateTableBody"></tbody>
-        </table>
+<div id="manualPanel" class="manual-panel no-print">
+    <h3>Input Data Manual</h3>
+    <div id="manualInputs">
+        <div class="input-row">
+            <select class="m-class-select"></select>
+            <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
+            <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
+        </div>
     </div>
+    <div style="margin-top:15px; display:flex; gap:10px;">
+        <button class="btn-action bg-green" onclick="addRow()">+ Tambah</button>
+        <button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button>
+        <button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button>
+    </div>
+</div>
+
+<div id="lateSection" class="dashboard-container no-print">
+    <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
+        <i data-lucide="user-x"></i> Senarai Murid Lewat
+    </h3>
+    <table id="lateStudentsTable">
+        <thead>
+            <tr>
+                <th>NAMA</th>
+                <th>KELAS</th>
+                <th>WAKTU</th>
+                <th>STATUS</th>
+            </tr>
+        </thead>
+        <tbody id="lateTableBody"></tbody>
+    </table>
 </div>
 
 <script type="module">
@@ -278,63 +283,40 @@
     const db = getFirestore(app);
 
     window.myChart = null;
-    const allStaticClasses = [
-        "6 AISHAH", "6 FATIMAH", "6 KHADIJAH", "6 RUQAYYAH", 
-        "6 SARAH", "6 SUMAYYAH", "6 UMMU KALYHOM", "6 ZAINAB",
-        "6 AL FARABI", "6 AL GHAZALI", "6 AL KHINDI", "6 AL MAWARDI", 
-        "6 AL RAZI", "6 IBNU KHALDUN", "6 IBNU RUSYD"
-    ].sort();
 
-    // --- 截图功能逻辑 ---
-    window.captureSpecific = async (mode) => {
-        const graph = document.getElementById('graphSection');
-        const report = document.getElementById('reportSection');
-        const late = document.getElementById('lateSection');
+    // 班级排序参考图表：Sem 2 先，Sem 1 后
+    const sem2Classes = ["6 AISHAH", "6 FATIMAH", "6 KHADIJAH", "6 RUQAYYAH", "6 SARAH", "6 SUMAYYAH", "6 UMMU KALYHOM", "6 ZAINAB"];
+    const sem1Classes = ["6 AL FARABI", "6 AL GHAZALI", "6 AL KHINDI", "6 AL MAWARDI", "6 AL RAZI", "6 IBNU KHALDUN", "6 IBNU RUSYD"];
+    const allStaticClasses = [...sem2Classes, ...sem1Classes];
 
-        // 隐藏不相关的部分
-        if(mode === 'graph') { report.classList.add('hide-for-shot'); late.classList.add('hide-for-shot'); }
-        if(mode === 'result') { graph.classList.add('hide-for-shot'); late.classList.add('hide-for-shot'); }
+    function sortClasses(classA, classB) {
+        return allStaticClasses.indexOf(classA) - allStaticClasses.indexOf(classB);
+    }
 
-        const element = document.getElementById('fullReportWrapper');
-        const canvas = await html2canvas(element, { scale: 2, backgroundColor: "#F2F2F7", useCORS: true });
-        
-        const link = document.createElement('a');
-        link.download = `Semsira_${mode}_${new Date().getTime()}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-
-        // 恢复显示
-        report.classList.remove('hide-for-shot');
-        graph.classList.remove('hide-for-shot');
-        late.classList.remove('hide-for-shot');
-    };
-
-    // --- Cetak (PDF) 导出逻辑 ---
-    window.exportFullPDF = async () => {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+    // 修改后的截图功能：确保隐藏所有按钮
+    window.captureFullReport = async (type) => {
         const wrapper = document.getElementById('fullReportWrapper');
-        const sections = ['graphSection', 'reportSection', 'lateSection'];
+        wrapper.classList.add('is-capturing'); // 临时增加隐藏按钮的样式类
+        
+        const date = new Date().toISOString().slice(0,10).replace(/-/g, '');
+        const fileName = `semsira_${type}_${date}.png`;
 
-        for (let i = 0; i < sections.length; i++) {
-            // 每次只显示页眉 + 当前 section
-            sections.forEach(id => document.getElementById(id).classList.add('hide-for-shot'));
-            document.getElementById(sections[i]).classList.remove('hide-for-shot');
-
-            const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: "#F2F2F7", useCORS: true });
-            const imgData = canvas.toDataURL('image/png');
-            
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-            if (i !== 0) pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        try {
+            const canvas = await html2canvas(wrapper, {
+                useCORS: true,
+                scale: 2,
+                backgroundColor: "#F2F2F7",
+                ignoreElements: (el) => el.classList.contains('no-print') // 额外保险
+            });
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        } catch (e) {
+            alert("Ralat tangkapan skrin.");
+        } finally {
+            wrapper.classList.remove('is-capturing'); // 截图完恢复显示
         }
-
-        // 恢复
-        sections.forEach(id => document.getElementById(id).classList.remove('hide-for-shot'));
-        pdf.save(`Laporan_Penuh_Semsira_${new Date().toLocaleDateString()}.pdf`);
     };
 
     function updateLiveDateTime() {
@@ -348,34 +330,31 @@
     async function loadDashboard() {
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classMasterData = {}; 
-        
-        // 初始化 16 个班级，确保即使没数据也显示 N/A
-        allStaticClasses.forEach(c => {
-            classMasterData[c] = { total: 0, k1: 0, k2: 0, late: 0, hasData: false };
-        });
-
         studentSnap.forEach(doc => {
             const data = doc.data();
-            if (classMasterData[data.className]) {
-                classMasterData[data.className].total++;
-                classMasterData[data.className].hasData = true;
-            }
+            const className = data.className || "Lain-lain";
+            if (!classMasterData[className]) classMasterData[className] = { total: 0, present: 0, late: 0 };
+            classMasterData[className].total++;
         });
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
         const attendSnap = await getDocs(query(collection(db, "attendanceLogs"), where("date", "==", todayStr)));
         
         let lateStudents = [];
         attendSnap.forEach(doc => {
             const data = doc.data();
-            const cName = data.className;
-            if (classMasterData[cName]) {
+            if (classMasterData[data.className]) {
+                let displayTime = data.time || "--:--";
+                if (data.timeFull && data.timeFull.includes(",")) {
+                    displayTime = data.timeFull.split(",")[1].trim().split(" ")[0];
+                }
+
                 if (data.status === "Lewat") {
-                    classMasterData[cName].late++;
-                    lateStudents.push(data);
+                    classMasterData[data.className].late++;
+                    lateStudents.push({ ...data, time: displayTime });
                 } else {
-                    // 逻辑模拟：假设一半进 K1 一半进 K2
-                    classMasterData[cName].k1++; 
+                    classMasterData[data.className].present++;
                 }
             }
         });
@@ -384,117 +363,113 @@
 
     function updateUI(data, lateStudents) {
         const tableBody = document.getElementById('tableBody');
-        let labels = [], k1Data = [], k2Data = [];
-        let gT = 0, gK1 = 0, gK2 = 0, gL = 0;
+        const isNoLewat = document.body.classList.contains('print-no-lewat');
+        let labels = [], percentPresent = [], percentLate = [];
+        let gT = 0, gP = 0, gL = 0;
 
         tableBody.innerHTML = "";
-        allStaticClasses.forEach(className => {
-            const item = data[className] || { total: 0, k1: 0, k2: 0, late: 0, hasData: false };
-            const totalHadir = item.k1 + item.k2 + item.late;
-            const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "N/A";
+        
+        // 使用自定义顺序排序班级
+        const sortedClassKeys = Object.keys(data).sort(sortClasses);
+
+        sortedClassKeys.forEach(className => {
+            const item = data[className];
+            const totalHadir = item.present + item.late;
+            const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "0.00";
+            gT += item.total; gP += item.present; gL += item.late;
             
-            gT += item.total; gK1 += item.k1; gK2 += item.k2; gL += item.late;
-            labels.push(className);
-            k1Data.push(item.hasData ? item.k1 : 0);
-            k2Data.push(item.hasData ? item.k2 : 0);
+            labels.push(className); 
+            percentPresent.push(item.total > 0 ? (item.present / item.total * 100).toFixed(2) : 0);
+            percentLate.push(item.total > 0 ? (item.late / item.total * 100).toFixed(2) : 0);
 
             tableBody.innerHTML += `
                 <tr>
                     <td>${className}</td>
-                    <td>${item.hasData ? item.total : 'N/A'}</td>
-                    <td>${item.hasData ? item.k1 : 'N/A'}</td>
-                    <td>${item.hasData ? item.k2 : 'N/A'}</td>
-                    <td class="lewat-text">${item.hasData ? item.late : 'N/A'}</td>
-                    <td>${item.hasData ? totalHadir : 'N/A'}</td>
-                    <td>${per}${item.hasData ? '%' : ''}</td>
+                    <td>${item.total}</td>
+                    <td>${item.present}</td>
+                    <td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td>
+                    <td>${totalHadir}</td>
+                    <td>${per}%</td>
                 </tr>`;
         });
 
+        const headerLewat = document.querySelector('.lewat-col');
+        if(isNoLewat) headerLewat.classList.add('hide-lewat-column');
+        else headerLewat.classList.remove('hide-lewat-column');
+
         document.getElementById('totalRow').innerHTML = `
-            <td class="total-label">JUMLAH</td><td>${gT}</td><td>${gK1}</td><td>${gK2}</td>
-            <td>${gL}</td><td>${gK1+gK2+gL}</td><td>${gT > 0 ? (((gK1+gK2+gL)/gT)*100).toFixed(2) : 0}%</td>`;
+            <td class="total-label">JUMLAH</td><td>${gT}</td><td>${gP}</td>
+            <td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td>
+            <td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
 
         document.getElementById('lateTableBody').innerHTML = lateStudents.length > 0 ? 
-            lateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time || '--'}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : 
+            lateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : 
             `<tr><td colspan="4">Tiada rekod lewat.</td></tr>`;
 
-        renderChart(labels, k1Data, k2Data);
+        renderChart(labels, percentPresent, isNoLewat ? [] : percentLate);
         lucide.createIcons();
     }
 
-    function renderChart(labels, k1, k2) {
+    function renderChart(labels, pData, lData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
 
+        const isMany = labels.length > 10;
         window.myChart = new Chart(ctx, {
             type: 'bar',
             data: { 
                 labels: labels, 
                 datasets: [
-                    { label: 'Hadir K1', data: k1, backgroundColor: '#34C759' },
-                    { label: 'Hadir K2', data: k2, backgroundColor: '#007AFF' }
+                    { label: 'Hadir (%)', data: pData, backgroundColor: '#007AFF', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 },
+                    { label: 'Lewat (%)', data: lData, backgroundColor: '#FF9500', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }
                 ] 
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
-                    y: { beginAtZero: true }
+                    x: { 
+                        stacked: true, 
+                        ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } 
+                    },
+                    y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v+"%" } }
                 },
                 plugins: { legend: { position: 'bottom' } }
             }
         });
     }
 
-    // --- 辅助功能 ---
     window.toggleManualPanel = () => {
         const p = document.getElementById('manualPanel');
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
     };
-    
     window.addRow = () => {
         const div = document.createElement('div');
         div.className = 'input-row';
         div.innerHTML = `<select class="m-class-select">${allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-                         <input type="text" placeholder="K1 (e.g. 8/10)" class="m-k1" style="border-color: #34C759;">
-                         <input type="text" placeholder="K2 (e.g. 7/10)" class="m-k2" style="border-color: #007AFF;">
+                         <input type="text" placeholder="8/10" class="m-data">
                          <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>`;
         document.getElementById('manualInputs').appendChild(div);
     };
-
     window.removeRow = (b) => b.parentElement.remove();
-
     window.applyManualData = () => {
-        const selects = document.querySelectorAll('.m-class-select');
-        const k1Inputs = document.querySelectorAll('.m-k1');
-        const k2Inputs = document.querySelectorAll('.m-k2');
+        const s = document.querySelectorAll('.m-class-select'), d = document.querySelectorAll('.m-data');
         let m = {};
-
-        // 初始化
-        allStaticClasses.forEach(c => m[c] = { total: 0, k1: 0, k2: 0, late: 0, hasData: false });
-
-        selects.forEach((sel, i) => {
-            const valK1 = k1Inputs[i].value.split('/');
-            const valK2 = k2Inputs[i].value.split('/');
-            const name = sel.value;
-            
-            if(valK1.length === 2 && valK2.length === 2) {
-                m[name].k1 = parseInt(valK1[0]);
-                m[name].k2 = parseInt(valK2[0]);
-                m[name].total = parseInt(valK1[1]) + parseInt(valK2[1]);
-                m[name].hasData = true;
-            }
-        });
+        for(let i=0; i<s.length; i++){
+            const [h, t] = d[i].value.split('/').map(Number);
+            if(!isNaN(h)) m[s[i].value] = { total: t || 0, present: h, late: 0 };
+        }
+        document.body.classList.add('print-no-lewat');
         updateUI(m, []);
     };
+    window.resetToFirebase = () => {
+        document.body.classList.remove('print-no-lewat');
+        loadDashboard();
+    };
 
-    window.resetToFirebase = () => loadDashboard();
-
-    // 初始化下拉菜单
-    document.querySelectorAll('.m-class-select').forEach(s => {
-        s.innerHTML = allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('');
-    });
+    const selects = document.querySelectorAll('.m-class-select');
+    const opts = allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+    selects.forEach(s => s.innerHTML = opts);
 
     setInterval(updateLiveDateTime, 1000);
     updateLiveDateTime();
