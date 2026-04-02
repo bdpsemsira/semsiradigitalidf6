@@ -8,6 +8,17 @@
     <link rel="icon" type="image/png" href="semsira.png">
     <link rel="apple-touch-icon" href="semsira.png">
 
+    <script>
+        (function() {
+            const isAuth = localStorage.getItem('semsira_auth') === 'true' || 
+                           sessionStorage.getItem('semsira_auth') === 'true';
+            if (!isAuth) {
+                alert('Akses tidak dibenarkan. Sila log masuk.');
+                window.location.href = 'firebase_admin.html';
+            }
+        })();
+    </script>
+
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --ios-blue: #007AFF; --ios-bg: #F2F2F7; --ios-red: #FF3B30; --ios-grey: #8e8e93; }
@@ -115,7 +126,6 @@
     let allLogs = [];
     const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "OGOS", "SEPT", "OKT", "NOV", "DIS"];
 
-    // 所有需要被计算在内的 Collection
     const collectionsToTrack = [
         "attendanceLogs",
         "classSettings",
@@ -127,12 +137,10 @@
 
     async function fetchData() {
         try {
-            // 1. 获取考勤记录用于 UI 显示
             const q = query(collection(db, "attendanceLogs"), orderBy("timestamp", "desc"));
             const logSnap = await getDocs(q);
             allLogs = logSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            // 2. 并发计算所有 Collection 的总文档数
             const counts = await Promise.all(
                 collectionsToTrack.map(async (col) => {
                     const snap = await getDocs(collection(db, col));
@@ -141,8 +149,6 @@
             );
 
             const totalCount = counts.reduce((a, b) => a + b, 0);
-            
-            // 3. 更新全量空间 UI
             updateStorageUI(totalCount);
             
             document.getElementById('loading-spinner').classList.add('hidden');
@@ -154,10 +160,8 @@
     }
 
     function updateStorageUI(totalCount) {
-        // 基于 Spark Plan 1GB 免费额度的逻辑估算 (约 1,000,000 条记录)
         const limit = 1000000; 
         const percent = Math.min(((totalCount / limit) * 100), 100).toFixed(2);
-        
         const panel = document.getElementById('storage-panel');
         const bar = document.getElementById('storage-bar');
         const text = document.getElementById('storage-text');
@@ -166,9 +170,7 @@
         bar.style.width = percent + '%';
         document.getElementById('storage-percent').innerText = percent + '%';
         
-        // 假设混合数据平均单条 0.6KB (配置表通常比日志表大一点)
         const estMB = (totalCount * 0.6 / 1024).toFixed(2);
-        
         text.innerHTML = `Kapasiti Digunakan: <b>${totalCount.toLocaleString()}</b> rekod (semua koleksi)<br>` +
                          `Anggaran saiz: ${estMB} MB daripada 1,024 MB`;
         
