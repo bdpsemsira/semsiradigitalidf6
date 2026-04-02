@@ -221,19 +221,13 @@
 
     lucide.createIcons();
 
-    // --- Screen Wake Lock 逻辑 ---
+    // --- Screen Wake Lock Logic ---
     async function requestWakeLock() {
         try {
             if ('wakeLock' in navigator) {
                 wakeLock = await navigator.wakeLock.request('screen');
                 wakelockBtn.classList.add('wakelock-active');
                 wakelockBtn.querySelector('span').innerText = "Skrin Sentiasa Terang (ON)";
-                
-                wakeLock.addEventListener('release', () => {
-                    console.log('Wake Lock was released');
-                });
-            } else {
-                alert("Browser anda tidak menyokong fungsi Kekal Terang.");
             }
         } catch (err) {
             console.error(`${err.name}, ${err.message}`);
@@ -257,12 +251,6 @@
         }
     });
 
-    document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
-            await requestWakeLock();
-        }
-    });
-
     startBtn.addEventListener('click', () => {
         beepSound.play().catch(() => {});
         startOverlay.style.opacity = '0';
@@ -278,8 +266,6 @@
                     if (cameraSelect.value) switchCamera(cameraSelect.value);
                 };
                 startScanning(cameras[0].id);
-            } else {
-                cameraSelect.innerHTML = '<option value="">No Camera Found</option>';
             }
         }).catch(err => console.error(err));
     }
@@ -294,48 +280,22 @@
     }
 
     function startScanning(cameraId) {
-        const config = {
-            fps: 25,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        };
-
+        const config = { fps: 25, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
         html5QrCode.start(cameraId, config, onScanSuccess)
-        .then(() => {
-            applyAdvancedSettings();
-        })
-        .catch(err => {
-            console.error(err);
-            html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess);
-        });
+        .then(() => applyAdvancedSettings())
+        .catch(() => html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess));
     }
 
     async function applyAdvancedSettings() {
         try {
             const track = html5QrCode.getRunningTrack();
             if (!track) return;
-            
             const caps = track.getCapabilities();
             const settings = {};
-
-            if (caps.focusMode && caps.focusMode.includes('continuous')) {
-                settings.focusMode = 'continuous';
-            }
-            
-            if (caps.exposureCompensation) {
-                settings.exposureCompensation = caps.exposureCompensation.min * 0.6;
-            }
-
-            if (!caps.exposureCompensation && caps.brightness) {
-                settings.brightness = caps.brightness.min + (caps.brightness.max - caps.brightness.min) * 0.2;
-            }
-
-            if (Object.keys(settings).length > 0) {
-                await track.applyConstraints({ advanced: [settings] });
-            }
-        } catch (e) {
-            console.warn("Hardware optimization not supported on this device.");
-        }
+            if (caps.focusMode?.includes('continuous')) settings.focusMode = 'continuous';
+            if (caps.exposureCompensation) settings.exposureCompensation = caps.exposureCompensation.min * 0.6;
+            await track.applyConstraints({ advanced: [settings] });
+        } catch (e) { console.warn("Hardware optimization not supported."); }
     }
 
     async function onScanSuccess(decodedText) {
@@ -373,6 +333,10 @@
             const student = studentSnap.docs[0].data();
             const status = timeStr > late ? "Lewat" : "Hadir";
 
+            // --- 新增：计算 35 天后的日期对象 ---
+            const expireDate = new Date();
+            expireDate.setDate(now.getDate() + 35); 
+
             await addDoc(collection(db, "attendanceLogs"), {
                 name: student.name,
                 ic: student.ic,
@@ -380,7 +344,8 @@
                 status: status,
                 date: today,
                 timeFull: now.toLocaleString('ms-MY'),
-                timestamp: serverTimestamp()
+                timestamp: serverTimestamp(),
+                expireAt: expireDate // <-- TTL 自动删除字段
             });
 
             showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", now.toLocaleTimeString());
@@ -419,7 +384,6 @@
         document.getElementById('res-name').innerText = name;
         document.getElementById('res-msg').innerText = msg;
         document.getElementById('res-time').innerText = time;
-        
         icon.className = 'status-icon ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'waiting'));
         icon.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2')}"></i>`;
         lucide.createIcons();
