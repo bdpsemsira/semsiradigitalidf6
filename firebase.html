@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengurusan Pelajar Semsira</title>
+    <link rel="icon" type="image/png" href="/semsira.png">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --danger: #FF3B30;
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: #1c1c1e;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .header img {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+        }
+
+        .semester-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .btn-delete-all {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .student-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .student-card {
+            background: var(--card);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .student-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .student-info h4 {
+            margin: 0 0 5px 0;
+            color: #000;
+            font-size: 16px;
+            padding-right: 30px;
+        }
+
+        .student-info p {
+            margin: 2px 0;
+            font-size: 13px;
+            color: #8e8e93;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 11px;
+            background: #E5E5EA;
+            margin-top: 5px;
+        }
+
+        .btn-delete-single {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #C7C7CC;
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .btn-delete-single:hover {
+            color: var(--danger);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #8e8e93;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <img src="/semsira.png" alt="Logo">
+        <div>
+            <h1 style="margin:0; font-size: 24px;">Pengurusan Data Pelajar</h1>
+            <p style="margin:0; color: #8e8e93;">Urus maklumat mengikut Semester</p>
+        </div>
+    </div>
+
+    <div id="loading" class="loading">Memuatkan data pelajar...</div>
+
+    <div class="semester-section" id="section-sem1" style="display:none;">
+        <div class="section-title">
+            <h2>Semester 1</h2>
+            <button class="btn-delete-all" onclick="deleteWholeSemester('1')">
+                <i data-lucide="trash-2"></i> Padam Semua (Graduasi)
+            </button>
+        </div>
+        <div class="student-grid" id="grid-sem1"></div>
+    </div>
+
+    <div class="semester-section" id="section-sem2" style="display:none;">
+        <div class="section-title">
+            <h2>Semester 2</h2>
+            <button class="btn-delete-all" onclick="deleteWholeSemester('2')">
+                <i data-lucide="trash-2"></i> Padam Semua (Graduasi)
+            </button>
+        </div>
+        <div class="student-grid" id="grid-sem2"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, deleteDoc, doc, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+        authDomain: "bdpsemsira-5c274.firebaseapp.com",
+        projectId: "bdpsemsira-5c274",
+        storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+        messagingSenderId: "176946808975",
+        appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function loadStudents() {
+        const loading = document.getElementById('loading');
+        const grid1 = document.getElementById('grid-sem1');
+        const grid2 = document.getElementById('grid-sem2');
+        
+        grid1.innerHTML = "";
+        grid2.innerHTML = "";
+        
+        try {
+            const querySnapshot = await getDocs(collection(db, "studentInform"));
+            
+            if (querySnapshot.empty) {
+                loading.innerText = "Tiada data pelajar dijumpai.";
+                return;
+            }
+
+            loading.style.display = "none";
+            document.getElementById('section-sem1').style.display = "block";
+            document.getElementById('section-sem2').style.display = "block";
+
+            querySnapshot.forEach((document) => {
+                const data = document.data();
+                const id = document.id;
+                
+                const card = `
+                    <div class="student-card" id="card-${id}">
+                        <button class="btn-delete-single" onclick="deleteStudent('${id}', '${data.name}')">
+                            <i data-lucide="x-circle"></i>
+                        </button>
+                        <div class="student-info">
+                            <h4>${data.name}</h4>
+                            <p><strong>ID:</strong> ${data.studentId}</p>
+                            <p><strong>Kelas:</strong> ${data.className}</p>
+                            <p><strong>IC:</strong> ${data.ic}</p>
+                            <p><strong>Phone:</strong> ${data.phone}</p>
+                            <div class="badge">${data.gender}</div>
+                        </div>
+                    </div>
+                `;
+
+                if (data.semester === "1") {
+                    grid1.innerHTML += card;
+                } else if (data.semester === "2") {
+                    grid2.innerHTML += card;
+                }
+            });
+            
+            lucide.createIcons();
+        } catch (error) {
+            console.error("Error loading docs: ", error);
+            loading.innerText = "Ralat memuatkan data.";
+        }
+    }
+
+    // 删除单个学生
+    window.deleteStudent = async (docId, name) => {
+        if (confirm(`Adakah anda pasti ingin memadam data ${name}?`)) {
+            try {
+                await deleteDoc(doc(db, "studentInform", docId));
+                document.getElementById(`card-${docId}`).remove();
+                alert("Data dipadam.");
+            } catch (e) {
+                alert("Gagal memadam data.");
+            }
+        }
+    };
+
+    // 批量删除整个 Semester
+    window.deleteWholeSemester = async (sem) => {
+        if (confirm(`PERINGATAN: Adakah anda pasti ingin memadam SEMUA pelajar Semester ${sem}? Tindakan ini tidak boleh dibatalkan.`)) {
+            try {
+                const q = query(collection(db, "studentInform"), where("semester", "==", sem));
+                const snapshot = await getDocs(q);
+                
+                const batch = writeBatch(db);
+                snapshot.forEach((document) => {
+                    batch.delete(document.ref);
+                });
+
+                await batch.commit();
+                alert(`Semua pelajar Semester ${sem} telah berjaya dipadam.`);
+                loadStudents(); // 重新加载页面
+            } catch (e) {
+                console.error(e);
+                alert("Gagal memadam data semester.");
+            }
+        }
+    };
+
+    // 初始化加载
+    loadStudents();
+</script>
+
+</body>
+</html>
