@@ -224,7 +224,7 @@
     const db = getFirestore(app);
 
     const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
-    const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Summayah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
+    const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Sumayyah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
     let allStudents = [];
     const SETTINGS_COL = "systemSettings";
@@ -369,7 +369,7 @@
     window.saveSemSettings = async () => {
         const s1 = document.getElementById('sem-k1').value;
         const s2 = document.getElementById('sem-k2').value;
-        const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'summayah', 'ummukalthom', 'zainab'];
+        const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'sumayyah', 'ummukalthom', 'zainab'];
         const ps = allStudents.map(s => {
             let isK1 = k1_keywords.some(k => (s.className||'').toLowerCase().includes(k));
             return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
