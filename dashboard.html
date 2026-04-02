@@ -115,9 +115,7 @@
             min-width: 150px;
         }
 
-        canvas { 
-            width: 100% !important; 
-        }
+        canvas { width: 100% !important; }
 
         table {
             width: 100%;
@@ -170,7 +168,6 @@
                 align-items: center;
                 justify-content: center;
             }
-            /* 隐藏迟到列的 CSS 逻辑 */
             .hide-lewat-column {
                 display: none !important;
             }
@@ -224,7 +221,7 @@
 </div>
 
 <div class="dashboard-container chart-section">
-    <canvas id="attendanceChart" height="450"></canvas>
+    <canvas id="attendanceChart" height="480"></canvas>
 </div>
 
 <div class="dashboard-container">
@@ -331,9 +328,7 @@
                 }
             }
         }
-
         if(Object.keys(manualData).length > 0) {
-            // 设置打印模式：隐藏迟到列和迟到名单
             document.body.classList.add('print-no-lewat');
             updateUI(manualData, []); 
         }
@@ -384,10 +379,9 @@
     function updateUI(data, lateStudents) {
         const tableBody = document.getElementById('tableBody');
         const totalRow = document.getElementById('totalRow');
-        const lateTableBody = document.getElementById('lateTableBody');
         const isNoLewat = document.body.classList.contains('print-no-lewat');
         
-        let labels = [], dataPresent = [], dataLate = [];
+        let labels = [], percentPresent = [], percentLate = [];
         let gTotalMurid = 0, gTotalHadir = 0, gTotalLewat = 0;
 
         tableBody.innerHTML = "";
@@ -399,7 +393,11 @@
             const percent = item.total > 0 ? ((totalHadirKelas / item.total) * 100).toFixed(2) : "0.00";
             
             gTotalMurid += item.total; gTotalHadir += item.present; gTotalLewat += item.late;
-            labels.push(className); dataPresent.push(item.present); dataLate.push(item.late);
+            
+            // 计算百分比供图表使用
+            labels.push(className); 
+            percentPresent.push(item.total > 0 ? (item.present / item.total * 100).toFixed(2) : 0);
+            percentLate.push(item.total > 0 ? (item.late / item.total * 100).toFixed(2) : 0);
 
             tableBody.innerHTML += `
                 <tr>
@@ -413,7 +411,6 @@
             `;
         });
 
-        // 动态隐藏表头的 Lewat
         const headerLewat = document.querySelector('.lewat-col');
         if(isNoLewat) headerLewat.classList.add('hide-lewat-column');
         else headerLewat.classList.remove('hide-lewat-column');
@@ -428,9 +425,9 @@
             <td>${gTotalMurid > 0 ? ((totalAllHadir / gTotalMurid) * 100).toFixed(2) : "0.00"}%</td>
         `;
 
-        lateTableBody.innerHTML = lateStudents.length > 0 ? lateStudents.map(s => `<tr><td style="text-align:left;">${s.name}</td><td>${s.className}</td><td>${s.time || '--:--'}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : `<tr><td colspan="4">Tiada rekod lewat.</td></tr>`;
+        document.getElementById('lateTableBody').innerHTML = lateStudents.length > 0 ? lateStudents.map(s => `<tr><td style="text-align:left;">${s.name}</td><td>${s.className}</td><td>${s.time || '--:--'}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : `<tr><td colspan="4">Tiada rekod lewat.</td></tr>`;
 
-        renderChart(labels, dataPresent, isNoLewat ? [] : dataLate);
+        renderChart(labels, percentPresent, isNoLewat ? [] : percentLate);
         lucide.createIcons();
     }
 
@@ -438,9 +435,20 @@
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
 
-        const datasets = [{ label: 'Hadir', data: presentData, backgroundColor: '#007AFF', borderRadius: 5 }];
+        const datasets = [{ 
+            label: 'Hadir (%)', 
+            data: presentData, 
+            backgroundColor: '#007AFF', 
+            borderRadius: 5 
+        }];
+        
         if(lateData.length > 0) {
-            datasets.push({ label: 'Lewat', data: lateData, backgroundColor: '#FF9500', borderRadius: 5 });
+            datasets.push({ 
+                label: 'Lewat (%)', 
+                data: lateData, 
+                backgroundColor: '#FF9500', 
+                borderRadius: 5 
+            });
         }
 
         window.myChart = new Chart(ctx, {
@@ -451,9 +459,33 @@
                 maintainAspectRatio: false,
                 scales: {
                     x: { stacked: true },
-                    y: { beginAtZero: true, stacked: true, ticks: { stepSize: 5 } }
+                    y: { 
+                        stacked: true,
+                        min: 0,
+                        max: 100, // 强制 Y 轴显示到 100%
+                        ticks: {
+                            stepSize: 10,
+                            callback: function(value) {
+                                return value + "%"; // 在刻度后添加百分号
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Peratus Kehadiran (%)',
+                            font: { weight: 'bold' }
+                        }
+                    }
                 },
-                plugins: { legend: { position: 'bottom' } }
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ": " + context.raw + "%";
+                            }
+                        }
+                    }
+                }
             }
         });
     }
