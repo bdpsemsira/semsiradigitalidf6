@@ -4,29 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Semsira Admin - Login</title>
+    
+    <link rel="icon" type="image/png" href="semsira.png">
+    <link rel="apple-touch-icon" href="semsira.png">
+
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --ios-blue: #007AFF; --ios-bg: #F2F2F7; }
         body { font-family: -apple-system, sans-serif; background: var(--ios-bg); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         
-        .login-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; }
-        .logo { width: 64px; height: 64px; border-radius: 14px; margin-bottom: 15px; }
-        h2 { margin: 0 0 20px; font-size: 20px; font-weight: 600; }
+        .login-card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 320px; text-align: center; }
+        .logo { width: 70px; height: 70px; border-radius: 16px; margin-bottom: 15px; object-fit: cover; }
+        h2 { margin: 0 0 20px; font-size: 22px; font-weight: 700; color: #1c1c1e; }
         
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d1d1d6; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
-        input:focus { border-color: var(--ios-blue); }
+        /* 输入框容器，用于放置图标 */
+        .input-group { position: relative; margin: 10px 0; }
+        .input-group i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #8e8e93; width: 18px; }
         
-        .options { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: 14px; color: #8e8e93; margin: 10px 0; }
-        .options input { width: auto; margin: 0; }
+        input { width: 100%; padding: 12px 12px 12px 40px; border: 1px solid #d1d1d6; border-radius: 12px; box-sizing: border-box; font-size: 16px; outline: none; background: #fafafa; transition: 0.2s; }
+        input:focus { border-color: var(--ios-blue); background: #fff; box-shadow: 0 0 0 4px rgba(0,122,255,0.1); }
+        
+        .options { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: #8e8e93; margin: 15px 0; cursor: pointer; }
+        .options input { width: auto; margin: 0; padding: 0; }
 
-        button { width: 100%; padding: 12px; background: var(--ios-blue); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
-        button:active { opacity: 0.8; }
+        button { width: 100%; padding: 14px; background: var(--ios-blue); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        button:active { opacity: 0.7; transform: scale(0.98); }
 
         .admin-panel { display: none; }
-        .menu-btn { display: flex; align-items: center; gap: 12px; background: white; border: 1px solid #e5e5ea; padding: 15px; border-radius: 15px; margin-bottom: 12px; text-decoration: none; color: #1c1c1e; font-weight: 600; transition: 0.2s; }
-        .menu-btn:active { background: #f2f2f7; }
-        .icon-box { background: var(--ios-bg); padding: 8px; border-radius: 10px; color: var(--ios-blue); display: flex; }
-        .logout-link { display: block; margin-top: 20px; color: #ff3b30; font-size: 14px; cursor: pointer; text-decoration: none; }
+        .menu-btn { display: flex; align-items: center; gap: 12px; background: white; border: 1px solid #e5e5ea; padding: 15px; border-radius: 16px; margin-bottom: 12px; text-decoration: none; color: #1c1c1e; font-weight: 600; transition: 0.2s; }
+        .menu-btn:active { background: #f2f2f7; transform: scale(0.98); }
+        
+        .icon-box { background: var(--ios-bg); padding: 10px; border-radius: 12px; color: var(--ios-blue); display: flex; }
+        .logout-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 25px; color: #ff3b30; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -34,39 +43,54 @@
 <div id="login-section" class="login-card">
     <img src="semsira.png" class="logo" alt="Logo">
     <h2>Semsira Admin</h2>
-    <input type="text" id="username" placeholder="ID Pengguna">
-    <input type="password" id="password" placeholder="Kata Laluan">
-    <div class="options">
-        <input type="checkbox" id="remember"> <label for="remember">Simpan log masuk</label>
+    
+    <div class="input-group">
+        <i data-lucide="user"></i>
+        <input type="text" id="username" placeholder="ID Pengguna">
     </div>
+    
+    <div class="input-group">
+        <i data-lucide="lock"></i>
+        <input type="password" id="password" placeholder="Kata Laluan">
+    </div>
+
+    <label class="options">
+        <input type="checkbox" id="remember"> 
+        <span>Simpan log masuk</span>
+    </label>
+    
     <button onclick="handleLogin()">Log Masuk</button>
 </div>
 
 <div id="menu-section" class="login-card admin-panel">
     <img src="semsira.png" class="logo" alt="Logo">
-    <h2>Pilih Pengurusan</h2>
+    <h2>Menu Utama</h2>
     
     <a href="rekod_database.html" class="menu-btn">
-        <div class="icon-box"><i data-lucide="clipboard-list"></i></div>
+        <div class="icon-box"><i data-lucide="clipboard-check"></i></div>
         <span>Pengurusan Kehadiran</span>
     </a>
 
     <a href="firebase.html" class="menu-btn">
-        <div class="icon-box"><i data-lucide="users"></i></div>
+        <div class="icon-box"><i data-lucide="users-2"></i></div>
         <span>Pengurusan Pelajar</span>
     </a>
 
-    <span class="logout-link" onclick="logout()">Log Keluar</span>
+    <span class="logout-link" onclick="logout()">
+        <i data-lucide="log-out" style="width:16px;"></i> Log Keluar
+    </span>
 </div>
 
 <script>
-    // 检查是否已经登录
     window.onload = () => {
+        // 初始化图标
+        lucide.createIcons();
+        
+        // 检查验证状态
         const auth = localStorage.getItem('semsira_auth') || sessionStorage.getItem('semsira_auth');
         if (auth === 'true') {
             showMenu();
         }
-        lucide.createIcons();
     };
 
     function handleLogin() {
@@ -89,12 +113,15 @@
     function showMenu() {
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('menu-section').style.display = 'block';
+        lucide.createIcons(); // 重新渲染菜单里的图标
     }
 
     function logout() {
-        localStorage.removeItem('semsira_auth');
-        sessionStorage.removeItem('semsira_auth');
-        location.reload();
+        if(confirm('Log keluar sekarang?')) {
+            localStorage.removeItem('semsira_auth');
+            sessionStorage.removeItem('semsira_auth');
+            location.reload();
+        }
     }
 </script>
 </body>
