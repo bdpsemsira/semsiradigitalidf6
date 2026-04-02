@@ -193,7 +193,7 @@
 </head>
 <body oncontextmenu="return false;">
 
-<audio id="beep-sound" src="/beep.mp3" preload="auto"></audio>
+<audio id="beep-sound" src="/beep.mp3" preload="auto" playsinline></audio>
 
 <div id="loading-overlay">
     <div class="glass" style="padding: 30px; text-align: center; border-radius: 20px;">
@@ -343,18 +343,20 @@
     let qrUpdateInterval = null;
     let isAttendedToday = false;
     let attendanceListenerUnsubscribe = null;
-    let isAudioUnlocked = false; // 音频解锁标记
+    let isAudioUnlocked = false; 
 
-    // --- 音频解锁辅助函数 ---
+    // --- 核心修复：解锁音频的魔法 ---
     function unlockAudio() {
         if (!isAudioUnlocked) {
             const sound = document.getElementById('beep-sound');
             sound.play().then(() => {
-                sound.pause();
+                sound.pause(); // 立即暂停
                 sound.currentTime = 0;
                 isAudioUnlocked = true;
-                console.log("Audio Unlocked");
-            }).catch(e => console.log("Waiting for interaction"));
+                console.log("Audio Context Unlocked!");
+            }).catch(e => {
+                console.log("Audio unlock failed, waiting for user click.");
+            });
         }
     }
 
@@ -450,7 +452,10 @@
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
-        try { await signInWithEmailAndPassword(auth, email, pw); } catch (e) { alert("Gagal: " + e.message); }
+        try { 
+            unlockAudio(); // 登录点击也解锁一次
+            await signInWithEmailAndPassword(auth, email, pw); 
+        } catch (e) { alert("Gagal: " + e.message); }
     }
 
     window.handleLogout = () => { if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe(); signOut(auth).then(() => location.reload()); }
@@ -493,10 +498,11 @@
 
         attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-                // --- 核心播放逻辑：如果状态发生变化且音频已解锁 ---
+                // --- 播放逻辑：状态从“未签到”变为“已签到”时播放 ---
                 if (!isAttendedToday) {
                     const sound = document.getElementById('beep-sound');
-                    sound.play().catch(e => console.log("Autoplay blocked, user must click first."));
+                    // 只要之前解锁过，这里就能静默播放
+                    sound.play().catch(err => console.log("Audio play failed: ", err));
                 }
                 
                 const data = snapshot.docs[0].data();
@@ -592,12 +598,14 @@
         } catch(e) { alert(e.message); }
     }
 
-    window.showPage = (id) => { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    window.showPage = (id) => { 
+        unlockAudio(); // 切换隐藏页时解锁
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+        document.getElementById(id).classList.add('active'); 
+    }
 
     window.switchTab = (tabId, el) => {
-        // --- 核心：切换标签时顺便解锁音频 ---
-        unlockAudio();
-        
+        unlockAudio(); // 核心：切换标签时强制解锁音频权限
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
         document.getElementById(tabId).classList.add('active');
