@@ -117,7 +117,6 @@
 
         canvas { 
             width: 100% !important; 
-            max-height: 500px; /* 防止在屏幕上太长 */
         }
 
         table {
@@ -166,12 +165,17 @@
             }
             .chart-section {
                 break-after: page;
-                height: 90vh; /* 打印时让图表占据大部分页面高度 */
+                height: 80vh; 
                 display: flex;
                 align-items: center;
+                justify-content: center;
             }
-            canvas {
-                height: 500px !important; /* 强制打印高度 */
+            /* 隐藏迟到列的 CSS 逻辑 */
+            .hide-lewat-column {
+                display: none !important;
+            }
+            #lateSection {
+                display: none !important;
             }
             table { font-size: 11px; width: 100%; }
             th, .summary-row, .total-label {
@@ -220,7 +224,7 @@
 </div>
 
 <div class="dashboard-container chart-section">
-    <canvas id="attendanceChart" height="400"></canvas>
+    <canvas id="attendanceChart" height="450"></canvas>
 </div>
 
 <div class="dashboard-container">
@@ -229,8 +233,8 @@
             <tr>
                 <th>KELAS</th>
                 <th>BIL. MURID</th>
-                <th>HADIR (TEPAT)</th>
-                <th>LEWAT</th>
+                <th>HADIR</th>
+                <th class="lewat-col">LEWAT</th>
                 <th>JUMLAH HADIR</th>
                 <th>% KEHADIRAN</th>
             </tr>
@@ -242,7 +246,7 @@
     </table>
 </div>
 
-<div id="lateSection" class="dashboard-container">
+<div id="lateSection" class="dashboard-container no-print">
     <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat);">
         <i data-lucide="user-x"></i> Senarai Murid Lewat Hari Ini
     </h3>
@@ -329,11 +333,16 @@
         }
 
         if(Object.keys(manualData).length > 0) {
+            // 设置打印模式：隐藏迟到列和迟到名单
+            document.body.classList.add('print-no-lewat');
             updateUI(manualData, []); 
         }
     };
 
-    window.resetToFirebase = () => loadDashboard();
+    window.resetToFirebase = () => {
+        document.body.classList.remove('print-no-lewat');
+        loadDashboard();
+    };
 
     function updateLiveDateTime() {
         const now = new Date();
@@ -376,6 +385,7 @@
         const tableBody = document.getElementById('tableBody');
         const totalRow = document.getElementById('totalRow');
         const lateTableBody = document.getElementById('lateTableBody');
+        const isNoLewat = document.body.classList.contains('print-no-lewat');
         
         let labels = [], dataPresent = [], dataLate = [];
         let gTotalMurid = 0, gTotalHadir = 0, gTotalLewat = 0;
@@ -396,55 +406,54 @@
                     <td>${className}</td>
                     <td>${item.total}</td>
                     <td>${item.present}</td>
-                    <td class="lewat-text">${item.late}</td>
+                    <td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td>
                     <td>${totalHadirKelas}</td>
                     <td>${percent}%</td>
                 </tr>
             `;
         });
 
+        // 动态隐藏表头的 Lewat
+        const headerLewat = document.querySelector('.lewat-col');
+        if(isNoLewat) headerLewat.classList.add('hide-lewat-column');
+        else headerLewat.classList.remove('hide-lewat-column');
+
         const totalAllHadir = gTotalHadir + gTotalLewat;
         totalRow.innerHTML = `
             <td class="total-label">JUMLAH</td>
             <td>${gTotalMurid}</td>
             <td>${gTotalHadir}</td>
-            <td>${gTotalLewat}</td>
+            <td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gTotalLewat}</td>
             <td>${totalAllHadir}</td>
             <td>${gTotalMurid > 0 ? ((totalAllHadir / gTotalMurid) * 100).toFixed(2) : "0.00"}%</td>
         `;
 
         lateTableBody.innerHTML = lateStudents.length > 0 ? lateStudents.map(s => `<tr><td style="text-align:left;">${s.name}</td><td>${s.className}</td><td>${s.time || '--:--'}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : `<tr><td colspan="4">Tiada rekod lewat.</td></tr>`;
 
-        renderChart(labels, dataPresent, dataLate);
+        renderChart(labels, dataPresent, isNoLewat ? [] : dataLate);
         lucide.createIcons();
     }
 
     function renderChart(labels, presentData, lateData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
+
+        const datasets = [{ label: 'Hadir', data: presentData, backgroundColor: '#007AFF', borderRadius: 5 }];
+        if(lateData.length > 0) {
+            datasets.push({ label: 'Lewat', data: lateData, backgroundColor: '#FF9500', borderRadius: 5 });
+        }
+
         window.myChart = new Chart(ctx, {
             type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'Hadir (Tepat)', data: presentData, backgroundColor: '#007AFF', borderRadius: 5 },
-                    { label: 'Lewat', data: lateData, backgroundColor: '#FF9500', borderRadius: 5 }
-                ]
-            },
+            data: { labels: labels, datasets: datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
                     x: { stacked: true },
-                    y: { 
-                        beginAtZero: true, 
-                        stacked: true,
-                        ticks: { stepSize: 5 } // 让Y轴刻度更有规律
-                    }
+                    y: { beginAtZero: true, stacked: true, ticks: { stepSize: 5 } }
                 },
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
+                plugins: { legend: { position: 'bottom' } }
             }
         });
     }
