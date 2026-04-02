@@ -92,11 +92,6 @@
             margin-bottom: 20px;
         }
 
-        /* 用于分页的类 */
-        .chart-page {
-            break-after: page;
-        }
-
         .manual-panel {
             display: none;
             background: #E5E5EA;
@@ -120,7 +115,10 @@
             min-width: 150px;
         }
 
-        canvas { max-width: 100%; margin-bottom: 10px; }
+        canvas { 
+            width: 100% !important; 
+            max-height: 500px; /* 防止在屏幕上太长 */
+        }
 
         table {
             width: 100%;
@@ -154,44 +152,28 @@
 
         .lewat-text { color: var(--lewat); font-weight: bold; }
 
-        /* 打印专用样式 */
         @media print {
-            @page { 
-                margin: 0.5cm; 
-            }
-            body { 
-                padding: 0; 
-                background: white; 
-            }
-            
-            /* 隐藏 Header 和 Footer (日期时间) 以及按钮 */
+            @page { margin: 1cm; }
+            body { padding: 0; background: white; }
             .header-container, .date-time-info, .no-print, .manual-panel { 
                 display: none !important; 
             }
-            
-            .hide-on-manual-print { 
-                display: none !important; 
-            }
-
             .dashboard-container { 
                 box-shadow: none; 
                 border: none;
                 padding: 0;
                 margin: 0;
             }
-
-            /* 强制图表一页，表格一页 */
             .chart-section {
                 break-after: page;
-                display: block;
-                width: 100%;
+                height: 90vh; /* 打印时让图表占据大部分页面高度 */
+                display: flex;
+                align-items: center;
             }
-
-            table { 
-                font-size: 11px; 
-                width: 100%; 
+            canvas {
+                height: 500px !important; /* 强制打印高度 */
             }
-
+            table { font-size: 11px; width: 100%; }
             th, .summary-row, .total-label {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -222,8 +204,7 @@
 </div>
 
 <div id="manualPanel" class="manual-panel no-print">
-    <h3>Input Data Manual (Mode K1 & K2)</h3>
-    <p style="font-size: 0.9em; color: #666;">Pilih kelas dan masukkan kehadiran (Contoh: 8/10)</p>
+    <h3>Input Data Manual</h3>
     <div id="manualInputs">
         <div class="input-row">
             <select class="m-class-select"></select>
@@ -234,12 +215,12 @@
     <div style="margin-top:15px; display:flex; gap:10px;">
         <button class="btn-print" style="background:#34C759;" onclick="addRow()">+ Tambah Baris</button>
         <button class="btn-print" onclick="applyManualData()">Jana Laporan</button>
-        <button class="btn-print" style="background:#8E8E93;" onclick="resetToFirebase()">Reset ke Data Firebase</button>
+        <button class="btn-print" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button>
     </div>
 </div>
 
 <div class="dashboard-container chart-section">
-    <canvas id="attendanceChart" height="120"></canvas>
+    <canvas id="attendanceChart" height="400"></canvas>
 </div>
 
 <div class="dashboard-container">
@@ -348,17 +329,11 @@
         }
 
         if(Object.keys(manualData).length > 0) {
-            document.getElementById('lateSection').classList.add('hide-on-manual-print');
             updateUI(manualData, []); 
-        } else {
-            alert("Sila masukkan data yang sah (e.g. 8/10)");
         }
     };
 
-    window.resetToFirebase = () => {
-        document.getElementById('lateSection').classList.remove('hide-on-manual-print');
-        loadDashboard();
-    };
+    window.resetToFirebase = () => loadDashboard();
 
     function updateLiveDateTime() {
         const now = new Date();
@@ -371,21 +346,16 @@
     async function loadDashboard() {
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classMasterData = {}; 
-
         studentSnap.forEach(doc => {
             const data = doc.data();
             const className = data.className || "Lain-lain";
-            if (!classMasterData[className]) {
-                classMasterData[className] = { total: 0, present: 0, late: 0 };
-            }
+            if (!classMasterData[className]) classMasterData[className] = { total: 0, present: 0, late: 0 };
             classMasterData[className].total++;
         });
 
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-        const attendQuery = query(collection(db, "attendanceLogs"), where("date", "==", todayStr));
-        const attendSnap = await getDocs(attendQuery);
+        const attendSnap = await getDocs(query(collection(db, "attendanceLogs"), where("date", "==", todayStr)));
         
         let lateStudents = [];
         attendSnap.forEach(doc => {
@@ -399,7 +369,6 @@
                 }
             }
         });
-
         updateUI(classMasterData, lateStudents);
     }
 
@@ -408,9 +377,7 @@
         const totalRow = document.getElementById('totalRow');
         const lateTableBody = document.getElementById('lateTableBody');
         
-        let labels = [];
-        let dataPresent = [];
-        let dataLate = [];
+        let labels = [], dataPresent = [], dataLate = [];
         let gTotalMurid = 0, gTotalHadir = 0, gTotalLewat = 0;
 
         tableBody.innerHTML = "";
@@ -437,29 +404,16 @@
         });
 
         const totalAllHadir = gTotalHadir + gTotalLewat;
-        const grandPercent = gTotalMurid > 0 ? ((totalAllHadir / gTotalMurid) * 100).toFixed(2) : "0.00";
-        
         totalRow.innerHTML = `
-            <td class="total-label">JUMLAH KESELURUHAN</td>
+            <td class="total-label">JUMLAH</td>
             <td>${gTotalMurid}</td>
             <td>${gTotalHadir}</td>
             <td>${gTotalLewat}</td>
             <td>${totalAllHadir}</td>
-            <td>${grandPercent}%</td>
+            <td>${gTotalMurid > 0 ? ((totalAllHadir / gTotalMurid) * 100).toFixed(2) : "0.00"}%</td>
         `;
 
-        if (lateStudents.length > 0) {
-            lateTableBody.innerHTML = lateStudents.map(s => {
-                let dTime = "--:--";
-                if (s.timeFull && typeof s.timeFull === 'string') {
-                    const parts = s.timeFull.split(',');
-                    dTime = parts.length > 1 ? parts[1].trim() : s.timeFull;
-                } else if (s.time) dTime = s.time;
-                return `<tr><td style="text-align:left;">${s.name}</td><td>${s.className}</td><td>${dTime}</td><td class="lewat-text">LEWAT</td></tr>`;
-            }).join('');
-        } else {
-            lateTableBody.innerHTML = `<tr><td colspan="4">Tiada rekod lewat / Mode Manual Aktif.</td></tr>`;
-        }
+        lateTableBody.innerHTML = lateStudents.length > 0 ? lateStudents.map(s => `<tr><td style="text-align:left;">${s.name}</td><td>${s.className}</td><td>${s.time || '--:--'}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : `<tr><td colspan="4">Tiada rekod lewat.</td></tr>`;
 
         renderChart(labels, dataPresent, dataLate);
         lucide.createIcons();
@@ -482,7 +436,14 @@
                 maintainAspectRatio: false,
                 scales: {
                     x: { stacked: true },
-                    y: { beginAtZero: true, stacked: true }
+                    y: { 
+                        beginAtZero: true, 
+                        stacked: true,
+                        ticks: { stepSize: 5 } // 让Y轴刻度更有规律
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
                 }
             }
         });
