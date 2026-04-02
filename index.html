@@ -203,7 +203,7 @@
 </head>
 <body oncontextmenu="return false;">
 
-<audio id="beep-sound" src="/beep.mp3" preload="auto" playsinline></audio>
+<audio id="beep-sound" src="https://bdpsemsira.github.io/semsiradigitalidf6/beep.mp3" preload="auto" playsinline></audio>
 
 <div id="loading-overlay">
     <div class="glass" style="padding: 30px; text-align: center; border-radius: 20px;">
@@ -365,7 +365,6 @@
 
     // --- 核心修复：解锁音频 & 显示二维码 ---
     window.startSystem = () => {
-        // 1. 解锁音频
         const sound = document.getElementById('beep-sound');
         sound.play().then(() => {
             sound.pause(); 
@@ -374,11 +373,9 @@
             console.log("Audio Unlocked!");
         }).catch(e => console.error("Audio failed:", e));
 
-        // 2. 移除遮罩
         const overlay = document.getElementById('qr-unlock-overlay');
         if(overlay) overlay.style.display = 'none';
 
-        // 3. 启动二维码生成
         startQRGenerator();
     };
 
@@ -440,9 +437,11 @@
         return true;
     }
 
+    // 水印显示函数
     function applyWatermark(info) {
         const layer = document.getElementById('watermark-layer');
-        if(!layer) return; layer.style.display = 'flex'; layer.innerHTML = "";
+        if(!layer) return; 
+        layer.innerHTML = "";
         for (let i = 0; i < 40; i++) {
             const item = document.createElement('div');
             item.className = 'watermark-item'; item.innerText = info;
@@ -507,7 +506,10 @@
                     document.getElementById('page-register').classList.remove('active');
                     document.getElementById('main-app').style.display = 'block';
                     loadingOverlay.style.display = 'none';
+                    
+                    // 初始化水印但不显示，由 switchTab 控制
                     applyWatermark(`${userData.name} (${userData.ic})`);
+                    
                     loadHomeData(); setupAccountPage(); listenToAttendance(userData.ic);
                     lucide.createIcons();
                 }, 1200);
@@ -643,16 +645,22 @@
         document.getElementById(id).classList.add('active'); 
     };
 
+    // 核心修复：更新 switchTab，仅在 Scan 页面显示水印
     window.switchTab = (id, el) => {
         unlockAudio();
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active-nav'));
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
         el.classList.add('active-nav');
-        lucide.createIcons();
-    };
 
-    lucide.createIcons();
+        const watermarkLayer = document.getElementById('watermark-layer');
+        if (id === 'tab-scan') {
+            watermarkLayer.style.display = 'flex';
+        } else {
+            watermarkLayer.style.display = 'none';
+        }
+    };
 </script>
 </body>
 </html>
