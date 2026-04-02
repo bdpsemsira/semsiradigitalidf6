@@ -90,7 +90,6 @@
             background-size: 16px;
         }
 
-        /* 亮屏按钮样式 */
         .wakelock-btn {
             width: 100%;
             padding: 12px;
@@ -258,7 +257,6 @@
         }
     });
 
-    // 页面可见性改变时（例如切回App）自动恢复亮屏
     document.addEventListener('visibilitychange', async () => {
         if (wakeLock !== null && document.visibilityState === 'visible') {
             await requestWakeLock();
