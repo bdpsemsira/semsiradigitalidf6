@@ -25,7 +25,6 @@
             --nav-bg: rgba(255, 255, 255, 0.9);
         }
 
-        /* 暗色模式变量 */
         [data-theme="dark"] {
             --bg: #1C1C1E;
             --card: rgba(44, 44, 46, 0.8);
@@ -34,8 +33,6 @@
             --nav-bg: rgba(28, 28, 30, 0.9);
         }
 
-        /* --- 核心修改：强制扫码页始终为亮色模式 --- */
-        /* 无论父级 data-theme 是什么，只要在 tab-scan 内，就强制使用亮色变量 */
         #tab-scan {
             --bg: #F2F2F7 !important;
             --card: rgba(255, 255, 255, 0.8) !important;
@@ -53,7 +50,6 @@
         #tab-scan h3, #tab-scan p {
             color: #000000 !important;
         }
-        /* --- 修改结束 --- */
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -82,7 +78,6 @@
             color: var(--text); font-weight: bold;
         }
 
-        /* 自动登录加载层 */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 10001;
@@ -332,7 +327,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -346,6 +341,14 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.log("Persistence failed: multiple tabs open");
+        } else if (err.code == 'unimplemented') {
+            console.log("Persistence is not available");
+        }
+    });
 
     const COLLECTION_NAME = "studentInform";
     const SETTINGS_COLLECTION = "systemSettings";
@@ -532,6 +535,7 @@
                     setupAccountPage();
                     listenToAttendance(userData.ic);
                     startQRGenerator();
+                    lucide.createIcons();
                 }, 1200);
             }
         } else {
@@ -557,13 +561,13 @@
                 const data = snapshot.docs[0].data();
                 isAttendedToday = true;
                 if(qrUpdateInterval) { clearInterval(qrUpdateInterval); qrUpdateInterval = null; }
-                const status = data.status;
+                const status = data.status || data.s; 
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status === "hadir" ? "status-hadir" : "status-lewat");
                 qrcEl.style.opacity = "0.3";
                 instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
                 timerEl.innerText = "SIGNED IN";
-                const timestamp = data.timestamp;
+                const timestamp = data.timestamp || data.t; 
                 if (timestamp) {
                     const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
                     timeEl.innerText = d.toLocaleString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
@@ -681,12 +685,11 @@
 
     window.switchTab = (tabId, el) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
         document.getElementById(tabId).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
         el.classList.add('active-nav');
     }
-
-    lucide.createIcons();
 </script>
+
 </body>
 </html>
