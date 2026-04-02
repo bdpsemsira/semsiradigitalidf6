@@ -66,7 +66,7 @@
         .container {
             max-width: 900px;
             margin: 0 auto;
-            display: none; /* 验证前隐藏 */
+            display: none;
         }
 
         .header {
@@ -95,17 +95,49 @@
             font-weight: bold;
         }
 
-        .semester-section { margin-bottom: 40px; }
+        .semester-section { margin-bottom: 20px; }
 
+        /* 可折叠标题样式 */
         .section-title {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-left: 5px solid var(--primary);
-            background: rgba(0, 122, 255, 0.05);
-            border-radius: 0 10px 10px 0;
+            padding: 12px 15px;
+            background: var(--card);
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: background 0.3s;
+        }
+
+        .section-title:hover {
+            background: #f9f9fb;
+        }
+
+        .title-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chevron-icon {
+            transition: transform 0.3s;
+            color: var(--primary);
+        }
+
+        /* 旋转箭头 */
+        .collapsed .chevron-icon {
+            transform: rotate(-90deg);
+        }
+
+        /* 折叠内容容器 */
+        .collapsible-content {
+            padding-top: 15px;
+            display: block; /* 默认展开 */
+        }
+
+        .collapsed + .collapsible-content {
+            display: none; /* 收起 */
         }
 
         .count-tag {
@@ -114,14 +146,13 @@
             padding: 2px 10px;
             border-radius: 10px;
             font-size: 13px;
-            margin-left: 10px;
         }
 
         .btn-delete-all {
             background: var(--danger);
             color: white; border: none;
-            padding: 8px 15px; border-radius: 8px;
-            font-size: 12px; font-weight: bold;
+            padding: 8px 12px; border-radius: 8px;
+            font-size: 11px; font-weight: bold;
             cursor: pointer; display: flex; align-items: center; gap: 5px;
         }
 
@@ -179,29 +210,35 @@
     <div id="loading" class="loading">Memuatkan data...</div>
 
     <div class="semester-section" id="section-sem1" style="display:none;">
-        <div class="section-title">
-            <div style="display:flex; align-items:center;">
-                <h2 style="margin:0; font-size:18px;">Semester 1</h2>
-                <span class="count-tag" id="count-sem1">0 Pelajar</span>
+        <div class="section-title" onclick="toggleSection('section-sem1')">
+            <div class="title-left">
+                <i data-lucide="chevron-down" class="chevron-icon"></i>
+                <h2 style="margin:0; font-size:17px;">Semester 1</h2>
+                <span class="count-tag" id="count-sem1">0</span>
             </div>
-            <button class="btn-delete-all" onclick="deleteWholeSemester('1')">
+            <button class="btn-delete-all" onclick="event.stopPropagation(); deleteWholeSemester('1')">
                 <i data-lucide="trash-2"></i> Padam Semua
             </button>
         </div>
-        <div class="student-grid" id="grid-sem1"></div>
+        <div class="collapsible-content">
+            <div class="student-grid" id="grid-sem1"></div>
+        </div>
     </div>
 
     <div class="semester-section" id="section-sem2" style="display:none;">
-        <div class="section-title">
-            <div style="display:flex; align-items:center;">
-                <h2 style="margin:0; font-size:18px;">Semester 2</h2>
-                <span class="count-tag" id="count-sem2">0 Pelajar</span>
+        <div class="section-title collapsed" onclick="toggleSection('section-sem2')">
+            <div class="title-left">
+                <i data-lucide="chevron-down" class="chevron-icon"></i>
+                <h2 style="margin:0; font-size:17px;">Semester 2</h2>
+                <span class="count-tag" id="count-sem2">0</span>
             </div>
-            <button class="btn-delete-all" onclick="deleteWholeSemester('2')">
+            <button class="btn-delete-all" onclick="event.stopPropagation(); deleteWholeSemester('2')">
                 <i data-lucide="trash-2"></i> Padam Semua
             </button>
         </div>
-        <div class="student-grid" id="grid-sem2"></div>
+        <div class="collapsible-content">
+            <div class="student-grid" id="grid-sem2"></div>
+        </div>
     </div>
 </div>
 
@@ -221,7 +258,12 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 验证逻辑
+    // 展开/收起功能
+    window.toggleSection = (id) => {
+        const titleElement = document.querySelector(`#${id} .section-title`);
+        titleElement.classList.toggle('collapsed');
+    };
+
     window.checkAuth = () => {
         const id = document.getElementById('admin-id').value;
         const pw = document.getElementById('admin-pw').value;
@@ -238,7 +280,6 @@
         const grid1 = document.getElementById('grid-sem1');
         const grid2 = document.getElementById('grid-sem2');
         grid1.innerHTML = ""; grid2.innerHTML = "";
-        
         let c1 = 0, c2 = 0;
 
         try {
@@ -250,7 +291,6 @@
             querySnapshot.forEach((document) => {
                 const data = document.data();
                 const id = document.id;
-                
                 const card = `
                     <div class="student-card" id="card-${id}">
                         <button class="btn-delete-single" onclick="deleteStudent('${id}', '${data.name}')">
@@ -264,29 +304,21 @@
                         </div>
                     </div>
                 `;
-
-                if (data.semester === "1") {
-                    grid1.innerHTML += card; c1++;
-                } else {
-                    grid2.innerHTML += card; c2++;
-                }
+                if (data.semester === "1") { grid1.innerHTML += card; c1++; } 
+                else { grid2.innerHTML += card; c2++; }
             });
 
-            // 更新人数统计
-            document.getElementById('count-sem1').innerText = `${c1} Pelajar`;
-            document.getElementById('count-sem2').innerText = `${c2} Pelajar`;
+            document.getElementById('count-sem1').innerText = c1;
+            document.getElementById('count-sem2').innerText = c2;
             document.getElementById('overall-count').innerText = c1 + c2;
-            
             lucide.createIcons();
-        } catch (error) {
-            console.error(error);
-        }
+        } catch (error) { console.error(error); }
     }
 
     window.deleteStudent = async (docId, name) => {
         if (confirm(`Padam data ${name}?`)) {
             await deleteDoc(doc(db, "studentInform", docId));
-            loadStudents(); // 刷新数据和计数
+            loadStudents();
         }
     };
 
@@ -297,7 +329,6 @@
             const batch = writeBatch(db);
             snapshot.forEach(d => batch.delete(d.ref));
             await batch.commit();
-            alert("Selesai dipadam.");
             loadStudents();
         }
     };
