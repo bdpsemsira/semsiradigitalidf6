@@ -443,6 +443,7 @@
         const layer = document.getElementById('watermark-layer');
         if(!layer) return;
         layer.innerHTML = "";
+        layer.style.display = "flex";
         for (let i = 0; i < 40; i++) {
             const item = document.createElement('div');
             item.className = 'watermark-item';
@@ -685,11 +686,10 @@
 
     window.switchTab = (tabId, el) => {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active-nav'));
         document.getElementById(tabId).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
         el.classList.add('active-nav');
     }
 </script>
-
 </body>
 </html>
