@@ -3,120 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semsira Admin - Data Cleanup</title>
+    <title>Semsira - Rekod Kehadiran</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f4f4f9; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin-bottom: 20px; }
-        h2 { font-size: 18px; color: #333; margin-top: 0; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 5px; }
-        .btn-date { background: #007AFF; color: white; }
-        .btn-month { background: #5856D6; color: white; }
-        .btn-student { background: #FF9500; color: white; }
-        .btn-delete:hover { opacity: 0.8; }
-        #status { margin-top: 10px; font-size: 14px; color: #666; text-align: center; }
+        :root { --ios-blue: #007AFF; --ios-bg: #F2F2F7; }
+        body { font-family: -apple-system, sans-serif; background: var(--ios-bg); margin: 0; color: #1c1c1e; }
+        
+        /* Header & Breadcrumbs */
+        .nav-header { background: white; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .breadcrumbs { font-size: 14px; color: var(--ios-blue); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .breadcrumbs span:last-child { color: #8e8e93; cursor: default; }
+
+        /* Stats Card */
+        .stats-bar { display: flex; gap: 10px; padding: 15px; }
+        .stat-card { flex: 1; background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-card h4 { margin: 0; font-size: 12px; color: #8e8e93; text-transform: uppercase; }
+        .stat-card p { margin: 5px 0 0; font-size: 20px; font-weight: bold; color: #1c1c1e; }
+
+        /* List Styling */
+        .container { padding: 15px; }
+        .list-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .list-item:active { background: #ebebeb; }
+        .item-info h3 { margin: 0; font-size: 16px; }
+        .item-info p { margin: 3px 0 0; font-size: 13px; color: #8e8e93; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .badge-hadir { background: #EAF9EE; color: #34C759; }
+        .badge-lewat { background: #FFF4E5; color: #FF9500; }
+
+        .hidden { display: none; }
+        .loading { text-align: center; padding: 50px; color: #8e8e93; }
     </style>
 </head>
 <body>
 
-    <img src="/semsira.png" style="width: 60px; margin-bottom: 10px; border-radius: 12px;">
-    <h1 style="font-size: 20px;">Pengurusan Data Attendance</h1>
-
-    <div class="card">
-        <h2>1. Padam Mengikut Tarikh</h2>
-        <input type="date" id="input-date">
-        <button class="btn-date" onclick="deleteByDate()">Padam Hari Ini</button>
+<div class="nav-header">
+    <div id="breadcrumb-container" class="breadcrumbs">
+        <span onclick="showYears()">Koleksi</span>
     </div>
+</div>
 
-    <div class="card">
-        <h2>2. Padam Mengikut Bulan</h2>
-        <input type="month" id="input-month">
-        <button class="btn-month" onclick="deleteByMonth()">Padam Seluruh Bulan</button>
+<div class="container">
+    <div id="loading-spinner" class="loading">Memuatkan data...</div>
+
+    <div id="view-years" class="hidden"></div>
+
+    <div id="view-months" class="hidden"></div>
+
+    <div id="view-days" class="hidden"></div>
+
+    <div id="view-details" class="hidden">
+        <div class="stats-bar">
+            <div class="stat-card"><h4>Hadir</h4><p id="count-hadir">0</p></div>
+            <div class="stat-card"><h4>Lewat</h4><p id="count-lewat">0</p></div>
+        </div>
+        <div id="student-list"></div>
     </div>
+</div>
 
-    <div class="card">
-        <h2>3. Padam Rekod Pelajar (IC)</h2>
-        <input type="text" id="input-ic" placeholder="Contoh: 050101020304">
-        <button class="btn-student" onclick="deleteByIC()">Padam Rekod Pelajar</button>
-    </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <div id="status">Sila pilih tindakan.</div>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+        authDomain: "bdpsemsira-5c274.firebaseapp.com",
+        projectId: "bdpsemsira-5c274",
+        storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+        messagingSenderId: "176946808975",
+        appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+    };
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, where, getDocs, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    let allLogs = [];
+    const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "OGOS", "SEPT", "OKT", "NOV", "DIS"];
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
-            authDomain: "bdpsemsira-5c274.firebaseapp.com",
-            projectId: "bdpsemsira-5c274",
-            storageBucket: "bdpsemsira-5c274.firebasestorage.app",
-            messagingSenderId: "176946808975",
-            appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
-        };
+    // 1. 获取所有数据并分类
+    async function fetchData() {
+        const q = query(collection(db, "attendanceLogs"), orderBy("timestamp", "desc"));
+        const snap = await getDocs(q);
+        allLogs = snap.docs.map(doc => doc.data());
+        document.getElementById('loading-spinner').classList.add('hidden');
+        showYears();
+    }
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    // 2. 显示年份视图
+    window.showYears = () => {
+        updateBreadcrumbs([]);
+        switchView('view-years');
+        const years = [...new Set(allLogs.map(log => log.date.split('-')[0]))].sort().reverse();
+        document.getElementById('view-years').innerHTML = years.map(y => `
+            <div class="list-item" onclick="showMonths('${y}')">
+                <div class="item-info"><h3>Tahun ${y}</h3><p>Rekod tersimpan</p></div>
+                <i data-lucide="chevron-right"></i>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    };
 
-        // 通用批量删除函数
-        async function performBatchDelete(q, actionName) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerText = `Sedang mencari data...`;
-            
-            try {
-                const querySnapshot = await getDocs(q);
-                if (querySnapshot.empty) {
-                    statusDiv.innerText = `Tiada data dijumpai untuk ${actionName}.`;
-                    return;
-                }
+    // 3. 显示月份视图
+    window.showMonths = (year) => {
+        updateBreadcrumbs([year]);
+        switchView('view-months');
+        const months = [...new Set(allLogs.filter(l => l.date.startsWith(year)).map(l => l.date.split('-')[1]))].sort();
+        document.getElementById('view-months').innerHTML = months.map(m => `
+            <div class="list-item" onclick="showDays('${year}', '${m}')">
+                <div class="item-info"><h3>${monthNames[parseInt(m)-1]}</h3></div>
+                <i data-lucide="chevron-right"></i>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    };
 
-                if (!confirm(`Jumpa ${querySnapshot.size} rekod. Sahkan untuk PADAM?`)) {
-                    statusDiv.innerText = "Tindakan dibatalkan.";
-                    return;
-                }
+    // 4. 显示日期视图
+    window.showDays = (year, month) => {
+        updateBreadcrumbs([year, monthNames[parseInt(month)-1]]);
+        switchView('view-days');
+        const days = [...new Set(allLogs.filter(l => l.date.startsWith(`${year}-${month}`)).map(l => l.date))].sort().reverse();
+        document.getElementById('view-days').innerHTML = days.map(d => `
+            <div class="list-item" onclick="showDetails('${d}')">
+                <div class="item-info"><h3>Hari: ${d.split('-')[2]}</h3><p>${d}</p></div>
+                <i data-lucide="chevron-right"></i>
+            </div>
+        `).join('');
+        lucide.createIcons();
+    };
 
-                const batch = writeBatch(db);
-                querySnapshot.forEach((document) => {
-                    batch.delete(document.ref);
-                });
+    // 5. 显示最终名单视图
+    window.showDetails = (fullDate) => {
+        const parts = fullDate.split('-');
+        updateBreadcrumbs([parts[0], monthNames[parseInt(parts[1])-1], parts[2]]);
+        switchView('view-details');
+        
+        const students = allLogs.filter(l => l.date === fullDate);
+        const hadir = students.filter(s => s.status === "Hadir").length;
+        const lewat = students.filter(s => s.status === "Lewat").length;
 
-                await batch.commit();
-                statusDiv.innerText = `Berjaya! ${querySnapshot.size} rekod telah dipadam.`;
-            } catch (error) {
-                console.error(error);
-                statusDiv.innerText = "Ralat: " + error.message;
-            }
-        }
+        document.getElementById('count-hadir').innerText = hadir;
+        document.getElementById('count-lewat').innerText = lewat;
+        
+        document.getElementById('student-list').innerHTML = students.map(s => `
+            <div class="list-item">
+                <div class="item-info">
+                    <h3>${s.name}</h3>
+                    <p>${s.className} • ${s.timeFull.split(',')[1] || s.timeFull}</p>
+                </div>
+                <span class="badge ${s.status === 'Hadir' ? 'badge-hadir' : 'badge-lewat'}">${s.status}</span>
+            </div>
+        `).join('');
+    };
 
-        // 1. 按日期删除逻辑
-        window.deleteByDate = async () => {
-            const dateVal = document.getElementById('input-date').value; // 格式: YYYY-MM-DD
-            if (!dateVal) return alert("Sila pilih tarikh!");
-            const q = query(collection(db, "attendanceLogs"), where("date", "==", dateVal));
-            await performBatchDelete(q, dateVal);
-        };
+    // 辅助函数
+    function switchView(viewId) {
+        ['view-years', 'view-months', 'view-days', 'view-details'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(viewId).classList.remove('hidden');
+    }
 
-        // 2. 按月份删除逻辑
-        window.deleteByMonth = async () => {
-            const monthVal = document.getElementById('input-month').value; // 格式: YYYY-MM
-            if (!monthVal) return alert("Sila pilih bulan!");
-            
-            // 查询所有以该月份开头的日期数据
-            const q = query(
-                collection(db, "attendanceLogs"), 
-                where("date", ">=", `${monthVal}-01`),
-                where("date", "<=", `${monthVal}-31`)
-            );
-            await performBatchDelete(q, `Bulan ${monthVal}`);
-        };
+    function updateBreadcrumbs(pathArray) {
+        let html = `<span onclick="showYears()">Koleksi</span>`;
+        if (pathArray.length >= 1) html += ` <i data-lucide="chevron-right" style="width:14px"></i> <span onclick="showMonths('${pathArray[0]}')">${pathArray[0]}</span>`;
+        if (pathArray.length >= 2) html += ` <i data-lucide="chevron-right" style="width:14px"></i> <span onclick="showDays('${pathArray[0]}', '${(monthNames.indexOf(pathArray[1])+1).toString().padStart(2,'0')}')">${pathArray[1]}</span>`;
+        if (pathArray.length >= 3) html += ` <i data-lucide="chevron-right" style="width:14px"></i> <span>${pathArray[2]}</span>`;
+        document.getElementById('breadcrumb-container').innerHTML = html;
+        lucide.createIcons();
+    }
 
-        // 3. 按 IC 删除逻辑
-        window.deleteByIC = async () => {
-            const icVal = document.getElementById('input-ic').value.trim();
-            if (!icVal) return alert("Sila masukkan IC!");
-            const q = query(collection(db, "attendanceLogs"), where("ic", "==", icVal));
-            await performBatchDelete(q, `IC ${icVal}`);
-        };
-    </script>
+    fetchData();
+</script>
+
 </body>
 </html>
