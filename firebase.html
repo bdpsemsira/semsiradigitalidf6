@@ -22,49 +22,107 @@
             color: #1c1c1e;
         }
 
+        /* 登录遮罩层 */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 300px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .btn-login {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
         .container {
             max-width: 900px;
             margin: 0 auto;
+            display: none; /* 验证前隐藏 */
         }
 
         .header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 15px;
             margin-bottom: 30px;
         }
 
-        .header img {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
-        .semester-section {
-            margin-bottom: 40px;
+        .header img {
+            width: 50px; height: 50px; border-radius: 12px;
         }
+
+        .total-badge {
+            background: var(--primary);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .semester-section { margin-bottom: 40px; }
 
         .section-title {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 10px;
+            padding: 10px;
             margin-bottom: 15px;
             border-left: 5px solid var(--primary);
+            background: rgba(0, 122, 255, 0.05);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .count-tag {
+            background: #E5E5EA;
+            color: #3a3a3c;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-left: 10px;
         }
 
         .btn-delete-all {
             background: var(--danger);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            color: white; border: none;
+            padding: 8px 15px; border-radius: 8px;
+            font-size: 12px; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
         }
 
         .student-grid {
@@ -79,75 +137,55 @@
             padding: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             position: relative;
-            transition: transform 0.2s;
         }
 
-        .student-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .student-info h4 {
-            margin: 0 0 5px 0;
-            color: #000;
-            font-size: 16px;
-            padding-right: 30px;
-        }
-
-        .student-info p {
-            margin: 2px 0;
-            font-size: 13px;
-            color: #8e8e93;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 5px;
-            font-size: 11px;
-            background: #E5E5EA;
-            margin-top: 5px;
-        }
+        .student-info h4 { margin: 0 0 5px 0; font-size: 16px; padding-right: 30px;}
+        .student-info p { margin: 2px 0; font-size: 13px; color: #8e8e93; }
 
         .btn-delete-single {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            color: #C7C7CC;
-            border: none;
-            background: none;
-            cursor: pointer;
-            transition: color 0.2s;
+            position: absolute; top: 15px; right: 15px;
+            color: #C7C7CC; border: none; background: none; cursor: pointer;
         }
+        .btn-delete-single:hover { color: var(--danger); }
 
-        .btn-delete-single:hover {
-            color: var(--danger);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: #8e8e93;
-        }
+        .loading { text-align: center; padding: 50px; color: #8e8e93; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div id="login-overlay">
+    <div class="login-box">
+        <img src="/semsira.png" style="width:60px; margin-bottom:10px;">
+        <h3>Admin Login</h3>
+        <input type="text" id="admin-id" placeholder="ID Admin">
+        <input type="password" id="admin-pw" placeholder="Password">
+        <button class="btn-login" onclick="checkAuth()">Login</button>
+        <p id="login-err" style="color:red; font-size:12px; display:none; margin-top:10px;">ID atau Password Salah!</p>
+    </div>
+</div>
+
+<div class="container" id="main-content">
     <div class="header">
-        <img src="/semsira.png" alt="Logo">
-        <div>
-            <h1 style="margin:0; font-size: 24px;">Pengurusan Data Pelajar</h1>
-            <p style="margin:0; color: #8e8e93;">Urus maklumat mengikut Semester</p>
+        <div class="header-left">
+            <img src="/semsira.png" alt="Logo">
+            <div>
+                <h1 style="margin:0; font-size: 20px;">Pengurusan Pelajar</h1>
+                <p style="margin:0; color: #8e8e93; font-size: 12px;">Sistem Pengurusan Semsira</p>
+            </div>
         </div>
+        <div class="total-badge">Total: <span id="overall-count">0</span></div>
     </div>
 
-    <div id="loading" class="loading">Memuatkan data pelajar...</div>
+    <div id="loading" class="loading">Memuatkan data...</div>
 
     <div class="semester-section" id="section-sem1" style="display:none;">
         <div class="section-title">
-            <h2>Semester 1</h2>
+            <div style="display:flex; align-items:center;">
+                <h2 style="margin:0; font-size:18px;">Semester 1</h2>
+                <span class="count-tag" id="count-sem1">0 Pelajar</span>
+            </div>
             <button class="btn-delete-all" onclick="deleteWholeSemester('1')">
-                <i data-lucide="trash-2"></i> Padam Semua (Graduasi)
+                <i data-lucide="trash-2"></i> Padam Semua
             </button>
         </div>
         <div class="student-grid" id="grid-sem1"></div>
@@ -155,9 +193,12 @@
 
     <div class="semester-section" id="section-sem2" style="display:none;">
         <div class="section-title">
-            <h2>Semester 2</h2>
+            <div style="display:flex; align-items:center;">
+                <h2 style="margin:0; font-size:18px;">Semester 2</h2>
+                <span class="count-tag" id="count-sem2">0 Pelajar</span>
+            </div>
             <button class="btn-delete-all" onclick="deleteWholeSemester('2')">
-                <i data-lucide="trash-2"></i> Padam Semua (Graduasi)
+                <i data-lucide="trash-2"></i> Padam Semua
             </button>
         </div>
         <div class="student-grid" id="grid-sem2"></div>
@@ -180,23 +221,29 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 验证逻辑
+    window.checkAuth = () => {
+        const id = document.getElementById('admin-id').value;
+        const pw = document.getElementById('admin-pw').value;
+        if(id === "semsiraadmin" && pw === "pw123") {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            loadStudents();
+        } else {
+            document.getElementById('login-err').style.display = 'block';
+        }
+    };
+
     async function loadStudents() {
-        const loading = document.getElementById('loading');
         const grid1 = document.getElementById('grid-sem1');
         const grid2 = document.getElementById('grid-sem2');
+        grid1.innerHTML = ""; grid2.innerHTML = "";
         
-        grid1.innerHTML = "";
-        grid2.innerHTML = "";
-        
+        let c1 = 0, c2 = 0;
+
         try {
             const querySnapshot = await getDocs(collection(db, "studentInform"));
-            
-            if (querySnapshot.empty) {
-                loading.innerText = "Tiada data pelajar dijumpai.";
-                return;
-            }
-
-            loading.style.display = "none";
+            document.getElementById('loading').style.display = "none";
             document.getElementById('section-sem1').style.display = "block";
             document.getElementById('section-sem2').style.display = "block";
 
@@ -213,65 +260,47 @@
                             <h4>${data.name}</h4>
                             <p><strong>ID:</strong> ${data.studentId}</p>
                             <p><strong>Kelas:</strong> ${data.className}</p>
-                            <p><strong>IC:</strong> ${data.ic}</p>
                             <p><strong>Phone:</strong> ${data.phone}</p>
-                            <div class="badge">${data.gender}</div>
                         </div>
                     </div>
                 `;
 
                 if (data.semester === "1") {
-                    grid1.innerHTML += card;
-                } else if (data.semester === "2") {
-                    grid2.innerHTML += card;
+                    grid1.innerHTML += card; c1++;
+                } else {
+                    grid2.innerHTML += card; c2++;
                 }
             });
+
+            // 更新人数统计
+            document.getElementById('count-sem1').innerText = `${c1} Pelajar`;
+            document.getElementById('count-sem2').innerText = `${c2} Pelajar`;
+            document.getElementById('overall-count').innerText = c1 + c2;
             
             lucide.createIcons();
         } catch (error) {
-            console.error("Error loading docs: ", error);
-            loading.innerText = "Ralat memuatkan data.";
+            console.error(error);
         }
     }
 
-    // 删除单个学生
     window.deleteStudent = async (docId, name) => {
-        if (confirm(`Adakah anda pasti ingin memadam data ${name}?`)) {
-            try {
-                await deleteDoc(doc(db, "studentInform", docId));
-                document.getElementById(`card-${docId}`).remove();
-                alert("Data dipadam.");
-            } catch (e) {
-                alert("Gagal memadam data.");
-            }
+        if (confirm(`Padam data ${name}?`)) {
+            await deleteDoc(doc(db, "studentInform", docId));
+            loadStudents(); // 刷新数据和计数
         }
     };
 
-    // 批量删除整个 Semester
     window.deleteWholeSemester = async (sem) => {
-        if (confirm(`PERINGATAN: Adakah anda pasti ingin memadam SEMUA pelajar Semester ${sem}? Tindakan ini tidak boleh dibatalkan.`)) {
-            try {
-                const q = query(collection(db, "studentInform"), where("semester", "==", sem));
-                const snapshot = await getDocs(q);
-                
-                const batch = writeBatch(db);
-                snapshot.forEach((document) => {
-                    batch.delete(document.ref);
-                });
-
-                await batch.commit();
-                alert(`Semua pelajar Semester ${sem} telah berjaya dipadam.`);
-                loadStudents(); // 重新加载页面
-            } catch (e) {
-                console.error(e);
-                alert("Gagal memadam data semester.");
-            }
+        if (confirm(`Padam SEMUA pelajar Semester ${sem}?`)) {
+            const q = query(collection(db, "studentInform"), where("semester", "==", sem));
+            const snapshot = await getDocs(q);
+            const batch = writeBatch(db);
+            snapshot.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            alert("Selesai dipadam.");
+            loadStudents();
         }
     };
-
-    // 初始化加载
-    loadStudents();
 </script>
-
 </body>
 </html>
