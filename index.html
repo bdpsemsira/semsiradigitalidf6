@@ -540,6 +540,7 @@
         const pw = document.getElementById('login-pw').value;
         try { 
             //unlockAudio(); 
+            toast("Berjaya log masuk, sedang berproses");
             await signInWithEmailAndPassword(auth, email, pw); 
         } catch (e) { alert("Gagal: " + e.message); }
     }
@@ -575,6 +576,26 @@
         }
     });
 
+    // 最简单的toast函数（纯原生）
+    function toast(msg) {
+        const div = document.createElement('div');
+        div.textContent = msg;
+        div.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: black;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 99999;
+            font-size: 14px;
+        `;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 2000);
+    }
+    
     function listenToAttendance(studentIc) {
         const todayStr = new Date().toLocaleDateString('en-CA');
         const statusEl = document.getElementById('attendance-status');
@@ -726,6 +747,7 @@
             });
         }
     }
+
     
     // 按 ESC 键关闭
     document.addEventListener('keydown', function(e) {
