@@ -539,7 +539,7 @@
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
         try { 
-            unlockAudio(); 
+            //unlockAudio(); 
             await signInWithEmailAndPassword(auth, email, pw); 
         } catch (e) { alert("Gagal: " + e.message); }
     }
