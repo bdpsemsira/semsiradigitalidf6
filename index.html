@@ -658,7 +658,10 @@
                     const img = document.createElement('img'); img.src = imgMatch[1]; slider.appendChild(img);
                 }
                 if(labels.includes('post')) {
-                    let contentHtml = issue.body.replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">');
+                    let contentHtml = issue.body
+                        .replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">')
+                        .replace(/\n/g, '<br>');  // 将换行符转为 <br>
+
                     list.innerHTML += `<div class="post-card glass"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
                 }
             });
