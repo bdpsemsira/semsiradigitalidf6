@@ -86,6 +86,39 @@
             display: none; flex-direction: column; align-items: center; justify-content: center;
         }
 
+        /* 启动页面样式 */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 20000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        #splash-screen img {
+            width: 100px;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            animation: splashFadeIn 0.8s ease;
+        }
+        @keyframes splashFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .splash-text {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
         .login-logo {
             display: block; margin: 20px auto 10px;
             max-width: 80px; height: auto; border-radius: 15px;
@@ -141,7 +174,7 @@
             overflow: hidden; position: relative; background: #000;
         }
 
-        #poster-slider img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 0.8s; }
+        #poster-slider img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 0.8s; cursor: pointer; }
         #poster-slider img.show { opacity: 1; }
 
         .post-card {
@@ -153,6 +186,7 @@
         .post-card img {
             max-width: 100% !important; height: auto !important;
             border-radius: 10px; margin-top: 8px; display: block;
+            cursor: pointer;
         }
 
         .setting-item {
@@ -199,6 +233,7 @@
         .status-hadir { color: #34C759; }
         .status-lewat { color: #FF9500; }
         .status-time { font-size: 13px; color: #888; font-family: monospace; }
+        
         /* 图片预览模态框 */
         .image-modal {
             display: none;
@@ -248,23 +283,35 @@
         .image-modal-close:hover {
             background: rgba(255,0,0,0.7);
         }
+        
+        /* 保持公告内容的换行 */
+        .post-card div {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
 <audio id="beep-sound" src="https://bdpsemsira.github.io/semsiradigitalidf6/beep.mp3" preload="auto" playsinline></audio>
 
+<!-- 启动页面 Splash Screen -->
+<div id="splash-screen">
+    <img src="/semsira.png" alt="Semsira">
+    <div class="splash-text">SEMSIRA Digital ID</div>
+</div>
+
 <div id="loading-overlay">
     <div class="glass" style="padding: 30px; text-align: center; border-radius: 20px;">
         <img src="/semsira.png" style="width: 60px; border-radius: 12px; margin-bottom: 15px;">
-        <div style="font-weight: 600; font-size: 18px;">Logging in...</div>
+        <div style="font-weight: 600; font-size: 18px;">Memuatkan...</div>
         <div style="font-size: 12px; color: #888; margin-top: 5px;">Semsira Digital ID</div>
     </div>
 </div>
 
 <div id="watermark-layer"></div>
 
-<div id="page-login" class="page active">
+<div id="page-login" class="page">
     <img src="/semsira.png" alt="Logo" class="login-logo">
     <h2 style="text-align:center">Log Masuk</h2>
     <div class="glass" style="padding:20px">
@@ -274,6 +321,7 @@
         <p style="text-align:center; font-size:14px; color: var(--primary); cursor: pointer;" onclick="showPage('page-register')">Tiada akaun? Daftar sekarang</p>
     </div>
 </div>
+
 <!-- 图片预览模态框 -->
 <div id="imageModal" class="image-modal" onclick="closeImageModal()">
     <span class="image-modal-close">&times;</span>
@@ -417,6 +465,103 @@
     let attendanceListenerUnsubscribe = null;
     let isAudioUnlocked = false; 
 
+    // 返回键历史管理
+    let currentTabId = 'tab-home';
+    window.history.pushState({ tab: 'tab-home' }, '');
+    window.addEventListener('popstate', handleBackButton);
+
+    function handleBackButton(event) {
+        const mainApp = document.getElementById('main-app');
+        const isLoggedIn = mainApp && mainApp.style.display === 'block';
+        
+        if (!isLoggedIn) {
+            // 未登录时，直接退出
+            showExitConfirm();
+            return;
+        }
+        
+        // 获取当前显示的页面
+        let activePageId = 'tab-home';
+        if (document.getElementById('tab-home').classList.contains('active')) activePageId = 'tab-home';
+        else if (document.getElementById('tab-scan').classList.contains('active')) activePageId = 'tab-scan';
+        else if (document.getElementById('tab-account').classList.contains('active')) activePageId = 'tab-account';
+        
+        if (activePageId === 'tab-home') {
+            // 在 Utama 页面，询问是否退出
+            showExitConfirm();
+        } else {
+            // 在 Imbas 或 Akaun 页面，返回 Utama
+            const homeNav = document.querySelector('.nav-item[onclick*="tab-home"]');
+            if (homeNav) switchTab('tab-home', homeNav);
+            // 修正历史记录
+            window.history.pushState({ tab: 'tab-home' }, '');
+        }
+    }
+    
+    function showExitConfirm() {
+        if (confirm("Anda pasti mahu keluar dari aplikasi?")) {
+            // 退出应用: 对于PWA或浏览器，关闭页面或返回上一页
+            window.history.back();
+            setTimeout(() => {
+                window.close();
+                // 如果无法关闭，尝试退出到空白页
+                if (window.history.length > 1) window.history.go(-1);
+                else document.body.innerHTML = '<div style="text-align:center;padding:50px">Aplikasi ditutup. Sila tutup tab ini.</div>';
+            }, 100);
+        } else {
+            // 取消退出，重新推入状态
+            window.history.pushState({ tab: currentTabId }, '');
+        }
+    }
+
+    // 增强版 Telegram 警报 (更详细格式)
+    async function sendTelegramAlert(userData, currentUid, intruderDeviceId = null) {
+        const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
+        const chatId = "@semsirasecurity29482910472"; 
+        let currentDeviceId = intruderDeviceId || localStorage.getItem('semsira_device_id');
+        let intruderData = { name: "Tidak Dikenali", studentId: "Unknown", ic: "Unknown", className: "Unknown", phone: "undefined" };
+        try {
+            const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
+            const intruderSnap = await getDocs(qIntruder);
+            if (!intruderSnap.empty) { intruderData = intruderSnap.docs[0].data(); }
+        } catch (e) { console.error(e); }
+        
+        const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan Peranti)*\n\n` +
+            `🚨 *${intruderData.name || "Tidak Dikenali"}* sedang mencuba menceroboh akaun *${userData.name || "Mangsa"}*!\n\n` +
+            `👤 *PEMILIK AKAUN (MANGSA):*\n` +
+            `• Nama: ${userData.name || "-"}\n` +
+            `• No. Matrik: ${userData.studentId || "-"}\n` +
+            `• IC: ${userData.ic || "-"}\n` +
+            `• Kelas: ${userData.className || "-"}\n` +
+            `• No. Tel: ${userData.phone || "-"}\n\n` +
+            `🚫 *IDENTITI PENCEROBOH:*\n` +
+            `• Nama: ${intruderData.name || "Tidak Dikenali"}\n` +
+            `• No. Matrik: ${intruderData.studentId || "Unknown"}\n` +
+            `• IC: ${intruderData.ic || "Unknown"}\n` +
+            `• Kelas: ${intruderData.className || "Unknown"}\n` +
+            `• No. Tel: ${intruderData.phone || "undefined"}\n\n` +
+            `📱 *Device ID Penceroboh:* ${currentDeviceId || "Tidak diketahui"}\n\n` +
+            `Akses telah disekat secara automatik.`;
+            
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        try { await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }) }); } catch (e) { console.error(e); }
+    }
+
+    // 修改 verifyDevice 使用增强警报
+    async function verifyDevice(user, userData) {
+        let deviceId = localStorage.getItem('semsira_device_id');
+        if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now(); localStorage.setItem('semsira_device_id', deviceId); }
+        const studentRef = doc(db, COLLECTION_NAME, user.uid);
+        if (!userData.registeredDeviceId) { await updateDoc(studentRef, { registeredDeviceId: deviceId }); return true; } 
+        if (userData.registeredDeviceId !== deviceId) { 
+            await sendTelegramAlert(userData, user.uid, deviceId); 
+            alert("⚠️ Akaun ini terikat pada peranti lain. Akses disekat.");
+            handleLogout(); 
+            return false; 
+        }
+        return true;
+    }
+
     // --- 核心修复：解锁音频 & 显示二维码 ---
     window.startSystem = () => {
         const sound = document.getElementById('beep-sound');
@@ -467,30 +612,6 @@
         return isK1 ? semK1 : semK2;
     }
 
-    async function sendTelegramAlert(userData, currentUid) {
-        const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
-        const chatId = "@semsirasecurity29482910472"; 
-        let currentDeviceId = localStorage.getItem('semsira_device_id');
-        let intruderData = { name: "Tidak Dikenali" };
-        try {
-            const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
-            const intruderSnap = await getDocs(qIntruder);
-            if (!intruderSnap.empty) { intruderData = intruderSnap.docs[0].data(); }
-        } catch (e) { console.error(e); }
-        const message = `⚠️ *AMARAN KESELAMATAN*\n🚨 *${intruderData.name}* mencuba menceroboh akaun *${userData.name}*!`;
-        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        try { await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }) }); } catch (e) { console.error(e); }
-    }
-
-    async function verifyDevice(user, userData) {
-        let deviceId = localStorage.getItem('semsira_device_id');
-        if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now(); localStorage.setItem('semsira_device_id', deviceId); }
-        const studentRef = doc(db, COLLECTION_NAME, user.uid);
-        if (!userData.registeredDeviceId) { await updateDoc(studentRef, { registeredDeviceId: deviceId }); return true; } 
-        if (userData.registeredDeviceId !== deviceId) { await sendTelegramAlert(userData, user.uid); alert("Akaun ini terikat pada peranti lain."); handleLogout(); return false; }
-        return true;
-    }
-
     // 水印显示函数
     function applyWatermark(info) {
         const layer = document.getElementById('watermark-layer');
@@ -539,7 +660,6 @@
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
         try { 
-            //unlockAudio(); 
             toast("Berjaya log masuk, sedang berproses");
             await signInWithEmailAndPassword(auth, email, pw); 
         } catch (e) { alert("Gagal: " + e.message); }
@@ -547,8 +667,20 @@
 
     window.handleLogout = () => { if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe(); signOut(auth).then(() => location.reload()); }
 
+    // 启动页逻辑: 检查登录状态后隐藏splash
+    setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.opacity = '0';
+        setTimeout(() => {
+            if (splash) splash.style.display = 'none';
+        }, 500);
+    }, 1500);
+    
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.display = 'none';
+        
         if (user) {
             loadingOverlay.style.display = 'flex';
             const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
@@ -561,36 +693,28 @@
                     document.getElementById('page-register').classList.remove('active');
                     document.getElementById('main-app').style.display = 'block';
                     loadingOverlay.style.display = 'none';
-                    
-                    // 初始化水印但不显示，由 switchTab 控制
                     applyWatermark(`${userData.name} (${userData.ic})`);
-                    
                     loadHomeData(); setupAccountPage(); listenToAttendance(userData.ic);
                     lucide.createIcons();
+                    // 重置历史状态
+                    window.history.pushState({ tab: 'tab-home' }, '');
                 }, 1200);
             }
         } else {
             loadingOverlay.style.display = 'none';
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('page-login').classList.add('active');
+            document.getElementById('page-register').classList.remove('active');
         }
     });
 
-    // 最简单的toast函数（纯原生）
     function toast(msg) {
         const div = document.createElement('div');
         div.textContent = msg;
         div.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: black;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 99999;
-            font-size: 14px;
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: black; color: white; padding: 10px 20px; border-radius: 8px;
+            z-index: 99999; font-size: 14px; font-family: system-ui;
         `;
         document.body.appendChild(div);
         setTimeout(() => div.remove(), 2000);
@@ -613,14 +737,11 @@
                     const sound = document.getElementById('beep-sound');
                     sound.play().catch(err => console.log("Play failed: ", err));
                 }
-                
                 const data = snapshot.docs[0].data();
                 isAttendedToday = true;
                 if(qrUpdateInterval) { clearInterval(qrUpdateInterval); qrUpdateInterval = null; }
-                
                 const overlay = document.getElementById('qr-unlock-overlay');
                 if(overlay) overlay.style.display = 'none';
-
                 const status = data.status;
                 statusEl.innerText = status.toUpperCase();
                 statusEl.className = "status-text " + (status.toLowerCase() === "hadir" ? "status-hadir" : "status-lewat");
@@ -660,8 +781,7 @@
                 if(labels.includes('post')) {
                     let contentHtml = issue.body
                         .replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">')
-                        .replace(/\n/g, '<br>');  // 将换行符转为 <br>
-
+                        .replace(/\n/g, '<br>');
                     list.innerHTML += `<div class="post-card glass"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
                 }
             });
@@ -671,7 +791,6 @@
                 setInterval(() => { imgs[current].classList.remove('show'); current = (current + 1) % imgs.length; imgs[current].classList.add('show'); }, 5000);
             }
             bindImageClickEvents();
-            // ✅ 可选：监听动态内容变化，自动绑定新图片
             const observer = new MutationObserver(() => bindImageClickEvents());
             observer.observe(list, { childList: true, subtree: true });
         } catch (e) { console.error(e); }
@@ -680,9 +799,7 @@
     let qr;
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
-        if (!qr) { 
-            qr = new QRCode(qrContainer, { width: 200, height: 200 }); 
-        }
+        if (!qr) { qr = new QRCode(qrContainer, { width: 200, height: 200 }); }
         const updateQR = () => {
             if (isAttendedToday) { if(qrUpdateInterval) clearInterval(qrUpdateInterval); return; }
             const now = new Date();
@@ -725,15 +842,15 @@
         const modal = document.getElementById('imageModal');
         const modalImg = document.getElementById('modalImage');
         if (!modal || !modalImg) return;
-        modalImg.src = imgSrc;          // 设置大图地址
-        modal.classList.add('active-modal'); // 显示弹窗
+        modalImg.src = imgSrc;
+        modal.classList.add('active-modal');
     };
 
     window.closeImageModal = function() {
         const modal = document.getElementById('imageModal');
         if (modal) modal.classList.remove('active-modal');
     };
-    // 只为 Pengumuman 区域的图片绑定点击事件
+    
     function bindImageClickEvents() {
         const annList = document.getElementById('announcements-list');
         if (annList) {
@@ -751,12 +868,8 @@
         }
     }
 
-    
-    // 按 ESC 键关闭
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeImageModal();
-        }
+        if (e.key === 'Escape') closeImageModal();
     });
 
     window.showPage = (id) => { 
@@ -765,21 +878,17 @@
         document.getElementById(id).classList.add('active'); 
     };
 
-    // 核心修复：更新 switchTab，仅在 Scan 页面显示水印
     window.switchTab = (id, el) => {
         unlockAudio();
+        currentTabId = id;
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
         el.classList.add('active-nav');
-
         const watermarkLayer = document.getElementById('watermark-layer');
-        if (id === 'tab-scan') {
-            watermarkLayer.style.display = 'flex';
-        } else {
-            watermarkLayer.style.display = 'none';
-        }
+        if (id === 'tab-scan') watermarkLayer.style.display = 'flex';
+        else watermarkLayer.style.display = 'none';
+        window.history.pushState({ tab: id }, '');
     };
 </script>
 </body>
