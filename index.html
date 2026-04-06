@@ -319,6 +319,18 @@
         <input type="password" id="login-pw" placeholder="Kata Laluan">
         <button onclick="handleLogin()">Log Masuk</button>
         <p style="text-align:center; font-size:14px; color: var(--primary); cursor: pointer;" onclick="showPage('page-register')">Tiada akaun? Daftar sekarang</p>
+        <p style="text-align:center; font-size:14px; color: var(--primary); cursor: pointer; margin-top: 5px;" onclick="showForgotPassword()">Lupa kata laluan?</p>
+    </div>
+</div>
+
+<!-- 忘记密码弹窗 -->
+<div id="forgotPasswordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:30000; align-items:center; justify-content:center;">
+    <div class="glass" style="width:85%; max-width:300px; padding:24px; margin:auto; text-align:center;">
+        <h3 style="margin-bottom:15px;">Reset Kata Laluan</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:15px;">Masukkan emel Gmail anda. Kami akan hantar pautan reset.</p>
+        <input type="email" id="reset-email" placeholder="Gmail" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:15px;">
+        <button onclick="sendPasswordReset()" style="margin-top:0;">Hantar Email</button>
+        <button onclick="closeForgotPassword()" style="background:#8E8E93; margin-top:10px;">Tutup</button>
     </div>
 </div>
 
@@ -439,7 +451,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -588,7 +600,41 @@
             }).catch(e => {});
         }
     }
-
+    // 忘记密码功能
+    window.showForgotPassword = () => {
+        document.getElementById('forgotPasswordModal').style.display = 'flex';
+    };
+    
+    window.closeForgotPassword = () => {
+        document.getElementById('forgotPasswordModal').style.display = 'none';
+        document.getElementById('reset-email').value = '';
+    };
+    
+    window.sendPasswordReset = async () => {
+        const email = document.getElementById('reset-email').value.trim();
+        
+        if (!email) {
+            toast("Sila masukkan emel Gmail anda");
+            return;
+        }
+        
+        try {
+            // Firebase 内置的密码重置功能
+            await sendPasswordResetEmail(auth, email);
+            toast("✅ Email reset telah dihantar! Sila periksa inbox/spam anda.");
+            closeForgotPassword();
+        } catch (error) {
+            console.error("Reset error:", error);
+            if (error.code === 'auth/user-not-found') {
+                toast("❌ Emel ini tidak didaftarkan");
+            } else if (error.code === 'auth/invalid-email') {
+                toast("❌ Emel tidak sah");
+            } else {
+                toast("❌ Gagal: " + error.message);
+            }
+        }
+    };
+    
     window.toggleDarkMode = () => {
         const isDark = document.getElementById('dark-mode-toggle').checked;
         document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
