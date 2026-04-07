@@ -274,6 +274,9 @@
     const sem1Classes = ["6 AL FARABI", "6 AL GHAZALI", "6 AL KHINDI", "6 AL MAWARDI", "6 AL RAZI", "6 IBNU KHALDUN", "6 IBNU RUSYD"];
     const allStaticClasses = [...sem2Classes, ...sem1Classes];
 
+    // 需要排除的 kelas (教师账号)
+    const EXCLUDED_CLASS = "GURU BDP";
+
     function sortClasses(classA, classB) {
         return allStaticClasses.indexOf(classA) - allStaticClasses.indexOf(classB);
     }
@@ -324,9 +327,17 @@
     async function loadDashboard() {
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classMasterData = {}; 
+        
+        // 过滤掉 kelas 为 "GURU BDP" 的学生
         studentSnap.forEach(doc => {
             const data = doc.data();
             const className = data.className || "Lain-lain";
+            
+            // 排除 GURU BDP
+            if (className === EXCLUDED_CLASS) {
+                return; // 跳过教师账号，不加入统计
+            }
+            
             if (!classMasterData[className]) classMasterData[className] = { total: 0, present: 0, late: 0 };
             classMasterData[className].total++;
         });
@@ -343,7 +354,14 @@
         let lateStudents = [];
         attendSnap.forEach(doc => {
             const data = doc.data();
-            if (classMasterData[data.className]) {
+            const studentClass = data.className;
+            
+            // 排除 GURU BDP 的出勤记录（双重保障）
+            if (studentClass === EXCLUDED_CLASS) {
+                return;
+            }
+            
+            if (classMasterData[studentClass]) {
                 let displayTime = "--:--";
                 
                 // 处理 timeFull: "3/4/2026, 2:48:55 PG" -> 提取 "2:48 PG"
@@ -357,10 +375,10 @@
                 }
 
                 if (data.status === "Lewat") {
-                    classMasterData[data.className].late++;
+                    classMasterData[studentClass].late++;
                     lateStudents.push({ ...data, time: displayTime });
                 } else if (data.status === "Hadir") {
-                    classMasterData[data.className].present++;
+                    classMasterData[studentClass].present++;
                 }
             }
         });
@@ -406,8 +424,11 @@
             <td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td>
             <td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
 
-        document.getElementById('lateTableBody').innerHTML = lateStudents.length > 0 ? 
-            lateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : 
+        // 过滤掉教师账号的迟到的学生记录（安全过滤）
+        const filteredLateStudents = lateStudents.filter(s => s.className !== EXCLUDED_CLASS);
+        
+        document.getElementById('lateTableBody').innerHTML = filteredLateStudents.length > 0 ? 
+            filteredLateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : 
             `<tr><td colspan="4">Tiada rekod lewat hari ini.</td></tr>`;
 
         renderChart(labels, percentPresent, isNoLewat ? [] : percentLate);
@@ -448,9 +469,13 @@
         p.style.display = p.style.display === 'block' ? 'none' : 'block';
     };
     window.addRow = () => {
+        // 过滤掉 GURU BDP 不显示在手动输入的下拉选项中
+        const filteredClasses = allStaticClasses.filter(c => c !== EXCLUDED_CLASS);
+        const optionsHtml = filteredClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+        
         const div = document.createElement('div');
         div.className = 'input-row';
-        div.innerHTML = `<select class="m-class-select">${allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+        div.innerHTML = `<select class="m-class-select">${optionsHtml}</select>
                          <input type="text" placeholder="e.g. 8/10" class="m-data">
                          <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>`;
         document.getElementById('manualInputs').appendChild(div);
@@ -462,7 +487,11 @@
         for(let i=0; i<s.length; i++){
             if(!d[i].value.includes('/')) continue;
             const [h, t] = d[i].value.split('/').map(Number);
-            if(!isNaN(h)) m[s[i].value] = { total: t || 0, present: h, late: 0 };
+            const className = s[i].value;
+            // 手动模式下也禁止 GURU BDP 的数据
+            if(!isNaN(h) && className !== EXCLUDED_CLASS) {
+                m[className] = { total: t || 0, present: h, late: 0 };
+            }
         }
         document.body.classList.add('print-no-lewat');
         updateUI(m, []);
@@ -472,9 +501,13 @@
         loadDashboard();
     };
 
+    // 初始化手动输入框的下拉选项（过滤掉 GURU BDP）
+    const filteredForSelect = allStaticClasses.filter(c => c !== EXCLUDED_CLASS);
+    const optionsHtml = filteredForSelect.map(c => `<option value="${c}">${c}</option>`).join('');
+    
+    // 为现有的选择框设置过滤后的选项
     const selects = document.querySelectorAll('.m-class-select');
-    const opts = allStaticClasses.map(c => `<option value="${c}">${c}</option>`).join('');
-    selects.forEach(s => s.innerHTML = opts);
+    selects.forEach(s => s.innerHTML = optionsHtml);
 
     setInterval(updateLiveDateTime, 1000);
     updateLiveDateTime();
