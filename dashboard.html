@@ -227,8 +227,10 @@
             const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "0.00";
             gT += item.total; gP += item.present; gL += item.late;
             labels.push(className);
-            pPresent.push(item.total > 0 ? ((item.present + item.late) / item.total * 100).toFixed(2) : 0);
-            pLate.push(item.total > 0 ? (item.late / item.total * 100).toFixed(2) : 0);
+            // 🔵 Hadir = hadir + lewat（人数）
+            hadirBar.push(item.present + item.late);
+            // 🟠 Lewat = lewat（人数）
+            lewatBar.push(item.late);
             tableBody.innerHTML += `<tr><td style="font-weight:500;">${className}</td><td>${item.total}</td><td>${item.present}</td><td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td></td><td>${totalHadir}</td><td>${per}%</td></tr>`;
         });
         document.getElementById('totalRow').innerHTML = `<td class="total-label">JUMLAH</td><td>${gT}</td><td>${gP}</td><td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td><td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
