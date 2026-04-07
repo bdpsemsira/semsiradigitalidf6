@@ -96,6 +96,73 @@
         .address-cell { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; }
         select { padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
 
+        /* Device Verification Toggle (新增样式，移动端友好) */
+        .device-verify-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f9f9fc;
+            padding: 12px 16px;
+            border-radius: 14px;
+            margin-top: 18px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .verify-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            color: #1c1c1e;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #c6c6c8;
+            transition: 0.25s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.25s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--success);
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        .verify-status-badge {
+            font-size: 12px;
+            background: #e9ecef;
+            border-radius: 20px;
+            padding: 4px 12px;
+            color: #495057;
+        }
+
         /* Modal */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -112,7 +179,7 @@
         .modal-body label { color: #8e8e93; font-size: 12px; font-weight: 600; }
         .modal-body span { font-size: 14px; font-weight: 500; color: #1c1c1e; }
 
-        /* ===== 新增: 班级手风琴菜单样式 ===== */
+        /* ===== 班级手风琴菜单样式 ===== */
         .class-accordion {
             background: white;
             border-radius: 14px;
@@ -150,7 +217,7 @@
             background: white;
         }
         .class-body.show {
-            max-height: 2000px; /* 足够容纳班级学生列表 */
+            max-height: 2000px;
         }
         .class-student-table {
             width: 100%;
@@ -248,10 +315,30 @@
         </div>
     </div>
 
+    <!-- Tetapan Kehadiran & Notifikasi (原有区块，新增Device Verification) -->
     <div class="card" id="section-kehadiran">
         <h3><i data-lucide="clock"></i> Tetapan Kehadiran & Notifikasi</h3>
         <div class="time-item"><label style="flex:1">Waktu Mula Lewat (Late):</label><input type="time" id="late-time"></div>
         <div class="time-item"><label style="flex:1">Waktu Tamat (Absent):</label><input type="time" id="absent-time"></div>
+        
+        <!-- 新增: Device Verification 开关 -->
+        <div class="device-verify-row">
+            <div class="verify-label">
+                <i data-lucide="shield-check" style="color: var(--primary);"></i>
+                <span>Device Verification (Pengesahan Peranti)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="dv-verify-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span id="dv-status-text" class="verify-status-badge">Memuat...</span>
+            </div>
+            <div style="width:100%; font-size: 12px; color: #6c6c74; margin-top: 5px;">
+                * Jika dihidupkan (ON), sistem akan mengesahkan peranti pelajar sebelum kehadiran.
+            </div>
+        </div>
+
         <div style="display: flex; gap: 10px;">
             <button style="flex:2; background: var(--success);" onclick="saveTimeSettings()">Simpan Waktu</button>
             <button id="btn-report" style="flex:1; background: #0088cc;" onclick="triggerManualAlert()">Hantar Laporan Sekarang</button>
@@ -277,7 +364,7 @@
         <button style="width:100%; margin-top:15px;" onclick="saveSemSettings()">Kemaskini Semua Pelajar</button>
     </div>
 
-    <!-- ===== 修改后的 Pengurusan Pelajar 部分：班级手风琴菜单 ===== -->
+    <!-- Pengurusan Pelajar 班级手风琴菜单 -->
     <div class="card" id="section-pelajar">
         <h3><i data-lucide="list"></i> Pengurusan Pelajar <span class="total-student-badge" id="total-student-count">0</span></h3>
         <div class="search-box-wrapper">
@@ -306,7 +393,6 @@
     const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
     const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Sumayyah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
-    // 映射原始数据库中的班级名称到显示名称（保持兼容）
     const CLASS_MAPPING = {
         '6 AISHAH': 'Aishah', '6 FATIMAH': 'Fatimah', '6 KHADIJAH': 'Khadijah',
         '6 RUQAYYAH': 'Ruqayyah', '6 SARAH': 'Sarah', '6 SUMAYYAH': 'Sumayyah',
@@ -317,7 +403,6 @@
         '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd'
     };
     
-    // 反向映射：显示名称 -> 数据库原始名称
     const REVERSE_CLASS_MAP = {};
     Object.entries(CLASS_MAPPING).forEach(([dbName, displayName]) => {
         REVERSE_CLASS_MAP[displayName] = dbName;
@@ -374,8 +459,50 @@
         }
     };
 
+    // ========== 新增: 加载 Device Verification 状态并绑定切换事件 ==========
+    async function loadDeviceVerifySetting() {
+        try {
+            const verifyDocRef = doc(db, SETTINGS_COL, "device_verify");
+            const docSnap = await getDoc(verifyDocRef);
+            let currentValue = "off"; // default
+            if (docSnap.exists() && docSnap.data().dv_verify) {
+                currentValue = docSnap.data().dv_verify;
+            }
+            const toggle = document.getElementById('dv-verify-toggle');
+            const statusSpan = document.getElementById('dv-status-text');
+            if (toggle) {
+                toggle.checked = (currentValue === "on");
+                statusSpan.innerText = toggle.checked ? "✓ ON (Pengesahan Diaktifkan)" : "✗ OFF (Pengesahan Dimatikan)";
+                statusSpan.style.background = toggle.checked ? "#d4edda" : "#f8d7da";
+                statusSpan.style.color = toggle.checked ? "#155724" : "#721c24";
+                
+                // 移除原有监听，避免重复绑定
+                const newToggle = toggle.cloneNode(true);
+                toggle.parentNode.replaceChild(newToggle, toggle);
+                const finalToggle = document.getElementById('dv-verify-toggle');
+                finalToggle.addEventListener('change', async (e) => {
+                    const newState = e.target.checked ? "on" : "off";
+                    const statusTextSpan = document.getElementById('dv-status-text');
+                    try {
+                        await setDoc(doc(db, SETTINGS_COL, "device_verify"), { dv_verify: newState }, { merge: true });
+                        statusTextSpan.innerText = newState === "on" ? "✓ ON (Pengesahan Diaktifkan)" : "✗ OFF (Pengesahan Dimatikan)";
+                        statusTextSpan.style.background = newState === "on" ? "#d4edda" : "#f8d7da";
+                        statusTextSpan.style.color = newState === "on" ? "#155724" : "#721c24";
+                        alert(`Device Verification dikemaskini kepada ${newState.toUpperCase()}`);
+                    } catch (err) {
+                        console.error(err);
+                        alert("Gagal mengemaskini tetapan pengesahan peranti.");
+                        e.target.checked = (newState !== "on");
+                    }
+                });
+            }
+        } catch (err) {
+            console.warn("Error loading device verify:", err);
+        }
+    }
+
     async function loadInitialData() {
-        await Promise.all([loadSettings(), loadTeacherSettings(), loadStudents()]);
+        await Promise.all([loadSettings(), loadTeacherSettings(), loadStudents(), loadDeviceVerifySetting()]);
         lucide.createIcons();
     }
 
@@ -403,7 +530,6 @@
         allStudents = [];
         snap.forEach(d => {
             const data = d.data();
-            // 确保学生有班级字段
             if(data.className) {
                 allStudents.push({ id: d.id, ...data });
             }
@@ -412,37 +538,28 @@
         document.getElementById('total-student-count').innerText = allStudents.length;
     }
 
-    // 核心新函数：根据班级分组渲染手风琴菜单
     function renderClassAccordion(studentsList, searchTerm = '') {
         const container = document.getElementById('class-accordion-container');
         if (!container) return;
         
-        // 按显示名称分组
         const groups = {};
-        // 初始化所有班级
-        ALL_CLASSES.forEach(displayName => {
-            groups[displayName] = [];
-        });
+        ALL_CLASSES.forEach(displayName => { groups[displayName] = []; });
         
         studentsList.forEach(student => {
             const rawClass = student.className || '';
-            // 转换为显示名称
             const displayName = CLASS_MAPPING[rawClass] || rawClass;
             if (groups[displayName]) {
                 groups[displayName].push(student);
             } else {
-                // 如果班级不在预定义列表，也创建一个分组
                 if (!groups[displayName]) groups[displayName] = [];
                 groups[displayName].push(student);
             }
         });
         
-        // 过滤搜索
         let hasResults = false;
         let html = '';
         
         for (const [displayName, students] of Object.entries(groups)) {
-            // 如果有搜索词，只显示匹配的班级（班级名称匹配或该班有学生匹配）
             let filteredStudents = students;
             if (searchTerm) {
                 filteredStudents = students.filter(s => 
@@ -450,13 +567,10 @@
                     (s.ic || '').includes(searchTerm)
                 );
             }
-            
             if (filteredStudents.length === 0 && searchTerm) continue;
             if (filteredStudents.length > 0 || !searchTerm) hasResults = true;
-            
             const classId = `class-${displayName.replace(/\s/g, '')}`;
             const studentCount = filteredStudents.length;
-            
             html += `
                 <div class="class-accordion" data-class="${displayName}">
                     <div class="class-header" onclick="toggleClass('${classId}')">
@@ -465,17 +579,9 @@
                     </div>
                     <div id="${classId}" class="class-body">
                         <table class="class-student-table">
-                            <thead>
-                                <tr>
-                                    <th style="width:35%">Nama</th>
-                                    <th style="width:20%">No. IC</th>
-                                    <th style="width:15%">Sem</th>
-                                    <th style="width:30%">Aksi</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th style="width:35%">Nama</th><th style="width:20%">No. IC</th><th style="width:15%">Sem</th><th style="width:30%">Aksi</th></tr></thead>
                             <tbody>
             `;
-            
             if (filteredStudents.length === 0) {
                 html += `<tr><td colspan="4" class="no-student-msg">Tiada pelajar dalam kelas ini</td></tr>`;
             } else {
@@ -485,34 +591,18 @@
                             <td class="clickable" onclick="showStudentDetails('${std.id}')">${std.name || '-'}</td>
                             <td>${formatIC(std.ic)}</td>
                             <td>${std.semester || '1'}</td>
-                            <td>
-                                <button class="btn-small btn-danger" onclick="resetDevice('${std.id}')">Reset Peranti</button>
-                            </td>
+                            <td><button class="btn-small btn-danger" onclick="resetDevice('${std.id}')">Reset Peranti</button></td>
                         </tr>
                     `;
                 });
             }
-            
-            html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
+            html += `</tbody></table></div></div>`;
         }
-        
         if (!hasResults && searchTerm) {
             html = `<div class="no-student-msg" style="background:white; border-radius:16px; padding:30px;">🔍 Tiada pelajar dengan nama atau IC "${searchTerm}"</div>`;
         }
-        
         container.innerHTML = html;
-        
-        // 重新初始化 Lucide 图标
-        if (typeof lucide !== 'undefined' && lucide.createIcons) {
-            lucide.createIcons();
-        }
-        
-        // 默认展开第一个班级（可选，提升体验）
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
         const firstAccordion = container.querySelector('.class-accordion');
         if (firstAccordion && !searchTerm) {
             const firstHeader = firstAccordion.querySelector('.class-header');
@@ -523,7 +613,6 @@
         }
     }
     
-    // 切换手风琴
     window.toggleClass = (bodyId) => {
         const body = document.getElementById(bodyId);
         if (!body) return;
@@ -532,17 +621,11 @@
         if (header) header.classList.toggle('active');
     };
     
-    // 过滤学生（支持搜索）
     window.filterStudents = () => {
         const searchTerm = document.getElementById('search-box').value.toLowerCase().trim();
-        if (!searchTerm) {
-            renderClassAccordion(allStudents, '');
-        } else {
-            renderClassAccordion(allStudents, searchTerm);
-        }
+        renderClassAccordion(allStudents, searchTerm);
     };
-    
-    // 保留原有的展示详情的函数
+
     window.showStudentDetails = (id) => {
         const s = allStudents.find(item => item.id === id);
         if(!s) return;
@@ -607,63 +690,36 @@
         if(!confirm("Hantar senarai tidak hadir sekarang?")) return;
         const btn = document.getElementById('btn-report');
         btn.innerText = "Memproses..."; btn.disabled = true;
-
         try {
             const now = new Date();
             const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
-            
             const logsSnap = await getDocs(query(collection(db, LOGS_COL), where("timeFull", ">=", dateStr), where("timeFull", "<=", dateStr + "\uf8ff")));
             const presentICs = new Set();
             logsSnap.forEach(doc => presentICs.add(doc.data().ic));
-
             const teacherSnap = await getDocs(collection(db, TEACHER_COL));
             let teacherMap = {};
-            teacherSnap.forEach(s => {
-                if(s.data().status === "Active") {
-                    teacherMap[s.id] = s.data().chatId;
-                }
-            });
-
+            teacherSnap.forEach(s => { if(s.data().status === "Active") teacherMap[s.id] = s.data().chatId; });
             for(let cls of ALL_CLASSES) {
                 const chatId = teacherMap[cls];
                 if(!chatId) continue;
-                
                 const absents = allStudents.filter(s => (s.className||'').toLowerCase().includes(cls.toLowerCase()) && !presentICs.has(s.ic));
-                
-                if(absents.length > 0) {
-                    await sendTelegram(chatId, cls, absents, dateStr);
-                }
+                if(absents.length > 0) await sendTelegram(chatId, cls, absents, dateStr);
             }
             alert("Laporan berjaya dihantar!");
-        } catch (e) { 
-            console.error(e);
-            alert("Ralat memproses."); 
-        }
+        } catch (e) { console.error(e); alert("Ralat memproses."); }
         finally { btn.innerText = "Hantar Laporan Sekarang"; btn.disabled = false; }
     };
 
     async function sendTelegram(chatId, cls, list, dateStr) {
-        let text = `⚠️ *LAPORAN TIDAK HADIR: ${cls.toUpperCase()}*\n\n`;
-        text += `📅 *TARIKH:* ${dateStr}\n`;
-        text += `📊 *BILANGAN TIDAK HADIR:* ${list.length} Orang\n`;
-        text += `------------------------------------------\n`;
+        let text = `⚠️ *LAPORAN TIDAK HADIR: ${cls.toUpperCase()}*\n\n📅 *TARIKH:* ${dateStr}\n📊 *BILANGAN TIDAK HADIR:* ${list.length} Orang\n------------------------------------------\n`;
         list.forEach((s, i) => text += `${i+1}. ${s.name}\n`);
-        
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                chat_id: chatId, 
-                text: text, 
-                parse_mode: 'Markdown' 
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
         });
     }
 
-    window.logout = () => { 
-        localStorage.removeItem("semsira_isLoggedIn"); 
-        location.reload(); 
-    };
+    window.logout = () => { localStorage.removeItem("semsira_isLoggedIn"); location.reload(); };
 </script>
 </body>
 </html>
