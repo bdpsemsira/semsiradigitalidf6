@@ -41,7 +41,8 @@
             table { font-size: 12px; display: block; overflow-x: auto; white-space: nowrap; }
             th, td { padding: 8px 4px !important; }
             .chart-wrapper { overflow-x: auto; display: flex; justify-content: center; }
-            canvas { max-width: 95% !important; min-width: auto !important; height: auto !important; }
+            .chart-inner { width: 100% !important; max-width: 100% !important; }
+            canvas { max-width: 100% !important; min-width: auto !important; height: auto !important; }
         }
 
         .screenshot-target { background: var(--bg); padding: 15px; border-radius: 15px; }
@@ -62,18 +63,61 @@
         .input-row select, .input-row input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; flex: 1; min-width: 150px; }
         .date-selector-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #f8f9fc; padding: 10px 15px; border-radius: 12px; margin-bottom: 15px; }
         .date-selector-group label { font-weight: 600; }
-        .chart-wrapper { width: 100%; display: flex; justify-content: center; overflow-x: auto; }
-        .chart-inner { width: 80%; max-width: 800px; min-width: 300px; }
-        canvas { width: 100% !important; height: auto !important; max-height: 400px; }
+        
+        /* 修复图表居中 - 主要修改部分 */
+        .chart-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: auto;
+            margin: 0 auto;
+        }
+        .chart-inner {
+            width: 100%;
+            max-width: 900px;
+            min-width: 280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+            max-height: 450px;
+            display: block;
+            margin: 0 auto;
+        }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; display: block; overflow-x: auto; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #D0E1F9 !important; color: #000; font-weight: bold; }
         .summary-row { background-color: #FFEB3B !important; font-weight: bold; }
         .total-label { background-color: #FF9800 !important; color: white !important; }
         .lewat-text { color: var(--lewat); font-weight: bold; }
-        .monthly-stats { font-size: 14px; margin-top: 10px; padding: 10px; background: #f9f9fb; border-radius: 10px; }
+        .monthly-stats { font-size: 14px; margin-top: 10px; padding: 10px; background: #f9f9fb; border-radius: 10px; text-align: center; }
         .capture-mode .no-print, .capture-mode .btn-action, .capture-mode .section-header button, .capture-mode .date-selector-group { display: none !important; }
         .monthly-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #1c1c1e; }
+        
+        /* 月度报告内的图表居中 */
+        #monthlyReportContent .chart-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px auto;
+        }
+        #monthlyReportContent .chart-inner {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        #monthlyReportContent canvas {
+            width: 100% !important;
+            height: auto !important;
+            display: block;
+            margin: 0 auto;
+        }
         
         .screenshot-overlay {
             position: fixed;
@@ -95,6 +139,19 @@
             font-size: 16px;
             font-weight: bold;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        /* 桌面端优化 */
+        @media (min-width: 769px) {
+            .dashboard-container {
+                width: 100%;
+                max-width: 1200px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .chart-inner {
+                max-width: 800px;
+            }
         }
     </style>
 </head>
@@ -127,7 +184,11 @@
 
     <div class="dashboard-container" id="graphSection">
         <div class="section-header"><h3><i data-lucide="bar-chart-2"></i> Graf Kehadiran & Keterlewatan</h3><button class="btn-action bg-teal" onclick="captureGraphOnly()"><i data-lucide="camera"></i> Screenshot Graf</button></div>
-        <div class="chart-wrapper"><div class="chart-inner"><canvas id="attendanceChart" height="400"></canvas></div></div>
+        <div class="chart-wrapper">
+            <div class="chart-inner">
+                <canvas id="attendanceChart" height="400"></canvas>
+            </div>
+        </div>
     </div>
 
     <div class="dashboard-container" id="reportSection">
@@ -188,7 +249,6 @@
     // ========== 获取马来西亚当前日期 (YYYY-MM-DD 格式) ==========
     function getMalaysiaDate() {
         const now = new Date();
-        // 转换为马来西亚时间 (UTC+8)
         const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
         const year = malaysiaTime.getUTCFullYear();
         const month = String(malaysiaTime.getUTCMonth() + 1).padStart(2, '0');
@@ -451,7 +511,7 @@
         });
 
         let html = `<div class="monthly-title">📊 Laporan Bulanan: ${monthDisplay}</div>`;
-        html += `<div class="chart-wrapper" style="margin-bottom: 20px;"><div class="chart-inner"><canvas id="monthlyChartCanvas" height="400"></canvas></div></div>`;
+        html += `<div class="chart-wrapper"><div class="chart-inner"><canvas id="monthlyChartCanvas" height="400"></canvas></div></div>`;
         html += `<table style="width:100%;"><thead><tr><th>KELAS</th><th>BIL. MURID</th><th>HADIR</th><th>LEWAT</th><th>JUMLAH HADIR</th><th>%</th></tr></thead><tbody>`;
         
         let totalStudentAll = 0, totalHadirAll = 0, totalLewatAll = 0;
