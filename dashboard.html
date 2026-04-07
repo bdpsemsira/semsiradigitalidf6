@@ -239,12 +239,16 @@
         });
         document.getElementById('totalRow').innerHTML = `<td class="total-label">JUMLAH</td><td>${gT}</td><td>${gP}</td><td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td><td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
         document.getElementById('lateTableBody').innerHTML = lateStudents.filter(s => s.className !== EXCLUDED_CLASS).length ? lateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : `<tr><td colspan="4">Tiada rekod lewat untuk tarikh ini.</td></tr>`;
-        renderChart(labels, pPresent, isNoLewat ? [] : pLate);
+        renderChart(labels, hadirBar, isNoLewat ? [] : lewatBar);
         lucide.createIcons();
     }
 
     function renderChart(labels, hadirBar, lewatBar) {
-        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        const canvas = document.getElementById('attendanceChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
     
         if (window.myChart) window.myChart.destroy();
     
