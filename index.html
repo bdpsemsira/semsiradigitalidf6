@@ -527,20 +527,37 @@
     }
 
     async function sendTelegramAlert(userData, currentUid) {
-        const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
-        const chatId = "@semsirasecurity29482910472"; 
+        const botToken = "...";
+        const chatId = "..."; 
+    
         let currentDeviceId = localStorage.getItem('semsira_device_id');
         let intruderData = { name: "Tidak Dikenali" };
+    
         try {
             const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
             const intruderSnap = await getDocs(qIntruder);
-            if (!intruderSnap.empty) { intruderData = intruderSnap.docs[0].data(); }
+            if (!intruderSnap.empty) { 
+                intruderData = intruderSnap.docs[0].data(); 
+            }
         } catch (e) { console.error(e); }
+    
         const message = `⚠️ *AMARAN KESELAMATAN*\n🚨 *${intruderData.name}* mencuba menceroboh akaun *${userData.name}*!`;
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        try { await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }) }); } catch (e) { console.error(e); }
-        
-        async function verifyDevice(user, userData) {
+    
+        try {
+            await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: "Markdown"
+                })
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function verifyDevice(user, userData) {
         let deviceId = localStorage.getItem('semsira_device_id');
     
         if (!deviceId) {
@@ -548,7 +565,6 @@
             localStorage.setItem('semsira_device_id', deviceId);
         }
     
-        // ⭐ 读取 systemSettings/device_verify
         let isVerifyOn = false;
         try {
             const settingSnap = await getDoc(doc(db, SETTINGS_COLLECTION, "device_verify"));
@@ -560,13 +576,8 @@
             console.error("Device verify setting error:", e);
         }
     
-        // ⭐ 如果 OFF → 直接通过
-        if (!isVerifyOn) {
-            console.log("Device verification OFF");
-            return true;
-        }
+        if (!isVerifyOn) return true;
     
-        // ⭐ 如果 ON → 才执行验证
         const studentRef = doc(db, COLLECTION_NAME, user.uid);
     
         if (!userData.registeredDeviceId) {
