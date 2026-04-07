@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Panel Admin Semsira</title>
     <link rel="icon" type="image/png" href="/semsira.png">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -111,6 +111,97 @@
         .modal-body div { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 0.5px solid #f2f2f7; display: flex; justify-content: space-between; }
         .modal-body label { color: #8e8e93; font-size: 12px; font-weight: 600; }
         .modal-body span { font-size: 14px; font-weight: 500; color: #1c1c1e; }
+
+        /* ===== 新增: 班级手风琴菜单样式 ===== */
+        .class-accordion {
+            background: white;
+            border-radius: 14px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e5ea;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .class-header {
+            background: #f8f9fc;
+            padding: 14px 18px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 16px;
+            color: #1c1c1e;
+            transition: background 0.2s;
+        }
+        .class-header:hover {
+            background: #f0f2f8;
+        }
+        .class-header .chevron {
+            transition: transform 0.25s ease;
+            color: var(--primary);
+        }
+        .class-header.active .chevron {
+            transform: rotate(180deg);
+        }
+        .class-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+            background: white;
+        }
+        .class-body.show {
+            max-height: 2000px; /* 足够容纳班级学生列表 */
+        }
+        .class-student-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .class-student-table th {
+            background: #f9f9fb;
+            padding: 12px 8px;
+            font-size: 12px;
+            color: #6c6c74;
+            border-bottom: 1px solid #e9e9ef;
+        }
+        .class-student-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f5;
+        }
+        .class-student-table tr:last-child td {
+            border-bottom: none;
+        }
+        .no-student-msg {
+            padding: 20px;
+            text-align: center;
+            color: #8e8e93;
+            font-size: 13px;
+        }
+        .search-box-wrapper {
+            margin-bottom: 16px;
+        }
+        #search-box {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e5ea;
+            border-radius: 14px;
+            font-size: 15px;
+            background: #ffffff;
+            box-sizing: border-box;
+        }
+        #search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+        }
+        .total-student-badge {
+            background: #e9ecef;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: normal;
+            color: #495057;
+        }
     </style>
 </head>
 <body oncontextmenu="return false" onkeydown="handleGlobalKeys(event)">
@@ -186,24 +277,13 @@
         <button style="width:100%; margin-top:15px;" onclick="saveSemSettings()">Kemaskini Semua Pelajar</button>
     </div>
 
+    <!-- ===== 修改后的 Pengurusan Pelajar 部分：班级手风琴菜单 ===== -->
     <div class="card" id="section-pelajar">
-        <h3><i data-lucide="list"></i> Pengurusan Pelajar</h3>
-        <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()" style="width:calc(100% - 26px); margin-bottom: 10px;">
-        <div class="table-container">
-            <table id="student-table">
-                <thead>
-                    <tr>
-                        <th class="col-nama">Nama</th>
-                        <th class="col-kelas">Kelas</th>
-                        <th class="col-ic">No. IC</th>
-                        <th class="col-sem">Sem</th>
-                        <th>Alamat</th>
-                        <th class="col-aksi">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="student-list"></tbody>
-            </table>
+        <h3><i data-lucide="list"></i> Pengurusan Pelajar <span class="total-student-badge" id="total-student-count">0</span></h3>
+        <div class="search-box-wrapper">
+            <input type="text" id="search-box" placeholder="Cari nama atau IC..." oninput="filterStudents()">
         </div>
+        <div id="class-accordion-container"></div>
     </div>
 </div>
 
@@ -226,6 +306,23 @@
     const BOT_TOKEN = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI"; 
     const ALL_CLASSES = ['Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Sumayyah', 'Ummukalthom', 'Zainab', 'Al Farabi', 'Al Ghazali', 'Al Khawarizmi','Al Khindi','Al Mawardi','Al Razi','Ibnu Khaldun','Ibnu Rusyd'];
     
+    // 映射原始数据库中的班级名称到显示名称（保持兼容）
+    const CLASS_MAPPING = {
+        '6 AISHAH': 'Aishah', '6 FATIMAH': 'Fatimah', '6 KHADIJAH': 'Khadijah',
+        '6 RUQAYYAH': 'Ruqayyah', '6 SARAH': 'Sarah', '6 SUMAYYAH': 'Sumayyah',
+        '6 UMMU KALTHOM': 'Ummukalthom', '6 ZAINAB': 'Zainab',
+        '6 AL FARABI': 'Al Farabi', '6 AL GHAZALI': 'Al Ghazali',
+        '6 AL KHWARIZMI': 'Al Khawarizmi', '6 AL KHINDI': 'Al Khindi',
+        '6 AL MAWARDI': 'Al Mawardi', '6 AL RAZI': 'Al Razi',
+        '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd'
+    };
+    
+    // 反向映射：显示名称 -> 数据库原始名称
+    const REVERSE_CLASS_MAP = {};
+    Object.entries(CLASS_MAPPING).forEach(([dbName, displayName]) => {
+        REVERSE_CLASS_MAP[displayName] = dbName;
+    });
+
     let allStudents = [];
     const SETTINGS_COL = "systemSettings";
     const STUDENT_COL = "studentInform";
@@ -294,7 +391,7 @@
         const snap = await getDocs(collection(db, TEACHER_COL));
         let dataMap = {};
         snap.forEach(d => dataMap[d.id] = d.data().chatId);
-        let html = `<table><tr><th>Kelas</th><th>Telegram Chat ID</th></tr>`;
+        let html = `<table> hilab<th>Kelas</th><th>Telegram Chat ID</th></tr>`;
         ALL_CLASSES.forEach(cls => {
             html += `<tr><td>${cls}</td><td><input type="text" id="t-id-${cls}" value="${dataMap[cls] || ''}" style="width:90%;"></td></tr>`;
         });
@@ -304,25 +401,148 @@
     async function loadStudents() {
         const snap = await getDocs(collection(db, STUDENT_COL));
         allStudents = [];
-        snap.forEach(d => allStudents.push({ id: d.id, ...d.data() }));
-        renderStudents(allStudents);
+        snap.forEach(d => {
+            const data = d.data();
+            // 确保学生有班级字段
+            if(data.className) {
+                allStudents.push({ id: d.id, ...data });
+            }
+        });
+        renderClassAccordion(allStudents);
+        document.getElementById('total-student-count').innerText = allStudents.length;
     }
 
-    function renderStudents(list) {
-        document.getElementById('student-list').innerHTML = list.map(s => `
-            <tr>
-                <td class="clickable col-nama" onclick="showStudentDetails('${s.id}')"> ${s.name || '-'}</td>
-                <td class="col-kelas">${s.className || '-'}</td>
-                <td class="col-ic">${formatIC(s.ic)}</td>
-                <td class="col-sem">${s.semester || '1'}</td>
-                <td class="address-cell">${s.address || '-'}</td>
-                <td class="col-aksi">
-                    <button class="btn-small btn-danger" onclick="resetDevice('${s.id}')">Reset Peranti</button>
-                </td>
-            </tr>`).join('');
-        lucide.createIcons();
+    // 核心新函数：根据班级分组渲染手风琴菜单
+    function renderClassAccordion(studentsList, searchTerm = '') {
+        const container = document.getElementById('class-accordion-container');
+        if (!container) return;
+        
+        // 按显示名称分组
+        const groups = {};
+        // 初始化所有班级
+        ALL_CLASSES.forEach(displayName => {
+            groups[displayName] = [];
+        });
+        
+        studentsList.forEach(student => {
+            const rawClass = student.className || '';
+            // 转换为显示名称
+            const displayName = CLASS_MAPPING[rawClass] || rawClass;
+            if (groups[displayName]) {
+                groups[displayName].push(student);
+            } else {
+                // 如果班级不在预定义列表，也创建一个分组
+                if (!groups[displayName]) groups[displayName] = [];
+                groups[displayName].push(student);
+            }
+        });
+        
+        // 过滤搜索
+        let hasResults = false;
+        let html = '';
+        
+        for (const [displayName, students] of Object.entries(groups)) {
+            // 如果有搜索词，只显示匹配的班级（班级名称匹配或该班有学生匹配）
+            let filteredStudents = students;
+            if (searchTerm) {
+                filteredStudents = students.filter(s => 
+                    (s.name || '').toLowerCase().includes(searchTerm) || 
+                    (s.ic || '').includes(searchTerm)
+                );
+            }
+            
+            if (filteredStudents.length === 0 && searchTerm) continue;
+            if (filteredStudents.length > 0 || !searchTerm) hasResults = true;
+            
+            const classId = `class-${displayName.replace(/\s/g, '')}`;
+            const studentCount = filteredStudents.length;
+            
+            html += `
+                <div class="class-accordion" data-class="${displayName}">
+                    <div class="class-header" onclick="toggleClass('${classId}')">
+                        <span>📚 ${displayName} <span style="font-size:12px; color:#8E8E93;">(${studentCount} pelajar)</span></span>
+                        <i data-lucide="chevron-down" class="chevron"></i>
+                    </div>
+                    <div id="${classId}" class="class-body">
+                        <table class="class-student-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:35%">Nama</th>
+                                    <th style="width:20%">No. IC</th>
+                                    <th style="width:15%">Sem</th>
+                                    <th style="width:30%">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            if (filteredStudents.length === 0) {
+                html += `<tr><td colspan="4" class="no-student-msg">Tiada pelajar dalam kelas ini</td></tr>`;
+            } else {
+                filteredStudents.forEach(std => {
+                    html += `
+                        <tr>
+                            <td class="clickable" onclick="showStudentDetails('${std.id}')">${std.name || '-'}</td>
+                            <td>${formatIC(std.ic)}</td>
+                            <td>${std.semester || '1'}</td>
+                            <td>
+                                <button class="btn-small btn-danger" onclick="resetDevice('${std.id}')">Reset Peranti</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (!hasResults && searchTerm) {
+            html = `<div class="no-student-msg" style="background:white; border-radius:16px; padding:30px;">🔍 Tiada pelajar dengan nama atau IC "${searchTerm}"</div>`;
+        }
+        
+        container.innerHTML = html;
+        
+        // 重新初始化 Lucide 图标
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            lucide.createIcons();
+        }
+        
+        // 默认展开第一个班级（可选，提升体验）
+        const firstAccordion = container.querySelector('.class-accordion');
+        if (firstAccordion && !searchTerm) {
+            const firstHeader = firstAccordion.querySelector('.class-header');
+            if (firstHeader && !firstHeader.classList.contains('active')) {
+                const firstBodyId = firstAccordion.querySelector('.class-body')?.id;
+                if (firstBodyId) toggleClass(firstBodyId);
+            }
+        }
     }
-
+    
+    // 切换手风琴
+    window.toggleClass = (bodyId) => {
+        const body = document.getElementById(bodyId);
+        if (!body) return;
+        const header = body.previousElementSibling;
+        body.classList.toggle('show');
+        if (header) header.classList.toggle('active');
+    };
+    
+    // 过滤学生（支持搜索）
+    window.filterStudents = () => {
+        const searchTerm = document.getElementById('search-box').value.toLowerCase().trim();
+        if (!searchTerm) {
+            renderClassAccordion(allStudents, '');
+        } else {
+            renderClassAccordion(allStudents, searchTerm);
+        }
+    };
+    
+    // 保留原有的展示详情的函数
     window.showStudentDetails = (id) => {
         const s = allStudents.find(item => item.id === id);
         if(!s) return;
@@ -360,7 +580,6 @@
         for(let cls of ALL_CLASSES) {
             const val = document.getElementById(`t-id-${cls}`).value;
             if(val) {
-                // 严格按照要求的三个字段保存
                 await setDoc(doc(db, TEACHER_COL, cls), { 
                     chatId: val.trim(), 
                     lastUpdated: serverTimestamp(), 
@@ -384,11 +603,6 @@
         loadStudents();
     };
 
-    window.filterStudents = () => {
-        const v = document.getElementById('search-box').value.toLowerCase();
-        renderStudents(allStudents.filter(s => (s.name||'').toLowerCase().includes(v) || (s.ic||'').includes(v)));
-    };
-
     window.triggerManualAlert = async () => {
         if(!confirm("Hantar senarai tidak hadir sekarang?")) return;
         const btn = document.getElementById('btn-report');
@@ -405,7 +619,6 @@
             const teacherSnap = await getDocs(collection(db, TEACHER_COL));
             let teacherMap = {};
             teacherSnap.forEach(s => {
-                // 确保只取 Active 状态的 chatId
                 if(s.data().status === "Active") {
                     teacherMap[s.id] = s.data().chatId;
                 }
