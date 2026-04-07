@@ -526,51 +526,61 @@
         }
     }
 
-    // 增强版 Telegram 警报 (更详细格式)
-    async function sendTelegramAlert(userData, currentUid, intruderDeviceId = null) {
+    async function sendTelegramAlert(userData, currentUid) {
         const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
         const chatId = "@semsirasecurity29482910472"; 
-        let currentDeviceId = intruderDeviceId || localStorage.getItem('semsira_device_id');
-        let intruderData = { name: "Tidak Dikenali", studentId: "Unknown", ic: "Unknown", className: "Unknown", phone: "undefined" };
+        let currentDeviceId = localStorage.getItem('semsira_device_id');
+        let intruderData = { name: "Tidak Dikenali" };
         try {
             const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
             const intruderSnap = await getDocs(qIntruder);
             if (!intruderSnap.empty) { intruderData = intruderSnap.docs[0].data(); }
         } catch (e) { console.error(e); }
-        
-        const message = `⚠️ *AMARAN KESELAMATAN (Pencerobohan Peranti)*\n\n` +
-            `🚨 *${intruderData.name || "Tidak Dikenali"}* sedang mencuba menceroboh akaun *${userData.name || "Mangsa"}*!\n\n` +
-            `👤 *PEMILIK AKAUN (MANGSA):*\n` +
-            `• Nama: ${userData.name || "-"}\n` +
-            `• No. Matrik: ${userData.studentId || "-"}\n` +
-            `• IC: ${userData.ic || "-"}\n` +
-            `• Kelas: ${userData.className || "-"}\n` +
-            `• No. Tel: ${userData.phone || "-"}\n\n` +
-            `🚫 *IDENTITI PENCEROBOH:*\n` +
-            `• Nama: ${intruderData.name || "Tidak Dikenali"}\n` +
-            `• No. Matrik: ${intruderData.studentId || "Unknown"}\n` +
-            `• IC: ${intruderData.ic || "Unknown"}\n` +
-            `• Kelas: ${intruderData.className || "Unknown"}\n` +
-            `• No. Tel: ${intruderData.phone || "undefined"}\n\n` +
-            `📱 *Device ID Penceroboh:* ${currentDeviceId || "Tidak diketahui"}\n\n` +
-            `Akses telah disekat secara automatik.`;
-            
+        const message = `⚠️ *AMARAN KESELAMATAN*\n🚨 *${intruderData.name}* mencuba menceroboh akaun *${userData.name}*!`;
         const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
         try { await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }) }); } catch (e) { console.error(e); }
-    }
-
-    // 修改 verifyDevice 使用增强警报
-    async function verifyDevice(user, userData) {
+        
+        async function verifyDevice(user, userData) {
         let deviceId = localStorage.getItem('semsira_device_id');
-        if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now(); localStorage.setItem('semsira_device_id', deviceId); }
-        const studentRef = doc(db, COLLECTION_NAME, user.uid);
-        if (!userData.registeredDeviceId) { await updateDoc(studentRef, { registeredDeviceId: deviceId }); return true; } 
-        if (userData.registeredDeviceId !== deviceId) { 
-            await sendTelegramAlert(userData, user.uid, deviceId); 
-            alert("⚠️ Akaun ini terikat pada peranti lain. Akses disekat.");
-            handleLogout(); 
-            return false; 
+    
+        if (!deviceId) {
+            deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now();
+            localStorage.setItem('semsira_device_id', deviceId);
         }
+    
+        // ⭐ 读取 systemSettings/device_verify
+        let isVerifyOn = false;
+        try {
+            const settingSnap = await getDoc(doc(db, SETTINGS_COLLECTION, "device_verify"));
+            if (settingSnap.exists()) {
+                const dv = settingSnap.data().dv_verify;
+                isVerifyOn = (dv === "on");
+            }
+        } catch (e) {
+            console.error("Device verify setting error:", e);
+        }
+    
+        // ⭐ 如果 OFF → 直接通过
+        if (!isVerifyOn) {
+            console.log("Device verification OFF");
+            return true;
+        }
+    
+        // ⭐ 如果 ON → 才执行验证
+        const studentRef = doc(db, COLLECTION_NAME, user.uid);
+    
+        if (!userData.registeredDeviceId) {
+            await updateDoc(studentRef, { registeredDeviceId: deviceId });
+            return true;
+        }
+    
+        if (userData.registeredDeviceId !== deviceId) {
+            await sendTelegramAlert(userData, user.uid);
+            alert("⚠️ Akaun ini terikat pada peranti lain. Akses disekat.");
+            handleLogout();
+            return false;
+        }
+    
         return true;
     }
 
