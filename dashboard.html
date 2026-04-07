@@ -226,15 +226,27 @@
             const totalHadir = item.present + item.late;
             const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "0.00";
             gT += item.total; gP += item.present; gL += item.late;
+            let hadirBar = [];
+            let lewatBar = [];
             
+            Object.keys(data).sort(sortClasses).forEach(className => {
+                const item = data[className];
             
-            labels.push(className);
+                const totalHadir = item.present + item.late;
             
-            // 🔵 Hadir = hadir + lewat
-            hadirBar.push(item.present + item.late);
+                const hadirPercent = item.total > 0
+                    ? ((totalHadir / item.total) * 100)
+                    : 0;
             
-            // 🟠 Lewat = lewat
-            lewatBar.push(item.late);
+                const lewatPercent = item.total > 0
+                    ? ((item.late / item.total) * 100)
+                    : 0;
+            
+                labels.push(className);
+            
+                hadirBar.push(Number(hadirPercent.toFixed(2)));
+                lewatBar.push(Number(lewatPercent.toFixed(2)));
+            });
             tableBody.innerHTML += `<tr><td style="font-weight:500;">${className}</td><td>${item.total}</td><td>${item.present}</td><td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td></td><td>${totalHadir}</td><td>${per}%</td></tr>`;
         });
         document.getElementById('totalRow').innerHTML = `<td class="total-label">JUMLAH</td><td>${gT}</td><td>${gP}</td><td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td><td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
