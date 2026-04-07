@@ -243,9 +243,36 @@
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
         const isMany = labels.length > 10;
-        window.myChart = new Chart(ctx, {
-            type: 'bar', data: { labels, datasets: [{ label: 'Hadir (%)', data: pData, backgroundColor: '#007AFF', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }, { label: 'Lewat (%)', data: lData, backgroundColor: '#FF9500', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }] },
-            options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.6, scales: { x: { stacked: true, ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } }, y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v+"%" } } }, plugins: { legend: { position: 'bottom' } } }
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Hadir',
+                        data: hadirBar,
+                        backgroundColor: '#007AFF'
+                    },
+                    {
+                        label: 'Lewat',
+                        data: lewatBar,
+                        backgroundColor: '#FF9500'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
         });
     }
 
