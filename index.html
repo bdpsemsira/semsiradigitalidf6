@@ -701,28 +701,77 @@
         }
     }
 
+    let isRegistering = false; // 🔥 全局锁
+    
     window.handleRegister = async () => {
+        if (isRegistering) return; // 🚫 防重复点击
+    
+        isRegistering = true;
+    
+        const btn = document.querySelector('#page-register button');
+        btn.disabled = true;
+        btn.innerText = "Sedang daftar...";
+    
         const email = document.getElementById('reg-email').value;
         const pw1 = document.getElementById('reg-pw1').value;
         const pw2 = document.getElementById('reg-pw2').value;
         const ic = document.getElementById('reg-ic').value;
         const phone = document.getElementById('reg-phone').value;
         const className = document.getElementById('reg-class').value;
-        if(!email || !pw1 || !ic || !phone || !className) return alert("Sila isi maklumat!");
-        if(pw1 !== pw2) return alert("Kata laluan tidak sepadan!");
+    
+        if (!email || !pw1 || !ic || !phone || !className) {
+            resetButton(btn);
+            return alert("Sila isi maklumat!");
+        }
+    
+        if (pw1 !== pw2) {
+            resetButton(btn);
+            return alert("Kata laluan tidak sepadan!");
+        }
+    
         try {
             const q = query(collection(db, COLLECTION_NAME), where("ic", "==", ic));
             const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) { return alert("IC didaftarkan!"); }
+    
+            if (!querySnapshot.empty) {
+                resetButton(btn);
+                return alert("IC didaftarkan!");
+            }
+    
             const assignedSemester = await getSemesterForClass(className);
+    
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
+    
             await setDoc(doc(db, COLLECTION_NAME, userCredential.user.uid), {
-                studentId: document.getElementById('reg-id').value, ic: ic, name: document.getElementById('reg-name').value, phone: phone, className: className, semester: assignedSemester, dob: document.getElementById('reg-dob').value, gender: document.getElementById('reg-gender').value, address: document.getElementById('reg-address').value, email: email, createdAt: new Date()
+                studentId: document.getElementById('reg-id').value,
+                ic: ic,
+                name: document.getElementById('reg-name').value,
+                phone: phone,
+                className: className,
+                semester: assignedSemester,
+                dob: document.getElementById('reg-dob').value,
+                gender: document.getElementById('reg-gender').value,
+                address: document.getElementById('reg-address').value,
+                email: email,
+                createdAt: new Date()
             });
-            alert("Berjaya!"); location.reload();
-        } catch (e) { alert(e.message); }
+    
+            alert("Berjaya!");
+            location.reload();
+    
+        } catch (e) {
+            alert(e.message);
+            resetButton(btn);
+        }
+    };
+    
+    // 🔥 重置按钮函数
+    function resetButton(btn) {
+        isRegistering = false;
+        btn.disabled = false;
+        btn.innerText = "Daftar";
     }
-
+   
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
