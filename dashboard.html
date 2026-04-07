@@ -227,7 +227,7 @@
             const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "0.00";
             gT += item.total; gP += item.present; gL += item.late;
             labels.push(className);
-            pPresent.push(item.total > 0 ? (item.present / item.total * 100).toFixed(2) : 0);
+            pPresent.push(item.total > 0 ? ((item.present + item.late) / item.total * 100).toFixed(2) : 0);
             pLate.push(item.total > 0 ? (item.late / item.total * 100).toFixed(2) : 0);
             tableBody.innerHTML += `<tr><td style="font-weight:500;">${className}</td><td>${item.total}</td><td>${item.present}</td><td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td></td><td>${totalHadir}</td><td>${per}%</td></tr>`;
         });
