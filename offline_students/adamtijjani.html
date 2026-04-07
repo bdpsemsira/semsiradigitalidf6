@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Semsira Digital ID - ADAM TIJJANI ADAM</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #0A0A0E;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 主卡片 - 高级玻璃质感 */
+        .card {
+            background: rgba(28, 28, 32, 0.94);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 52px;
+            padding: 28px 24px 40px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+        }
+
+        /* Semsira 品牌区域 */
+        .brand {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-circle {
+            width: 75px;
+            height: 75px;
+            background: linear-gradient(145deg, #007AFF, #0055CC);
+            border-radius: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 24px rgba(0,122,255,0.35);
+            margin-bottom: 12px;
+        }
+        .logo-circle svg {
+            width: 44px;
+            height: 44px;
+            stroke: white;
+            stroke-width: 1.7;
+        }
+        h1 {
+            font-size: 30px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        .subhead {
+            color: #8E8E93;
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 5px;
+            letter-spacing: 0.3px;
+        }
+        .offline-badge {
+            background: rgba(255,149,0,0.18);
+            border: 0.5px solid rgba(255,149,0,0.4);
+            color: #FF9F0A;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 14px auto 0;
+            width: fit-content;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 个人信息卡片 - 学生资料醒目 */
+        .student-profile {
+            background: rgba(0,122,255,0.12);
+            border-radius: 28px;
+            padding: 18px 20px;
+            margin: 16px 0 20px;
+            border: 0.5px solid rgba(0,122,255,0.3);
+            backdrop-filter: blur(8px);
+        }
+        .profile-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .profile-label {
+            color: #8E8E93;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .profile-value {
+            color: white;
+            font-size: 17px;
+            font-weight: 700;
+            word-break: break-word;
+            text-align: right;
+            font-family: monospace;
+        }
+        .class-badge {
+            background: #007AFF;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .ic-badge {
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+
+        /* 二维码容器 */
+        .qr-pavilion {
+            background: white;
+            border-radius: 36px;
+            padding: 20px;
+            margin: 12px 0 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 18px 35px rgba(0,0,0,0.4);
+            transition: 0.2s;
+            min-height: 280px;
+        }
+        #qrcode {
+            background: white;
+            display: inline-block;
+        }
+        .qr-status-badge {
+            text-align: center;
+            margin-top: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #34C759;
+            background: rgba(52,199,89,0.12);
+            padding: 6px 14px;
+            border-radius: 30px;
+            display: inline-block;
+            width: auto;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 倒计时 & 自动刷新区域 */
+        .refresh-dashboard {
+            background: rgba(0,0,0,0.35);
+            border-radius: 38px;
+            padding: 16px 18px;
+            margin: 15px 0 12px;
+            text-align: center;
+            border: 0.5px solid rgba(255,255,255,0.06);
+        }
+        .timer-label {
+            font-size: 12px;
+            color: #98989E;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .countdown-circle {
+            font-family: monospace;
+            font-size: 44px;
+            font-weight: 800;
+            color: #34C759;
+            background: #0C0C10;
+            display: inline-block;
+            padding: 6px 32px;
+            border-radius: 70px;
+            letter-spacing: 6px;
+            margin-top: 5px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .refresh-manual {
+            width: 100%;
+            background: #007AFF;
+            border: none;
+            padding: 15px;
+            border-radius: 44px;
+            font-weight: 700;
+            font-size: 17px;
+            color: white;
+            margin-top: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 6px 16px rgba(0,122,255,0.4);
+        }
+        .refresh-manual:active {
+            transform: scale(0.97);
+            opacity: 0.85;
+        }
+
+        .semsira-footer {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 0.5px solid rgba(255,255,255,0.08);
+            font-size: 10px;
+            color: #5E5E66;
+            align-items: center;
+        }
+        .brand-note {
+            font-weight: 700;
+            color: #007AFF;
+        }
+
+        @keyframes softPulse {
+            0% { transform: scale(1);}
+            50% { transform: scale(1.005);}
+            100% { transform: scale(1);}
+        }
+        .qr-pavilion {
+            animation: softPulse 2.2s infinite ease-in-out;
+        }
+        hr {
+            border: none;
+            height: 0.5px;
+            background: rgba(255,255,255,0.1);
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="brand">
+        <div class="logo-circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
+                <path d="M8 7h8M8 12h8M8 17h4" stroke-linecap="round"/>
+                <circle cx="18" cy="18" r="2"></circle>
+            </svg>
+        </div>
+        <h1>SEMSIRA</h1>
+        <div class="subhead">Digital Kehadiran Pintar</div>
+        <div class="offline-badge">
+            <span>⚡</span> Mod Luar Talian | Auto QR
+        </div>
+    </div>
+
+    <!-- 学生资料区域 (一目了然, 可替换) -->
+    <div class="student-profile">
+        <div class="profile-row">
+            <span class="profile-label">Nama Penuh</span>
+            <span class="profile-value" id="studentName">ADAM TIJJANI ADAM</span>
+        </div>
+        <div class="profile-row">
+            <span class="profile-label">No. IC / Passport</span>
+            <span class="profile-value ic-badge" id="studentIc">A13169743</span>
+        </div>
+        <div class="profile-row">
+            <span class="profile-label">Kelas</span>
+            <span class="profile-value class-badge" id="studentClass">6 SARAH</span>
+        </div>
+    </div>
+
+    <!-- 二维码核心区 -->
+    <div class="qr-pavilion">
+        <div id="qrcode"></div>
+    </div>
+    <div style="text-align: center;">
+        <div class="qr-status-badge" id="qrLiveStatus">
+            ✅ Kod Aktif | Sedia Imbas
+        </div>
+    </div>
+
+    <!-- 自动刷新倒计时面板 -->
+    <div class="refresh-dashboard">
+        <div class="timer-label">🔄 Penjanaan Semula Kod Setiap</div>
+        <div>
+            <span class="countdown-circle" id="countdownDisplay">5</span>
+            <span style="color: #8E8E93; font-weight: 500; margin-left: 8px;">saat</span>
+        </div>
+        <div style="font-size: 10px; color: #5A5A62; margin-top: 8px;">
+            Kod QR berubah secara automatik untuk keselamatan
+        </div>
+    </div>
+
+    <button class="refresh-manual" id="refreshBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Jana Semula Sekarang
+    </button>
+
+    <div class="semsira-footer">
+        <span>🔐</span>
+        <span>Kod dijana oleh <strong class="brand-note">Sistem Kehadiran SEMSIRA</strong></span>
+        <span>📱</span>
+    </div>
+    <div style="text-align: center; font-size: 9px; color: #4A4A50; margin-top: 14px;">
+        Auto refresh 5 saat
+    </div>
+</div>
+
+<script>
+    // ======================= 模板配置区 =======================
+    // ⚡⚡ 修改这里即可生成下一位学生的专属二维码 ⚡⚡
+    // ---------------------------------------------------------
+    const STUDENT_DATA = {
+        ic: "A13169743",           // No. IC / Matrik (将用于二维码格式 IC|timestamp)
+        name: "ADAM TIJJANI ADAM", // Nama penuh pelajar
+        className: "6 SARAH"       // Kelas
+    };
+    // ==========================================================
+    // 注意: 二维码生成格式为 "IC|YYYYMMDDHHMMSS"  (例如 A13169743|20260407153022)
+    // 完全符合 Semsira scanner 验证规则，不显示原始字串在 UI 上
+    // ==========================================================
+
+    let qrInstance = null;
+    let autoTimer = null;
+    let countdownInterval = null;
+    let remainingSeconds = 5;
+    
+    // DOM 元素
+    const studentNameSpan = document.getElementById('studentName');
+    const studentIcSpan = document.getElementById('studentIc');
+    const studentClassSpan = document.getElementById('studentClass');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const countdownDisplaySpan = document.getElementById('countdownDisplay');
+    const qrLiveStatusSpan = document.getElementById('qrLiveStatus');
+    const qrContainer = document.getElementById('qrcode');
+    
+    // 更新页面资料 (动态套用模板)
+    function applyStudentProfile() {
+        studentNameSpan.innerText = STUDENT_DATA.name;
+        studentIcSpan.innerText = STUDENT_DATA.ic;
+        studentClassSpan.innerText = STUDENT_DATA.className;
+    }
+    
+    // 获取当前时间戳 (YYYYMMDDHHMMSS 本地时间)
+    function getCurrentTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return `${year}${month}${day}${hours}${minutes}${seconds}`;
+    }
+    
+    // 生成二维码内容 (完全符合 070108020147|20260407122358 样式)
+    function buildQRPayload() {
+        const icValue = STUDENT_DATA.ic.trim();
+        if (!icValue) return null;
+        const timestamp = getCurrentTimestamp();
+        // 标准格式: IC|YYYYMMDDHHMMSS
+        return `${icValue}|${timestamp}`;
+    }
+    
+    // 更新二维码视觉 (离线生成)
+    function updateQRCode() {
+        const payload = buildQRPayload();
+        if (!payload) return;
+        
+        // 初始化二维码实例 (如果不存在)
+        if (!qrInstance) {
+            qrContainer.innerHTML = "";
+            qrInstance = new QRCode(qrContainer, {
+                width: 230,
+                height: 230,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+        
+        try {
+            qrInstance.clear();
+            qrInstance.makeCode(payload);
+            qrLiveStatusSpan.innerHTML = "✅ Kod aktif | Sedia untuk kehadiran";
+            qrLiveStatusSpan.style.color = "#34C759";
+            // 轻微触感 (提升交互)
+            if (navigator.vibrate) navigator.vibrate(12);
+        } catch (err) {
+            // 降级重建
+            qrContainer.innerHTML = "";
+            qrInstance = new QRCode(qrContainer, {
+                width: 230,
+                height: 230,
+                colorDark: "#000000",
+                colorLight: "#ffffff"
+            });
+            qrInstance.makeCode(payload);
+            qrLiveStatusSpan.innerHTML = "✅ Kod QR aktif | Sistem sedia";
+        }
+    }
+    
+    // 手动刷新 (强制更新)
+    function manualRefresh() {
+        updateQRCode();
+        // 重置倒计时显示
+        remainingSeconds = 5;
+        if (countdownDisplaySpan) countdownDisplaySpan.innerText = remainingSeconds;
+        if (navigator.vibrate) navigator.vibrate(30);
+    }
+    
+    // 自动刷新循环 (每5秒)
+    function startAutoRefresh() {
+        if (autoTimer) clearInterval(autoTimer);
+        autoTimer = setInterval(() => {
+            updateQRCode();
+        }, 5000);
+    }
+    
+    // 倒计时UI (仅显示视觉)
+    function startCountdownUI() {
+        if (countdownInterval) clearInterval(countdownInterval);
+        remainingSeconds = 5;
+        if (countdownDisplaySpan) countdownDisplaySpan.innerText = remainingSeconds;
+        
+        countdownInterval = setInterval(() => {
+            if (remainingSeconds <= 1) {
+                remainingSeconds = 5;
+                if (countdownDisplaySpan) countdownDisplaySpan.innerText = remainingSeconds;
+            } else {
+                remainingSeconds--;
+                if (countdownDisplaySpan) countdownDisplaySpan.innerText = remainingSeconds;
+            }
+        }, 1000);
+    }
+    
+    // 初始化整个系统 (完全离线)
+    function initOfflineQR() {
+        applyStudentProfile();            // 更新显示的学生资料
+        qrContainer.innerHTML = "";
+        // 创建占位提示后立即生成真实二维码
+        const tempDiv = document.createElement('div');
+        tempDiv.style.textAlign = "center";
+        tempDiv.style.padding = "20px";
+        tempDiv.style.color = "#aaa";
+        tempDiv.innerText = "Menjana kod QR...";
+        qrContainer.appendChild(tempDiv);
+        
+        // 延迟极短时间后生成真实二维码 (确保dom ready)
+        setTimeout(() => {
+            qrInstance = null;
+            qrContainer.innerHTML = "";
+            updateQRCode();
+        }, 50);
+        
+        // 绑定事件
+        refreshBtn.addEventListener('click', manualRefresh);
+        
+        // 启动自动刷新 + 倒计时
+        startAutoRefresh();
+        startCountdownUI();
+        
+        // 页面可见性变化时确保二维码同步最新时间戳 (安全)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                updateQRCode();
+                remainingSeconds = 5;
+                if (countdownDisplaySpan) countdownDisplaySpan.innerText = remainingSeconds;
+            }
+        });
+        
+        console.log(`✅ [SEMSIRA] QR aktif untuk ${STUDENT_DATA.name} (${STUDENT_DATA.ic}) | Mod luar talian`);
+    }
+    
+    // 启动所有
+    window.addEventListener('load', initOfflineQR);
+    
+    // 清理定时器 (页面关闭时)
+    window.addEventListener('beforeunload', () => {
+        if (autoTimer) clearInterval(autoTimer);
+        if (countdownInterval) clearInterval(countdownInterval);
+    });
+</script>
+</body>
+</html>
