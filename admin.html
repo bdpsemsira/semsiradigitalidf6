@@ -391,7 +391,7 @@
         const snap = await getDocs(collection(db, TEACHER_COL));
         let dataMap = {};
         snap.forEach(d => dataMap[d.id] = d.data().chatId);
-        let html = `<table> hilab<th>Kelas</th><th>Telegram Chat ID</th></tr>`;
+        let html = `<table><th>Kelas</th><th>Telegram Chat ID</th></tr>`;
         ALL_CLASSES.forEach(cls => {
             html += `<tr><td>${cls}</td><td><input type="text" id="t-id-${cls}" value="${dataMap[cls] || ''}" style="width:90%;"></td></tr>`;
         });
