@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Semsira Scanner - Anti-Glare Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -61,11 +61,35 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
+            position: relative;
         }
 
         .header img { width: 38px; height: 38px; border-radius: 10px; }
         .header-text h2 { margin: 0; font-size: 17px; color: #1c1c1e; }
         .header-text p { margin: 0; font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* 设置按钮 */
+        .settings-btn {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #f2f2f7;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--primary);
+            transition: all 0.2s ease;
+        }
+        .settings-btn:active {
+            background: #e5e5ea;
+            transform: translateY(-50%) scale(0.95);
+        }
 
         .controls-container {
             width: 90%;
@@ -121,6 +145,11 @@
             overflow: hidden;
             background: #000;
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+        /* 镜像反转样式 */
+        .mirror-video video {
+            transform: scaleX(-1) !important;
         }
 
         .result-card {
@@ -152,6 +181,136 @@
         .success { color: var(--success); background: #eafaf1; }
         .error { color: var(--error); background: #fff1f0; }
         .waiting { color: #8e8e93; background: #f2f2f7; }
+
+        /* 设置模态框 */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .settings-card {
+            background: white;
+            width: 85%;
+            max-width: 340px;
+            border-radius: 28px;
+            padding: 24px 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: modalSlide 0.3s ease-out;
+        }
+        @keyframes modalSlide {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f5;
+        }
+        .settings-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .close-settings {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #8e8e93;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+        }
+        .close-settings:active {
+            background: #f2f2f7;
+        }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid #f5f5fa;
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        .setting-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #1c1c1e;
+        }
+        .setting-label i {
+            color: var(--primary);
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 51px;
+            height: 31px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e5e5ea;
+            transition: 0.3s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 27px;
+            width: 27px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        input:checked + .toggle-slider {
+            background-color: var(--primary);
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        .info-text {
+            font-size: 12px;
+            color: #8e8e93;
+            margin-top: 16px;
+            text-align: center;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f5;
+        }
     </style>
 </head>
 <body>
@@ -169,6 +328,9 @@
         <h2>Semsira Attendance</h2>
         <p>Anti-Glare Scanning Mode</p>
     </div>
+    <button class="settings-btn" id="open-settings-btn">
+        <i data-lucide="settings"></i>
+    </button>
 </div>
 
 <div class="controls-container">
@@ -193,6 +355,49 @@
 
 <audio id="beep-sound" src="beep.mp3" preload="auto"></audio>
 
+<!-- 设置模态框 -->
+<div id="settings-modal" class="settings-modal">
+    <div class="settings-card">
+        <div class="settings-header">
+            <h3><i data-lucide="settings"></i> Tetapan Scanner</h3>
+            <button class="close-settings" id="close-settings-btn">✕</button>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">
+                <i data-lucide="flip-horizontal"></i>
+                <span>Imej Cermin (Mirror)</span>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="mirror-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">
+                <i data-lucide="sun-medium"></i>
+                <span>Kekal Skrin Terang</span>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="wakelock-settings-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">
+                <i data-lucide="vibrate"></i>
+                <span>Getaran Semasa Imbas</span>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="vibration-toggle" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="info-text">
+            <i data-lucide="info"></i> Mirror mode membantu membaca QR dari cermin atau permukaan reflektif.
+        </div>
+    </div>
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -215,16 +420,107 @@
     const startBtn = document.getElementById('start-btn');
     const startOverlay = document.getElementById('start-overlay');
     const wakelockBtn = document.getElementById('wakelock-toggle');
+    const readerDiv = document.getElementById('reader');
+    
+    // 设置相关元素
+    const settingsModal = document.getElementById('settings-modal');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const mirrorToggle = document.getElementById('mirror-toggle');
+    const wakelockSettingsToggle = document.getElementById('wakelock-settings-toggle');
+    const vibrationToggle = document.getElementById('vibration-toggle');
     
     let isProcessing = false;
     let wakeLock = null;
-
-    lucide.createIcons();
-
+    let currentCameraId = null;
+    let isScanning = false;
+    
+    // 加载保存的设置
+    function loadSettings() {
+        const mirrorEnabled = localStorage.getItem('scanner_mirror') === 'true';
+        const wakelockEnabled = localStorage.getItem('scanner_wakelock') === 'true';
+        const vibrationEnabled = localStorage.getItem('scanner_vibration') !== 'false'; // 默认 true
+        
+        mirrorToggle.checked = mirrorEnabled;
+        wakelockSettingsToggle.checked = wakelockEnabled;
+        vibrationToggle.checked = vibrationEnabled;
+        
+        // 应用镜像设置
+        if (mirrorEnabled) {
+            readerDiv.classList.add('mirror-video');
+        } else {
+            readerDiv.classList.remove('mirror-video');
+        }
+        
+        // 应用唤醒锁设置
+        if (wakelockEnabled) {
+            requestWakeLock();
+        } else {
+            releaseWakeLock();
+        }
+        
+        // 同步主界面的唤醒锁按钮状态
+        if (wakelockBtn) {
+            if (wakelockEnabled && wakeLock) {
+                wakelockBtn.classList.add('wakelock-active');
+                wakelockBtn.querySelector('span').innerText = "Skrin Sentiasa Terang (ON)";
+            } else {
+                wakelockBtn.classList.remove('wakelock-active');
+                wakelockBtn.querySelector('span').innerText = "Kekal Skrin Terang";
+            }
+        }
+    }
+    
+    // 保存镜像设置
+    function saveMirrorSetting(enabled) {
+        localStorage.setItem('scanner_mirror', enabled);
+        if (enabled) {
+            readerDiv.classList.add('mirror-video');
+        } else {
+            readerDiv.classList.remove('mirror-video');
+        }
+    }
+    
+    // 保存唤醒锁设置
+    function saveWakelockSetting(enabled) {
+        localStorage.setItem('scanner_wakelock', enabled);
+        if (enabled) {
+            requestWakeLock();
+        } else {
+            releaseWakeLock();
+        }
+        // 同步主按钮
+        if (wakelockBtn) {
+            if (enabled && wakeLock) {
+                wakelockBtn.classList.add('wakelock-active');
+                wakelockBtn.querySelector('span').innerText = "Skrin Sentiasa Terang (ON)";
+            } else {
+                wakelockBtn.classList.remove('wakelock-active');
+                wakelockBtn.querySelector('span').innerText = "Kekal Skrin Terang";
+            }
+        }
+    }
+    
+    // 保存振动设置
+    function saveVibrationSetting(enabled) {
+        localStorage.setItem('scanner_vibration', enabled);
+    }
+    
+    // 触发振动
+    function triggerVibration() {
+        const vibrationEnabled = localStorage.getItem('scanner_vibration') !== 'false';
+        if (vibrationEnabled && 'vibrate' in navigator) {
+            navigator.vibrate(200);
+        }
+    }
+    
     // --- Screen Wake Lock Logic ---
     async function requestWakeLock() {
         try {
             if ('wakeLock' in navigator) {
+                if (wakeLock) {
+                    try { wakeLock.release(); } catch(e) {}
+                }
                 wakeLock = await navigator.wakeLock.request('screen');
                 wakelockBtn.classList.add('wakelock-active');
                 wakelockBtn.querySelector('span').innerText = "Skrin Sentiasa Terang (ON)";
@@ -243,15 +539,66 @@
         }
     }
 
+    // 监听页面可见性变化，重新获取唤醒锁
+    function handleVisibilityChange() {
+        const wakelockEnabled = localStorage.getItem('scanner_wakelock') === 'true';
+        if (document.visibilityState === 'visible' && wakelockEnabled && wakeLock === null) {
+            requestWakeLock();
+        }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // 主界面唤醒锁按钮点击事件
     wakelockBtn.addEventListener('click', async () => {
-        if (wakeLock === null) {
-            await requestWakeLock();
+        const wakelockEnabled = localStorage.getItem('scanner_wakelock') === 'true';
+        if (wakelockEnabled) {
+            // 如果设置中开启了，但实际锁不存在则请求
+            if (wakeLock === null) {
+                await requestWakeLock();
+                localStorage.setItem('scanner_wakelock', 'true');
+                if (wakelockSettingsToggle) wakelockSettingsToggle.checked = true;
+            } else {
+                releaseWakeLock();
+                localStorage.setItem('scanner_wakelock', 'false');
+                if (wakelockSettingsToggle) wakelockSettingsToggle.checked = false;
+            }
         } else {
-            releaseWakeLock();
+            await requestWakeLock();
+            localStorage.setItem('scanner_wakelock', 'true');
+            if (wakelockSettingsToggle) wakelockSettingsToggle.checked = true;
         }
     });
 
+    // 设置模态框事件
+    openSettingsBtn.addEventListener('click', () => {
+        settingsModal.style.display = 'flex';
+        lucide.createIcons();
+    });
+    
+    function closeSettingsModal() {
+        settingsModal.style.display = 'none';
+    }
+    
+    closeSettingsBtn.addEventListener('click', closeSettingsModal);
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) closeSettingsModal();
+    });
+    
+    // 监听设置开关变化
+    mirrorToggle.addEventListener('change', (e) => {
+        saveMirrorSetting(e.target.checked);
+    });
+    
+    wakelockSettingsToggle.addEventListener('change', (e) => {
+        saveWakelockSetting(e.target.checked);
+    });
+    
+    vibrationToggle.addEventListener('change', (e) => {
+        saveVibrationSetting(e.target.checked);
+    });
+
     startBtn.addEventListener('click', () => {
+        triggerVibration();
         beepSound.play().catch(() => {});
         startOverlay.style.opacity = '0';
         setTimeout(() => startOverlay.style.display = 'none', 400);
@@ -261,7 +608,7 @@
     function initCameraList() {
         Html5Qrcode.getCameras().then(cameras => {
             if (cameras && cameras.length > 0) {
-                cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label}</option>`).join('');
+                cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label || `Kamera ${cam.id}`}</option>`).join('');
                 cameraSelect.onchange = () => {
                     if (cameraSelect.value) switchCamera(cameraSelect.value);
                 };
@@ -271,19 +618,27 @@
     }
 
     async function switchCamera(cameraId) {
-        try {
-            await html5QrCode.stop();
-            setTimeout(() => startScanning(cameraId), 300);
-        } catch (err) {
-            startScanning(cameraId);
+        if (isScanning) {
+            try {
+                await html5QrCode.stop();
+                isScanning = false;
+            } catch(e) {}
         }
+        setTimeout(() => startScanning(cameraId), 300);
     }
 
     function startScanning(cameraId) {
+        currentCameraId = cameraId;
         const config = { fps: 25, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
         html5QrCode.start(cameraId, config, onScanSuccess)
-        .then(() => applyAdvancedSettings())
-        .catch(() => html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess));
+            .then(() => {
+                isScanning = true;
+                applyAdvancedSettings();
+            })
+            .catch(() => {
+                html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess)
+                    .then(() => isScanning = true);
+            });
     }
 
     async function applyAdvancedSettings() {
@@ -302,6 +657,7 @@
         if (isProcessing) return;
         isProcessing = true;
         playBeep();
+        triggerVibration();
         showResult("Memproses", "Sila tunggu sebentar...", "wait");
 
         try {
@@ -333,9 +689,8 @@
             const student = studentSnap.docs[0].data();
             const status = timeStr > late ? "Lewat" : "Hadir";
 
-            // --- 新增：计算 35 天后的日期对象 ---
             const expireDate = new Date();
-            expireDate.setDate(now.getDate() + 35); 
+            expireDate.setDate(now.getDate() + 35);
 
             await addDoc(collection(db, "attendanceLogs"), {
                 name: student.name,
@@ -345,7 +700,7 @@
                 date: today,
                 timeFull: now.toLocaleString('ms-MY'),
                 timestamp: serverTimestamp(),
-                expireAt: expireDate // <-- TTL 自动删除字段
+                expireAt: expireDate
             });
 
             showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", now.toLocaleTimeString());
@@ -388,6 +743,10 @@
         icon.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2')}"></i>`;
         lucide.createIcons();
     }
+    
+    // 初始化所有设置
+    loadSettings();
+    lucide.createIcons();
 </script>
 </body>
 </html>
