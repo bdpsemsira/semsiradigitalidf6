@@ -75,7 +75,6 @@
         .capture-mode .no-print, .capture-mode .btn-action, .capture-mode .section-header button, .capture-mode .date-selector-group { display: none !important; }
         .monthly-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #1c1c1e; }
         
-        /* 截图遮罩层样式 */
         .screenshot-overlay {
             position: fixed;
             top: 0;
@@ -102,7 +101,6 @@
 <body>
 
 <div id="fullReportWrapper">
-    <!-- 顶部Logo区域 -->
     <div class="screenshot-target" id="mainScreenshotArea" style="background: var(--bg);">
         <div class="header-container">
             <div class="header-logo">
@@ -113,7 +111,6 @@
         <div class="date-time-info"><span id="current-date">Tarikh: --/--/----</span><span id="current-time">Masa: --:--</span></div>
     </div>
 
-    <!-- 日期选择器 -->
     <div class="date-selector-group no-print" style="background: white; border-radius: 16px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <label>📅 Pilih Tarikh:</label>
@@ -122,32 +119,27 @@
         </div>
     </div>
 
-    <!-- 手动输入面板 -->
     <div id="manualPanel" class="manual-panel no-print">
         <h3>Input Data Manual</h3>
         <div id="manualInputs"><div class="input-row"><select class="m-class-select"></select><input type="text" placeholder="e.g. 8/10" class="m-data"><button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button></div></div>
         <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;"><button class="btn-action bg-primary" onclick="addRow()">+ Tambah Baris</button><button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button><button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button></div>
     </div>
 
-    <!-- Graf Kehadiran Panel -->
     <div class="dashboard-container" id="graphSection">
         <div class="section-header"><h3><i data-lucide="bar-chart-2"></i> Graf Kehadiran & Keterlewatan</h3><button class="btn-action bg-teal" onclick="captureGraphOnly()"><i data-lucide="camera"></i> Screenshot Graf</button></div>
         <div class="chart-wrapper"><div class="chart-inner"><canvas id="attendanceChart" height="400"></canvas></div></div>
     </div>
 
-    <!-- Ringkasan Kehadiran -->
     <div class="dashboard-container" id="reportSection">
         <div class="section-header"><h3><i data-lucide="table"></i> Ringkasan Kehadiran Mengikut Kelas</h3><button class="btn-action bg-teal" onclick="captureTableSection()"><i data-lucide="camera"></i> Screenshot Jadual</button></div>
         <div id="tableCaptureArea"><table id="attendanceTable"><thead><tr><th>KELAS</th><th>BIL. MURID</th><th>HADIR</th><th class="lewat-col">LEWAT</th><th>JUMLAH HADIR</th><th>%</th></tr></thead><tbody id="tableBody"></tbody><tfoot><tr id="totalRow" class="summary-row"><tr></tfoot></table></div>
     </div>
 
-    <!-- Senarai Murid Lewat -->
     <div id="lateSection" class="dashboard-container">
         <div class="section-header"><h3 style="color: var(--lewat);"><i data-lucide="user-x"></i> Senarai Murid Lewat</h3><button class="btn-action bg-orange" onclick="captureLateSection()"><i data-lucide="camera"></i> Screenshot Senarai</button></div>
         <div id="lateCaptureArea"><table id="lateStudentsTable"><thead><tr><th>NAMA</th><th>KELAS</th><th>WAKTU</th><th>STATUS</th></tr></thead><tbody id="lateTableBody"></tbody></table></div>
     </div>
 
-    <!-- Laporan Bulanan Panel (dengan Graf) -->
     <div class="dashboard-container" id="monthlyReportSection">
         <div class="section-header">
             <h3><i data-lucide="calendar"></i> Laporan Bulanan</h3>
@@ -192,12 +184,40 @@
     const EXCLUDED_CLASS = "GURU BDP";
 
     function sortClasses(a, b) { return allStaticClasses.indexOf(a) - allStaticClasses.indexOf(b); }
-    function updateLiveDateTime() {
+    
+    // ========== 获取马来西亚当前日期 (YYYY-MM-DD 格式) ==========
+    function getMalaysiaDate() {
         const now = new Date();
+        // 转换为马来西亚时间 (UTC+8)
+        const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+        const year = malaysiaTime.getUTCFullYear();
+        const month = String(malaysiaTime.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(malaysiaTime.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    // ========== 格式化马来西亚日期显示 ==========
+    function formatMalaysiaDate() {
+        const now = new Date();
+        const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
         const days = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
-        document.getElementById('current-date').innerText = `Tarikh: ${now.toLocaleDateString('en-GB')} ${days[now.getDay()]}`;
-        document.getElementById('current-time').innerText = `Masa: ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} ${now.getHours()>=12?'PTG':'PG'}`;
-        document.getElementById('display-day-top').innerText = "Hari: " + days[now.getDay()];
+        const day = days[malaysiaTime.getUTCDay()];
+        const date = malaysiaTime.getUTCDate();
+        const month = malaysiaTime.getUTCMonth() + 1;
+        const year = malaysiaTime.getUTCFullYear();
+        return { dateStr: `${date}/${month}/${year}`, day, year, month, date };
+    }
+    
+    function updateLiveDateTime() {
+        const { dateStr, day } = formatMalaysiaDate();
+        const now = new Date();
+        const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+        const hours = String(malaysiaTime.getUTCHours()).padStart(2,'0');
+        const minutes = String(malaysiaTime.getUTCMinutes()).padStart(2,'0');
+        const ampm = malaysiaTime.getUTCHours() >= 12 ? 'PTG' : 'PG';
+        document.getElementById('current-date').innerText = `Tarikh: ${dateStr} ${day}`;
+        document.getElementById('current-time').innerText = `Masa: ${hours}:${minutes} ${ampm}`;
+        document.getElementById('display-day-top').innerText = "Hari: " + day;
     }
 
     window.loadDashboardByDate = async () => {
@@ -402,7 +422,6 @@
         });
     }
     
-    // 月度报告 - 修改为百分比样式
     window.loadMonthlyReport = async () => {
         const month = parseInt(document.getElementById('monthPicker').value);
         let year = parseInt(document.getElementById('yearPicker').value);
@@ -535,19 +554,15 @@
         lucide.createIcons();
     };
 
-    // ========== 全新的稳定截图功能 ==========
     async function takeScreenshot(element, fileName) {
-        // 显示加载遮罩
         const overlay = document.createElement('div');
         overlay.className = 'screenshot-overlay';
         overlay.innerHTML = '<div class="screenshot-loading"><span>📸</span> Sedang mengambil screenshot...<br><small>Sila tunggu sebentar</small></div>';
         document.body.appendChild(overlay);
         
         try {
-            // 等待一小段时间让DOM稳定
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // 使用 html2canvas 截图
             const canvas = await html2canvas(element, {
                 scale: 2,
                 backgroundColor: '#F2F2F7',
@@ -558,11 +573,11 @@
                 windowHeight: element.scrollHeight
             });
             
-            // 下载图片
             const link = document.createElement('a');
             const now = new Date();
-            const dateStr = now.toISOString().slice(0,10).replace(/-/g, '');
-            const timeStr = now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0');
+            const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+            const dateStr = `${malaysiaTime.getUTCFullYear()}${String(malaysiaTime.getUTCMonth()+1).padStart(2,'0')}${String(malaysiaTime.getUTCDate()).padStart(2,'0')}`;
+            const timeStr = `${String(malaysiaTime.getUTCHours()).padStart(2,'0')}${String(malaysiaTime.getUTCMinutes()).padStart(2,'0')}`;
             link.download = `semsira_${fileName}_${dateStr}_${timeStr}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
@@ -572,41 +587,41 @@
             console.error('Screenshot error:', error);
             return false;
         } finally {
-            // 移除遮罩
             overlay.remove();
         }
     }
     
-    // 为每个区域创建截图副本（更稳定的方式）
-    async function captureArea(elementId, fileName) {
-        const originalElement = document.getElementById(elementId);
-        if (!originalElement) {
+    async function captureWithHeader(contentElementId, fileName) {
+        const headerArea = document.getElementById('mainScreenshotArea');
+        const contentArea = document.getElementById(contentElementId);
+        
+        if (!headerArea || !contentArea) {
             alert('Elemen tidak dijumpai!');
             return;
         }
         
-        // 创建克隆元素
-        const clone = originalElement.cloneNode(true);
+        const headerClone = headerArea.cloneNode(true);
+        const contentClone = contentArea.cloneNode(true);
         
-        // 移除克隆中的按钮和不需要的元素
-        const buttonsToRemove = clone.querySelectorAll('.btn-action, .section-header button, .date-selector-group, .no-print, select, .section-header > div');
-        buttonsToRemove.forEach(el => el.remove());
+        const headerBtns = headerClone.querySelectorAll('.btn-action, .no-print, select');
+        headerBtns.forEach(el => el.remove());
         
-        // 保留标题
-        const headers = clone.querySelectorAll('.section-header h3');
-        headers.forEach(h => {
+        const contentBtns = contentClone.querySelectorAll('.btn-action, .section-header button, .no-print, select, .section-header > div');
+        contentBtns.forEach(el => el.remove());
+        
+        const contentHeaders = contentClone.querySelectorAll('.section-header h3');
+        contentHeaders.forEach(h => {
             const icon = h.querySelector('i');
             if (icon) icon.remove();
         });
         
-        // 确保 canvas 在克隆中有内容
-        const originalCanvases = originalElement.querySelectorAll('canvas');
-        const cloneCanvases = clone.querySelectorAll('canvas');
+        const originalCanvases = contentArea.querySelectorAll('canvas');
+        const cloneCanvases = contentClone.querySelectorAll('canvas');
         
         for (let i = 0; i < originalCanvases.length && i < cloneCanvases.length; i++) {
             const origCanvas = originalCanvases[i];
             const cloneCanvas = cloneCanvases[i];
-            if (origCanvas && cloneCanvas) {
+            if (origCanvas && cloneCanvas && origCanvas.width > 0) {
                 cloneCanvas.width = origCanvas.width;
                 cloneCanvas.height = origCanvas.height;
                 const ctx = cloneCanvas.getContext('2d');
@@ -616,20 +631,18 @@
             }
         }
         
-        // 创建临时容器
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.top = '-9999px';
         tempContainer.style.left = '-9999px';
         tempContainer.style.backgroundColor = '#F2F2F7';
         tempContainer.style.padding = '20px';
-        tempContainer.appendChild(clone);
+        tempContainer.style.width = '800px';
+        tempContainer.appendChild(headerClone);
+        tempContainer.appendChild(contentClone);
         document.body.appendChild(tempContainer);
         
-        // 截图
         const success = await takeScreenshot(tempContainer, fileName);
-        
-        // 清理
         tempContainer.remove();
         
         if (success) {
@@ -639,42 +652,32 @@
         }
     }
     
-    // 截图 Graf 区域（包括 header logo）
-    async function captureGraphWithHeader() {
+    async function captureMonthlyWithHeader() {
         const headerArea = document.getElementById('mainScreenshotArea');
-        const graphArea = document.getElementById('graphSection');
+        const monthlyContent = document.getElementById('monthlyReportContent');
         
-        if (!headerArea || !graphArea) {
+        if (!headerArea || !monthlyContent) {
             alert('Elemen tidak dijumpai!');
             return;
         }
         
         const headerClone = headerArea.cloneNode(true);
-        const graphClone = graphArea.cloneNode(true);
-        
-        // 移除按钮
         const headerBtns = headerClone.querySelectorAll('.btn-action, .no-print, select');
         headerBtns.forEach(el => el.remove());
         
-        const graphBtns = graphClone.querySelectorAll('.btn-action, .section-header button, .no-print');
-        graphBtns.forEach(el => el.remove());
+        const contentClone = monthlyContent.cloneNode(true);
         
-        // 保留图表标题
-        const graphHeader = graphClone.querySelector('.section-header h3');
-        if (graphHeader) {
-            const icon = graphHeader.querySelector('i');
-            if (icon) icon.remove();
-        }
+        const contentBtns = contentClone.querySelectorAll('.btn-action, .section-header button, .no-print, select, .section-header > div');
+        contentBtns.forEach(el => el.remove());
         
-        // 复制 canvas 内容
-        const origGraphCanvas = graphArea.querySelector('#attendanceChart');
-        const cloneGraphCanvas = graphClone.querySelector('#attendanceChart');
-        if (origGraphCanvas && cloneGraphCanvas) {
-            cloneGraphCanvas.width = origGraphCanvas.width;
-            cloneGraphCanvas.height = origGraphCanvas.height;
-            const ctx = cloneGraphCanvas.getContext('2d');
+        const originalCanvas = document.getElementById('monthlyChartCanvas');
+        const cloneCanvas = contentClone.querySelector('#monthlyChartCanvas');
+        if (originalCanvas && cloneCanvas && originalCanvas.width > 0) {
+            cloneCanvas.width = originalCanvas.width;
+            cloneCanvas.height = originalCanvas.height;
+            const ctx = cloneCanvas.getContext('2d');
             if (ctx) {
-                ctx.drawImage(origGraphCanvas, 0, 0);
+                ctx.drawImage(originalCanvas, 0, 0);
             }
         }
         
@@ -684,27 +687,26 @@
         tempContainer.style.left = '-9999px';
         tempContainer.style.backgroundColor = '#F2F2F7';
         tempContainer.style.padding = '20px';
+        tempContainer.style.width = '800px';
         tempContainer.appendChild(headerClone);
-        tempContainer.appendChild(graphClone);
+        tempContainer.appendChild(contentClone);
         document.body.appendChild(tempContainer);
         
-        const success = await takeScreenshot(tempContainer, 'graf_kehadiran');
+        const success = await takeScreenshot(tempContainer, 'laporan_bulanan');
         tempContainer.remove();
         
         if (success) {
-            alert('✅ Screenshot graf berjaya!');
+            alert('✅ Screenshot laporan bulanan berjaya!');
         } else {
             alert('❌ Screenshot gagal. Sila cuba lagi.');
         }
     }
 
-    // 绑定截图函数
-    window.captureGraphOnly = () => captureGraphWithHeader();
-    window.captureTableSection = () => captureArea('reportSection', 'jadual_ringkasan');
-    window.captureLateSection = () => captureArea('lateSection', 'senarai_lewat');
-    window.captureMonthlySection = () => captureArea('monthlyReportSection', 'laporan_bulanan');
+    window.captureGraphOnly = () => captureWithHeader('graphSection', 'graf_kehadiran');
+    window.captureTableSection = () => captureWithHeader('reportSection', 'jadual_ringkasan');
+    window.captureLateSection = () => captureWithHeader('lateSection', 'senarai_lewat');
+    window.captureMonthlySection = () => captureMonthlyWithHeader();
 
-    // 手动输入逻辑
     window.toggleManualPanel = () => { document.getElementById('manualPanel').style.display = document.getElementById('manualPanel').style.display === 'block' ? 'none' : 'block'; };
     window.addRow = () => {
         const filtered = allStaticClasses.filter(c => c !== EXCLUDED_CLASS);
@@ -724,13 +726,13 @@
         updateChartAndTable(m, []);
     };
     window.resetToFirebase = () => {
-        const today = new Date().toISOString().slice(0,10);
+        const today = getMalaysiaDate();
         document.getElementById('datePicker').value = today;
         loadDashboardForDate(today);
     };
 
-    // 初始化
-    const todayStr = new Date().toISOString().slice(0,10);
+    // 初始化 - 使用马来西亚日期
+    const todayStr = getMalaysiaDate();
     document.getElementById('datePicker').value = todayStr;
     document.getElementById('yearPicker').value = new Date().getFullYear();
     document.getElementById('monthPicker').value = new Date().getMonth();
