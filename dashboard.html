@@ -218,7 +218,7 @@
     function updateUI(data, lateStudents) {
         const tableBody = document.getElementById('tableBody');
         const isNoLewat = document.body.classList.contains('print-no-lewat');
-        let labels = [], pPresent = [], pLate = [];
+        let labels = [], hadirBar = [], lewatBar = [];
         let gT = 0, gP = 0, gL = 0;
         tableBody.innerHTML = "";
         Object.keys(data).sort(sortClasses).forEach(className => {
@@ -226,10 +226,14 @@
             const totalHadir = item.present + item.late;
             const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "0.00";
             gT += item.total; gP += item.present; gL += item.late;
+            
+            
             labels.push(className);
-            // 🔵 Hadir = hadir + lewat（人数）
+            
+            // 🔵 Hadir = hadir + lewat
             hadirBar.push(item.present + item.late);
-            // 🟠 Lewat = lewat（人数）
+            
+            // 🟠 Lewat = lewat
             lewatBar.push(item.late);
             tableBody.innerHTML += `<tr><td style="font-weight:500;">${className}</td><td>${item.total}</td><td>${item.present}</td><td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td></td><td>${totalHadir}</td><td>${per}%</td></tr>`;
         });
@@ -239,14 +243,15 @@
         lucide.createIcons();
     }
 
-    function renderChart(labels, pData, lData) {
+    function renderChart(labels, hadirBar, lewatBar) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
-        if(window.myChart) window.myChart.destroy();
-        const isMany = labels.length > 10;
-        new Chart(ctx, {
+    
+        if (window.myChart) window.myChart.destroy();
+    
+        window.myChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels,
                 datasets: [
                     {
                         label: 'Hadir',
@@ -262,14 +267,20 @@
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top'
-                    }
-                },
                 scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
                     y: {
                         beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
                     }
                 }
             }
