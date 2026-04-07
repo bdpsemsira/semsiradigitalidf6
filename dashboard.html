@@ -183,6 +183,60 @@
         await loadDashboardForDate(dateInput);
     };
 
+    function renderTable(data, lateStudentsArray) {
+        const tbody = document.getElementById('tableBody');
+        const tfoot = document.getElementById('totalRow');
+        if (!tbody) return;
+        
+        let totalStudents = 0, totalHadir = 0, totalLewat = 0;
+        let html = '';
+        const sortedClasses = Object.keys(data).sort(sortClasses);
+        
+        for (let className of sortedClasses) {
+            const item = data[className] || { total: 0, present: 0, late: 0 };
+            const presentCount = item.present || 0;
+            const lateCount = item.late || 0;
+            const totalHadirClass = presentCount + lateCount;
+            const percent = item.total > 0 ? ((totalHadirClass / item.total) * 100).toFixed(2) : "0.00";
+            
+            totalStudents += item.total;
+            totalHadir += totalHadirClass;
+            totalLewat += lateCount;
+            
+            html += `<tr>
+                        <td style="font-weight:500;">${className}</td>
+                        <td>${item.total}</td>
+                        <td>${presentCount}</td>
+                        <td class="lewat-text">${lateCount}</td>
+                        <td>${totalHadirClass}</td>
+                        <td>${percent}%</td>
+                      </tr>`;
+        }
+        const overallPercent = totalStudents > 0 ? ((totalHadir / totalStudents) * 100).toFixed(2) : "0.00";
+        tfoot.innerHTML = `<tr class="summary-row">
+                            <td class="total-label"><b>JUMLAH</b></td>
+                            <td><b>${totalStudents}</b></td>
+                            <td><b>${totalHadir}</b></td>
+                            <td><b>${totalLewat}</b></td>
+                            <td><b>${totalHadir}</b></td>
+                            <td><b>${overallPercent}%</b></td>
+                            </tr>`;
+        tbody.innerHTML = html;
+        
+        const lateTbody = document.getElementById('lateTableBody');
+        if (lateTbody) {
+            if (lateStudentsArray && lateStudentsArray.length > 0) {
+                let lateHtml = '';
+                lateStudentsArray.forEach(s => {
+                    lateHtml += `<tr><td>${s.name || 'N/A'}</td><td>${s.className || '-'}</td><td>${s.time || '-'}</td><td><span style="color:#FF9500;">Lewat</span></td></tr>`;
+                });
+                lateTbody.innerHTML = lateHtml;
+            } else {
+                lateTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tiada murid lewat pada hari ini</td></tr>';
+            }
+        }
+    }
+
     async function loadDashboardForDate(dateStr) {
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classMasterData = {};
@@ -207,44 +261,43 @@
                     const hm = timePart.split(" ")[0].split(":").slice(0,2).join(":");
                     displayTime = hm + " " + (timePart.split(" ")[1] || "");
                 } else displayTime = data.time || "--:--";
-                if (data.status === "Lewat") { classMasterData[studentClass].late++; lateStudents.push({ ...data, time: displayTime }); }
+                if (data.status === "Lewat") { 
+                    classMasterData[studentClass].late++; 
+                    lateStudents.push({ name: data.name || "Tidak Dikenali", className: studentClass, time: displayTime }); 
+                }
                 else if (data.status === "Hadir") classMasterData[studentClass].present++;
             }
         });
         currentClassMasterData = classMasterData;
-        updateUI(classMasterData, lateStudents);
+        updateChartAndTable(classMasterData, lateStudents);
     }
     
-    function updateUI(data) {
+    function updateChartAndTable(classData, lateList) {
+        renderTable(classData, lateList);
+        
         const labels = [];
-        const hadirBar = [];
-        const lewatBar = [];
-    
-        Object.keys(data)
-            .sort()
-            .forEach(className => {
-                const item = data[className] || {};
-    
-                const present = item.present || 0;
-                const late = item.late || 0;
-                const total = item.total || 0;
-    
-                const totalHadir = present + late;
-    
-                const hadirPercent = total > 0
-                    ? (totalHadir / total) * 100
-                    : 0;
-    
-                const lewatPercent = total > 0
-                    ? (late / total) * 100
-                    : 0;
-    
-                labels.push(className);
-                hadirBar.push(parseFloat(hadirPercent.toFixed(2)));
-                lewatBar.push(parseFloat(lewatPercent.toFixed(2)));
-            });
-    
-        renderChart(labels, hadirBar, lewatBar);
+        const hadirPercentData = [];
+        const lewatPercentData = [];
+        
+        const sortedClasses = Object.keys(classData).sort(sortClasses);
+        for (let className of sortedClasses) {
+            const item = classData[className] || { total: 0, present: 0, late: 0 };
+            const total = item.total;
+            const hadirCount = item.present || 0;
+            const lateCount = item.late || 0;
+            const totalHadir = hadirCount + lateCount;
+            
+            let hadirPercent = 0, lewatPercent = 0;
+            if (total > 0) {
+                hadirPercent = (totalHadir / total) * 100;
+                lewatPercent = (lateCount / total) * 100;
+            }
+            labels.push(className);
+            hadirPercentData.push(parseFloat(hadirPercent.toFixed(2)));
+            lewatPercentData.push(parseFloat(lewatPercent.toFixed(2)));
+        }
+        
+        renderChart(labels, hadirPercentData, lewatPercentData);
     }
     
     let attendanceChart;
@@ -252,14 +305,13 @@
     function renderChart(labels, hadirData, lewatData) {
         const canvas = document.getElementById('attendanceChart');
         if (!canvas) return;
-    
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-    
+        
         if (attendanceChart) {
             attendanceChart.destroy();
         }
-    
+        
         attendanceChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -268,41 +320,66 @@
                     {
                         label: 'Hadir (%)',
                         data: hadirData,
-                        backgroundColor: 'blue'
+                        backgroundColor: '#007AFF',
+                        borderRadius: 6,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8
                     },
                     {
                         label: 'Lewat (%)',
                         data: lewatData,
-                        backgroundColor: 'orange'
+                        backgroundColor: '#FF9500',
+                        borderRadius: 6,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.8
                     }
                 ]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                let val = context.raw;
+                                return `${label}: ${val}%`;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 12 } }
+                    }
+                },
                 scales: {
                     x: {
                         ticks: {
                             maxRotation: 45,
-                            minRotation: 45
-                        }
+                            minRotation: 45,
+                            autoSkip: true,
+                            font: { size: 11 }
+                        },
+                        title: { display: true, text: 'Kelas', font: { weight: 'bold' } }
                     },
                     y: {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
-                            callback: value => value + '%'
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+                            callback: function(value) {
+                                return value + '%';
+                            },
+                            stepSize: 20
+                        },
+                        title: { display: true, text: 'Peratus (%)', font: { weight: 'bold' } }
                     }
                 }
             }
         });
     }
-    // 月度报告 + 月度图表
+    
+    // 月度报告 - 修改为百分比样式 (Hadir% = (Hadir+Lebat)/总学生数 * 100)
     window.loadMonthlyReport = async () => {
         const month = parseInt(document.getElementById('monthPicker').value);
         let year = parseInt(document.getElementById('yearPicker').value);
@@ -336,46 +413,110 @@
         html += `<table style="width:100%;"><thead><tr><th>KELAS</th><th>BIL. MURID</th><th>HADIR</th><th>LEWAT</th><th>JUMLAH HADIR</th><th>%</th></tr></thead><tbody>`;
         
         let totalStudentAll = 0, totalHadirAll = 0, totalLewatAll = 0;
-        const labels = [], hadirData = [], lewatData = [];
+        const labels = [], hadirPercentData = [], lewatPercentData = [];
         const sortedClasses = Object.keys(classTotalMap).sort(sortClasses);
         
         for (let className of sortedClasses) {
             const total = classTotalMap[className];
             const stats = monthlyStats[className] || { hadir: 0, lewat: 0 };
             const totalHadirClass = stats.hadir + stats.lewat;
+            // 百分比 = (Hadir + Lewat) / 总学生数 * 100
             const per = total > 0 ? ((totalHadirClass / total) * 100).toFixed(2) : "0.00";
-            totalStudentAll += total; totalHadirAll += totalHadirClass; totalLewatAll += stats.lewat;
+            // 用于图表的百分比数据
+            const hadirPercent = total > 0 ? ((totalHadirClass / total) * 100) : 0;
+            const lewatPercent = total > 0 ? ((stats.lewat / total) * 100) : 0;
+            
+            totalStudentAll += total;
+            totalHadirAll += totalHadirClass;
+            totalLewatAll += stats.lewat;
+            
             labels.push(className);
-            hadirData.push(stats.hadir);
-            lewatData.push(stats.lewat);
-            html += `<tr><td style="font-weight:500;">${className}</td><td>${total}</td><td>${stats.hadir}</td><td class="lewat-text">${stats.lewat}</td><td>${totalHadirClass}</td><td>${per}%</td></tr>`;
+            hadirPercentData.push(parseFloat(hadirPercent.toFixed(2)));
+            lewatPercentData.push(parseFloat(lewatPercent.toFixed(2)));
+            
+            html += `<tr>
+                        <td style="font-weight:500;">${className}</td>
+                        <td>${total}</td>
+                        <td>${stats.hadir}</td>
+                        <td class="lewat-text">${stats.lewat}</td>
+                        <td>${totalHadirClass}</td>
+                        <td>${per}%</td>
+                     </tr>`;
         }
         const overallPer = totalStudentAll > 0 ? ((totalHadirAll / totalStudentAll) * 100).toFixed(2) : "0.00";
-        html += `<tr class="summary-row"><td class="total-label"><b>JUMLAH</b></td><td><b>${totalStudentAll}</b></td><td><b>${totalHadirAll}</b></td><td><b>${totalLewatAll}</b></td><td><b>${totalHadirAll}</b></td><td><b>${overallPer}%</b></td></tr>`;
+        html += `<tr class="summary-row">
+                    <td class="total-label"><b>JUMLAH</b></td>
+                    <td><b>${totalStudentAll}</b></td>
+                    <td><b>${totalHadirAll}</b></td>
+                    <td><b>${totalLewatAll}</b></td>
+                    <td><b>${totalHadirAll}</b></td>
+                    <td><b>${overallPer}%</b></td>
+                 </tr>`;
         html += `</tbody></table><div class="monthly-stats">📅 ${monthDisplay} | 📊 Purata Kehadiran: ${overallPer}%</div>`;
         
         document.getElementById('monthlyReportContent').innerHTML = html;
         
-        // 渲染月度图表 (Hadir vs Lewat 柱状图)
+        // 渲染月度图表 - 使用百分比 (Hadir% 和 Lewat%)
         const ctx = document.getElementById('monthlyChartCanvas');
         if (ctx) {
             if (window.monthlyChart) window.monthlyChart.destroy();
             const isMany = labels.length > 10;
             window.monthlyChart = new Chart(ctx, {
                 type: 'bar',
-                data: { labels: labels, datasets: [
-                    { label: 'Hadir (Bulanan)', data: hadirData, backgroundColor: '#007AFF', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 },
-                    { label: 'Lewat (Bulanan)', data: lewatData, backgroundColor: '#FF9500', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }
-                ] },
-                options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.6, scales: { x: { ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { position: 'bottom' } } }
+                data: { 
+                    labels: labels, 
+                    datasets: [
+                        { 
+                            label: 'Hadir (%)', 
+                            data: hadirPercentData, 
+                            backgroundColor: '#007AFF', 
+                            borderRadius: 4, 
+                            maxBarThickness: isMany ? 25 : 45 
+                        },
+                        { 
+                            label: 'Lewat (%)', 
+                            data: lewatPercentData, 
+                            backgroundColor: '#FF9500', 
+                            borderRadius: 4, 
+                            maxBarThickness: isMany ? 25 : 45 
+                        }
+                    ] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true, 
+                    aspectRatio: 1.6, 
+                    scales: { 
+                        x: { 
+                            ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } 
+                        }, 
+                        y: { 
+                            beginAtZero: true, 
+                            max: 100,
+                            ticks: { 
+                                stepSize: 20, 
+                                callback: function(value) { return value + '%'; }
+                            } 
+                        } 
+                    }, 
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    } 
+                }
             });
         }
         lucide.createIcons();
     };
 
-    // ========== FUNGSI SCREENSHOT YANG DIPERBAIKI ==========
+    // ========== 增强版截图功能 - 减少失败率 ==========
     async function captureEnhanced(elementId, fileNamePrefix) {
-        // Tunjukkan loading indicator
         const loadingToast = document.createElement('div');
         loadingToast.innerHTML = '📸 Menyediakan screenshot...';
         loadingToast.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px; border-radius:8px; z-index:9999; font-size:14px;';
@@ -385,44 +526,42 @@
             document.body.classList.add('capture-mode');
             const targetElement = document.getElementById(elementId);
             if (!targetElement) { 
-                document.body.classList.remove('capture-mode');
-                loadingToast.remove();
-                return; 
+                throw new Error('Elemen tidak ditemui');
             }
             
-            // 🔴 KRUSIAL: Tunggu Chart.js selesai melukis
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // 等待渲染完成
+            await new Promise(resolve => setTimeout(resolve, 300));
             
-            // 🔴 PAKSA refresh canvas untuk memastikan ia siap
-            if (window.myChart) {
-                window.myChart.update();
-                await new Promise(resolve => setTimeout(resolve, 200));
+            // 强制更新所有图表
+            if (window.attendanceChart) {
+                window.attendanceChart.update();
+                await new Promise(resolve => setTimeout(resolve, 150));
             }
             if (window.monthlyChart) {
                 window.monthlyChart.update();
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 150));
             }
             
             const logoSection = document.getElementById('mainScreenshotArea');
             const cloneLogo = logoSection.cloneNode(true);
             const targetClone = targetElement.cloneNode(true);
             
-            // 🔴 PASTIKAN canvas dalam clone mempunyai saiz yang betul
-            const canvases = targetClone.querySelectorAll('canvas');
-            canvases.forEach(canvas => {
-                if (canvas.width > 0) {
-                    canvas.style.width = '100%';
-                    canvas.style.height = 'auto';
-                    // Simpan data canvas asal jika perlu
-                    const originalCanvas = document.getElementById(canvas.id);
-                    if (originalCanvas && originalCanvas.width > 0) {
-                        const tempCtx = canvas.getContext('2d');
-                        if (tempCtx) {
-                            tempCtx.drawImage(originalCanvas, 0, 0);
-                        }
+            // 处理canvas克隆
+            const originalCanvases = targetElement.querySelectorAll('canvas');
+            const cloneCanvases = targetClone.querySelectorAll('canvas');
+            
+            for (let i = 0; i < originalCanvases.length && i < cloneCanvases.length; i++) {
+                const original = originalCanvases[i];
+                const clone = cloneCanvases[i];
+                if (original && clone && original.width > 0) {
+                    clone.width = original.width;
+                    clone.height = original.height;
+                    const ctx = clone.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(original, 0, 0);
                     }
                 }
-            });
+            }
             
             const tempContainer = document.createElement('div');
             tempContainer.style.backgroundColor = '#F2F2F7';
@@ -432,7 +571,6 @@
             tempContainer.appendChild(cloneLogo);
             tempContainer.appendChild(targetClone);
             
-            // Untuk monthly report, pastikan canvas chart ada
             if (elementId === 'monthlyReportSection') {
                 const selectors = tempContainer.querySelectorAll('select, .section-header > div, .btn-action, .date-selector-group, .section-header button');
                 selectors.forEach(el => el.remove());
@@ -502,11 +640,9 @@
             const [h, t] = inputs[i].value.split('/').map(Number);
             if(!isNaN(h) && selects[i].value !== EXCLUDED_CLASS) m[selects[i].value] = { total: t || 0, present: h, late: 0 };
         }
-        document.body.classList.add('print-no-lewat');
-        updateUI(m, []);
+        updateChartAndTable(m, []);
     };
     window.resetToFirebase = () => {
-        document.body.classList.remove('print-no-lewat');
         const today = new Date().toISOString().slice(0,10);
         document.getElementById('datePicker').value = today;
         loadDashboardForDate(today);
