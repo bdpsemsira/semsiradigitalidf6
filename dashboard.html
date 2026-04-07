@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Dashboard Kehadiran Semsira</title>
     <link rel="icon" type="image/png" href="/semsira.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,241 +14,132 @@
             --lewat: #FF9500;
             --bg: #F2F2F7;
             --card: #FFFFFF;
+            --success: #34C759;
+            --danger: #FF3B30;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg);
             margin: 0;
-            padding: 20px;
-        }
-
-        .screenshot-target {
-            background: var(--bg);
-            padding: 15px;
-            border-radius: 15px;
-        }
-
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .header-logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .header-logo img {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-        }
-
-        .date-time-info {
-            background: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            font-weight: 600;
+            padding: 16px;
             color: #1c1c1e;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .dashboard-container { padding: 16px !important; }
+            .section-header { flex-direction: column; align-items: flex-start !important; gap: 12px; }
+            .btn-action { flex: 1; justify-content: center; padding: 10px 12px !important; font-size: 12px !important; }
+            .input-row { flex-direction: column; }
+            .input-row select, .input-row input { width: 100%; }
+            .date-selector-group { flex-direction: column; align-items: stretch !important; }
+            table { font-size: 12px; display: block; overflow-x: auto; white-space: nowrap; }
+            th, td { padding: 8px 4px !important; }
+            .chart-wrapper { overflow-x: auto; display: flex; justify-content: center; }
+            canvas { max-width: 95% !important; min-width: auto !important; height: auto !important; }
         }
 
-        .btn-action {
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: bold;
-            font-size: 13px;
-            transition: opacity 0.2s;
-        }
-
-        .btn-action:hover { opacity: 0.8; }
+        .screenshot-target { background: var(--bg); padding: 15px; border-radius: 15px; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        .header-logo { display: flex; align-items: center; gap: 15px; }
+        .header-logo img { width: 50px; height: 50px; border-radius: 10px; }
+        .date-time-info { background: white; padding: 10px 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; font-weight: 600; flex-wrap: wrap; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-action { color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: bold; font-size: 13px; transition: opacity 0.2s; }
+        .btn-action:active { transform: scale(0.97); }
         .bg-primary { background: var(--primary); }
-        .bg-purple { background: #5856D6; }
-        .bg-green { background: #34C759; }
-
-        .dashboard-container {
-            background: var(--card);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .manual-panel {
-            display: none;
-            background: #E5E5EA;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-
-        .input-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-
-        .input-row select, .input-row input {
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            flex: 1;
-            min-width: 150px;
-        }
-
-        .chart-wrapper {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        canvas { min-width: 600px; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            background: white;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: center;
-        }
-
-        th { 
-            background-color: #D0E1F9 !important; 
-            color: #000;
-            font-weight: bold; 
-        }
+        .bg-teal { background: #5E5CE6; }
+        .bg-orange { background: var(--lewat); }
+        .dashboard-container { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .section-header h3 { margin: 0; display: flex; align-items: center; gap: 8px; }
+        .manual-panel { display: none; background: #E5E5EA; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .input-row select, .input-row input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; flex: 1; min-width: 150px; }
+        .date-selector-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #f8f9fc; padding: 10px 15px; border-radius: 12px; margin-bottom: 15px; }
+        .date-selector-group label { font-weight: 600; }
+        .chart-wrapper { width: 100%; display: flex; justify-content: center; overflow-x: auto; }
+        .chart-inner { width: 80%; max-width: 800px; min-width: 300px; }
+        canvas { width: 100% !important; height: auto !important; max-height: 400px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; display: block; overflow-x: auto; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #D0E1F9 !important; color: #000; font-weight: bold; }
         .summary-row { background-color: #FFEB3B !important; font-weight: bold; }
         .total-label { background-color: #FF9800 !important; color: white !important; }
         .lewat-text { color: var(--lewat); font-weight: bold; }
-        .hide-lewat-column { display: none !important; }
-
-        @media print {
-            .no-print, .btn-action, .section-header { display: none !important; }
-            body { padding: 0; background: white; }
-            .dashboard-container { box-shadow: none; border: none; }
-            .screenshot-target { padding: 0; }
-        }
-
-        .is-capturing .no-print, 
-        .is-capturing .btn-action, 
-        .is-capturing .section-header { 
-            display: none !important; 
-        }
+        .monthly-stats { font-size: 14px; margin-top: 10px; padding: 10px; background: #f9f9fb; border-radius: 10px; }
+        .capture-mode .no-print, .capture-mode .btn-action, .capture-mode .section-header button, .capture-mode .date-selector-group { display: none !important; }
+        .monthly-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #1c1c1e; }
     </style>
 </head>
 <body>
 
-<div id="fullReportWrapper" class="screenshot-target">
-    <div class="header-container">
-        <div class="header-logo">
-            <img src="/semsira.png" alt="Logo Semsira">
-            <div>
-                <h2 style="margin:0;">Analisis Kehadiran Murid</h2>
-                <small id="display-day-top" style="color:#666;">Hari: --</small>
+<div id="fullReportWrapper">
+    <!-- 顶部Logo区域 -->
+    <div class="screenshot-target" id="mainScreenshotArea" style="background: var(--bg);">
+        <div class="header-container">
+            <div class="header-logo">
+                <img src="/semsira.png" alt="Logo Semsira">
+                <div><h2 style="margin:0;">Analisis Kehadiran Murid</h2><small id="display-day-top" style="color:#666;">Hari: --</small></div>
             </div>
         </div>
-        <div class="button-group no-print">
-            <button class="btn-action bg-purple" onclick="toggleManualPanel()">
-                <i data-lucide="edit-3"></i> Input
-            </button>
-            <button class="btn-action bg-primary" onclick="captureFullReport('all')">
-                <i data-lucide="camera"></i> Screenshot
-            </button>
+        <div class="date-time-info"><span id="current-date">Tarikh: --/--/----</span><span id="current-time">Masa: --:--</span></div>
+    </div>
+
+    <!-- 日期选择器 -->
+    <div class="date-selector-group no-print" style="background: white; border-radius: 16px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <label>📅 Pilih Tarikh:</label>
+            <input type="date" id="datePicker" style="flex:1; min-width: 160px;">
+            <button class="btn-action bg-primary" onclick="loadDashboardByDate()">📊 Papar</button>
         </div>
     </div>
 
-    <div class="date-time-info">
-        <span id="current-date">Tarikh: --/--/----</span>
-        <span id="current-time">Masa: --:--</span>
-    </div>
-
+    <!-- 手动输入面板 -->
     <div id="manualPanel" class="manual-panel no-print">
         <h3>Input Data Manual</h3>
-        <div id="manualInputs">
-            <div class="input-row">
-                <select class="m-class-select"></select>
-                <input type="text" placeholder="Kehadiran (e.g. 8/10)" class="m-data">
-                <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>
+        <div id="manualInputs"><div class="input-row"><select class="m-class-select"></select><input type="text" placeholder="e.g. 8/10" class="m-data"><button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button></div></div>
+        <div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;"><button class="btn-action bg-primary" onclick="addRow()">+ Tambah Baris</button><button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button><button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button></div>
+    </div>
+
+    <!-- Graf Kehadiran Panel -->
+    <div class="dashboard-container" id="graphSection">
+        <div class="section-header"><h3><i data-lucide="bar-chart-2"></i> Graf Kehadiran & Keterlewatan</h3><button class="btn-action bg-teal" onclick="captureGraphOnly()"><i data-lucide="camera"></i> Screenshot Graf</button></div>
+        <div class="chart-wrapper"><div class="chart-inner"><canvas id="attendanceChart" height="400"></canvas></div></div>
+    </div>
+
+    <!-- Ringkasan Kehadiran -->
+    <div class="dashboard-container" id="reportSection">
+        <div class="section-header"><h3><i data-lucide="table"></i> Ringkasan Kehadiran Mengikut Kelas</h3><button class="btn-action bg-teal" onclick="captureTableSection()"><i data-lucide="camera"></i> Screenshot Jadual</button></div>
+        <div id="tableCaptureArea"><table id="attendanceTable"><thead><tr><th>KELAS</th><th>BIL. MURID</th><th>HADIR</th><th class="lewat-col">LEWAT</th><th>JUMLAH HADIR</th><th>%</th></tr></thead><tbody id="tableBody"></tbody><tfoot><tr id="totalRow" class="summary-row"><tr></tfoot></table></div>
+    </div>
+
+    <!-- Senarai Murid Lewat -->
+    <div id="lateSection" class="dashboard-container">
+        <div class="section-header"><h3 style="color: var(--lewat);"><i data-lucide="user-x"></i> Senarai Murid Lewat</h3><button class="btn-action bg-orange" onclick="captureLateSection()"><i data-lucide="camera"></i> Screenshot Senarai</button></div>
+        <div id="lateCaptureArea"><table id="lateStudentsTable"><thead><tr><th>NAMA</th><th>KELAS</th><th>WAKTU</th><th>STATUS</th></tr></thead><tbody id="lateTableBody"></tbody></table></div>
+    </div>
+
+    <!-- Laporan Bulanan Panel (dengan Graf) -->
+    <div class="dashboard-container" id="monthlyReportSection">
+        <div class="section-header">
+            <h3><i data-lucide="calendar"></i> Laporan Bulanan</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <select id="monthPicker" style="padding: 8px 12px; border-radius: 10px; border:1px solid #ccc;">
+                    <option value="0">Januari</option><option value="1">Februari</option><option value="2">Mac</option><option value="3">April</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Julai</option><option value="7">Ogos</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Disember</option>
+                </select>
+                <input type="number" id="yearPicker" style="width: 80px; padding: 8px; border-radius: 10px; border:1px solid #ccc;" placeholder="Tahun">
+                <button class="btn-action bg-primary" onclick="loadMonthlyReport()">📊 Papar Bulanan</button>
+                <button class="btn-action bg-teal" onclick="captureMonthlySection()"><i data-lucide="camera"></i> Screenshot Bulanan</button>
             </div>
         </div>
-        <div style="margin-top:15px; display:flex; gap:10px;">
-            <button class="btn-action bg-green" onclick="addRow()">+ Tambah Baris</button>
-            <button class="btn-action bg-primary" onclick="applyManualData()">Jana Laporan</button>
-            <button class="btn-action" style="background:#8E8E93;" onclick="resetToFirebase()">Reset</button>
+        <div id="monthlyCaptureArea">
+            <div id="monthlyReportContent" style="min-height: 150px; text-align: center; padding: 20px;"><i data-lucide="loader-circle"></i> Memuatkan laporan bulanan...</div>
         </div>
-    </div>
-
-    <div class="dashboard-container" id="graphSection">
-        <div class="chart-wrapper">
-            <canvas id="attendanceChart" height="400"></canvas>
-        </div>
-    </div>
-
-    <div class="dashboard-container" id="reportSection">
-        <table id="attendanceTable">
-            <thead>
-                <tr>
-                    <th>KELAS</th>
-                    <th>BIL. MURID</th>
-                    <th>HADIR</th>
-                    <th class="lewat-col">LEWAT</th>
-                    <th>JUMLAH HADIR</th>
-                    <th>%</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-            <tfoot>
-                <tr id="totalRow" class="summary-row"></tr>
-            </tfoot>
-        </table>
-    </div>
-
-    <div id="lateSection" class="dashboard-container">
-        <h3 style="display:flex; align-items:center; gap:10px; color: var(--lewat); margin-top:0;">
-            <i data-lucide="user-x"></i> Senarai Murid Lewat
-        </h3>
-        <table id="lateStudentsTable">
-            <thead>
-                <tr>
-                    <th>NAMA</th>
-                    <th>KELAS</th>
-                    <th>WAKTU</th>
-                    <th>STATUS</th>
-                </tr>
-            </thead>
-            <tbody id="lateTableBody"></tbody>
-        </table>
     </div>
 </div>
 
@@ -269,249 +160,316 @@
     const db = getFirestore(app);
 
     window.myChart = null;
+    window.monthlyChart = null;
+    let currentClassMasterData = {};
 
     const sem2Classes = ["6 AISHAH", "6 FATIMAH", "6 KHADIJAH", "6 RUQAYYAH", "6 SARAH", "6 SUMAYYAH", "6 UMMU KALYHOM", "6 ZAINAB"];
     const sem1Classes = ["6 AL FARABI", "6 AL GHAZALI", "6 AL KHINDI", "6 AL MAWARDI", "6 AL RAZI", "6 IBNU KHALDUN", "6 IBNU RUSYD"];
     const allStaticClasses = [...sem2Classes, ...sem1Classes];
-
-    // 需要排除的 kelas (教师账号)
     const EXCLUDED_CLASS = "GURU BDP";
 
-    function sortClasses(classA, classB) {
-        return allStaticClasses.indexOf(classA) - allStaticClasses.indexOf(classB);
-    }
-
-    window.captureFullReport = async (type) => {
-        const wrapper = document.getElementById('fullReportWrapper');
-        wrapper.classList.add('is-capturing');
-        
-        const now = new Date();
-        const dateStr = now.toISOString().slice(0,10).replace(/-/g, '');
-        const timeStr = now.getHours() + "" + now.getMinutes();
-        const fileName = `semsira_report_${dateStr}_${timeStr}.png`;
-
-        try {
-            const canvas = await html2canvas(wrapper, {
-                useCORS: true,
-                scale: 2,
-                backgroundColor: "#F2F2F7",
-                ignoreElements: (el) => el.classList.contains('no-print')
-            });
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        } catch (e) {
-            alert("Ralat tangkapan skrin.");
-        } finally {
-            wrapper.classList.remove('is-capturing');
-        }
-    };
-
+    function sortClasses(a, b) { return allStaticClasses.indexOf(a) - allStaticClasses.indexOf(b); }
     function updateLiveDateTime() {
         const now = new Date();
         const days = ["Ahad", "Isnin", "Selasa", "Rabu", "Khamis", "Jumaat", "Sabtu"];
-        const dayName = days[now.getDay()];
-        const dateFormatted = now.toLocaleDateString('en-GB'); 
-        
-        document.getElementById('current-date').innerText = `Tarikh: ${dateFormatted} ${dayName}`;
-        
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const ampm = now.getHours() >= 12 ? 'PTG' : 'PG';
-        document.getElementById('current-time').innerText = `Masa: ${hours}:${minutes} ${ampm}`;
-        
-        document.getElementById('display-day-top').innerText = "Hari: " + dayName;
+        document.getElementById('current-date').innerText = `Tarikh: ${now.toLocaleDateString('en-GB')} ${days[now.getDay()]}`;
+        document.getElementById('current-time').innerText = `Masa: ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} ${now.getHours()>=12?'PTG':'PG'}`;
+        document.getElementById('display-day-top').innerText = "Hari: " + days[now.getDay()];
     }
 
-    async function loadDashboard() {
+    window.loadDashboardByDate = async () => {
+        const dateInput = document.getElementById('datePicker').value;
+        if (!dateInput) return alert("Sila pilih tarikh.");
+        await loadDashboardForDate(dateInput);
+    };
+
+    async function loadDashboardForDate(dateStr) {
         const studentSnap = await getDocs(collection(db, "studentInform"));
-        let classMasterData = {}; 
-        
-        // 过滤掉 kelas 为 "GURU BDP" 的学生
+        let classMasterData = {};
         studentSnap.forEach(doc => {
             const data = doc.data();
             const className = data.className || "Lain-lain";
-            
-            // 排除 GURU BDP
-            if (className === EXCLUDED_CLASS) {
-                return; // 跳过教师账号，不加入统计
-            }
-            
+            if (className === EXCLUDED_CLASS) return;
             if (!classMasterData[className]) classMasterData[className] = { total: 0, present: 0, late: 0 };
             classMasterData[className].total++;
         });
 
-        // 匹配逻辑：使用 YYYY-MM-DD 字符串匹配数据库中的 date 字段
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
-
-        const attendSnap = await getDocs(query(collection(db, "attendanceLogs"), where("date", "==", todayStr)));
-        
+        const attendSnap = await getDocs(query(collection(db, "attendanceLogs"), where("date", "==", dateStr)));
         let lateStudents = [];
         attendSnap.forEach(doc => {
             const data = doc.data();
             const studentClass = data.className;
-            
-            // 排除 GURU BDP 的出勤记录（双重保障）
-            if (studentClass === EXCLUDED_CLASS) {
-                return;
-            }
-            
+            if (studentClass === EXCLUDED_CLASS) return;
             if (classMasterData[studentClass]) {
                 let displayTime = "--:--";
-                
-                // 处理 timeFull: "3/4/2026, 2:48:55 PG" -> 提取 "2:48 PG"
                 if (data.timeFull && data.timeFull.includes(",")) {
-                    const timePart = data.timeFull.split(",")[1].trim(); 
-                    const timeSplit = timePart.split(" "); 
-                    const hm = timeSplit[0].split(":").slice(0,2).join(":"); 
-                    displayTime = hm + " " + (timeSplit[1] || "");
-                } else {
-                    displayTime = data.time || "--:--";
-                }
-
-                if (data.status === "Lewat") {
-                    classMasterData[studentClass].late++;
-                    lateStudents.push({ ...data, time: displayTime });
-                } else if (data.status === "Hadir") {
-                    classMasterData[studentClass].present++;
-                }
+                    const timePart = data.timeFull.split(",")[1].trim();
+                    const hm = timePart.split(" ")[0].split(":").slice(0,2).join(":");
+                    displayTime = hm + " " + (timePart.split(" ")[1] || "");
+                } else displayTime = data.time || "--:--";
+                if (data.status === "Lewat") { classMasterData[studentClass].late++; lateStudents.push({ ...data, time: displayTime }); }
+                else if (data.status === "Hadir") classMasterData[studentClass].present++;
             }
         });
+        currentClassMasterData = classMasterData;
         updateUI(classMasterData, lateStudents);
     }
 
     function updateUI(data, lateStudents) {
         const tableBody = document.getElementById('tableBody');
         const isNoLewat = document.body.classList.contains('print-no-lewat');
-        let labels = [], percentPresent = [], percentLate = [];
+        let labels = [], pPresent = [], pLate = [];
         let gT = 0, gP = 0, gL = 0;
-
         tableBody.innerHTML = "";
-        const sortedClassKeys = Object.keys(data).sort(sortClasses);
-
-        sortedClassKeys.forEach(className => {
+        Object.keys(data).sort(sortClasses).forEach(className => {
             const item = data[className];
             const totalHadir = item.present + item.late;
             const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "0.00";
             gT += item.total; gP += item.present; gL += item.late;
-            
-            labels.push(className); 
-            percentPresent.push(item.total > 0 ? (item.present / item.total * 100).toFixed(2) : 0);
-            percentLate.push(item.total > 0 ? (item.late / item.total * 100).toFixed(2) : 0);
-
-            tableBody.innerHTML += `
-                <tr>
-                    <td>${className}</td>
-                    <td>${item.total}</td>
-                    <td>${item.present}</td>
-                    <td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td>
-                    <td>${totalHadir}</td>
-                    <td>${per}%</td>
-                </tr>`;
+            labels.push(className);
+            pPresent.push(item.total > 0 ? (item.present / item.total * 100).toFixed(2) : 0);
+            pLate.push(item.total > 0 ? (item.late / item.total * 100).toFixed(2) : 0);
+            tableBody.innerHTML += `<tr><td style="font-weight:500;">${className}</td><td>${item.total}</td><td>${item.present}</td><td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td></td><td>${totalHadir}</td><td>${per}%</td></tr>`;
         });
-
-        const headerLewat = document.querySelector('.lewat-col');
-        if(isNoLewat) headerLewat.classList.add('hide-lewat-column');
-        else headerLewat.classList.remove('hide-lewat-column');
-
-        document.getElementById('totalRow').innerHTML = `
-            <td class="total-label">JUMLAH</td><td>${gT}</td><td>${gP}</td>
-            <td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td>
-            <td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
-
-        // 过滤掉教师账号的迟到的学生记录（安全过滤）
-        const filteredLateStudents = lateStudents.filter(s => s.className !== EXCLUDED_CLASS);
-        
-        document.getElementById('lateTableBody').innerHTML = filteredLateStudents.length > 0 ? 
-            filteredLateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : 
-            `<tr><td colspan="4">Tiada rekod lewat hari ini.</td></tr>`;
-
-        renderChart(labels, percentPresent, isNoLewat ? [] : percentLate);
+        document.getElementById('totalRow').innerHTML = `<td class="total-label">JUMLAH</td><td>${gT}</td><td>${gP}</td><td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td><td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
+        document.getElementById('lateTableBody').innerHTML = lateStudents.filter(s => s.className !== EXCLUDED_CLASS).length ? lateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : `<tr><td colspan="4">Tiada rekod lewat untuk tarikh ini.</td></tr>`;
+        renderChart(labels, pPresent, isNoLewat ? [] : pLate);
         lucide.createIcons();
     }
 
     function renderChart(labels, pData, lData) {
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         if(window.myChart) window.myChart.destroy();
-
         const isMany = labels.length > 10;
         window.myChart = new Chart(ctx, {
-            type: 'bar',
-            data: { 
-                labels: labels, 
-                datasets: [
-                    { label: 'Hadir (%)', data: pData, backgroundColor: '#007AFF', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 },
-                    { label: 'Lewat (%)', data: lData, backgroundColor: '#FF9500', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }
-                ] 
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { 
-                        stacked: true, 
-                        ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } 
-                    },
-                    y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v+"%" } }
-                },
-                plugins: { legend: { position: 'bottom' } }
-            }
+            type: 'bar', data: { labels, datasets: [{ label: 'Hadir (%)', data: pData, backgroundColor: '#007AFF', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }, { label: 'Lewat (%)', data: lData, backgroundColor: '#FF9500', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }] },
+            options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.6, scales: { x: { stacked: true, ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } }, y: { stacked: true, min: 0, max: 100, ticks: { callback: v => v+"%" } } }, plugins: { legend: { position: 'bottom' } } }
         });
     }
 
-    window.toggleManualPanel = () => {
-        const p = document.getElementById('manualPanel');
-        p.style.display = p.style.display === 'block' ? 'none' : 'block';
-    };
-    window.addRow = () => {
-        // 过滤掉 GURU BDP 不显示在手动输入的下拉选项中
-        const filteredClasses = allStaticClasses.filter(c => c !== EXCLUDED_CLASS);
-        const optionsHtml = filteredClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+    // 月度报告 + 月度图表
+    window.loadMonthlyReport = async () => {
+        const month = parseInt(document.getElementById('monthPicker').value);
+        let year = parseInt(document.getElementById('yearPicker').value);
+        if (isNaN(year)) year = new Date().getFullYear();
+        const startDate = `${year}-${String(month+1).padStart(2,'0')}-01`;
+        const lastDay = new Date(year, month+1, 0).getDate();
+        const endDate = `${year}-${String(month+1).padStart(2,'0')}-${lastDay}`;
+        const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+        const monthDisplay = `${monthNames[month]} ${year}`;
         
-        const div = document.createElement('div');
-        div.className = 'input-row';
-        div.innerHTML = `<select class="m-class-select">${optionsHtml}</select>
-                         <input type="text" placeholder="e.g. 8/10" class="m-data">
-                         <button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>`;
+        const studentSnap = await getDocs(collection(db, "studentInform"));
+        let classTotalMap = {};
+        studentSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.className !== EXCLUDED_CLASS) classTotalMap[data.className] = (classTotalMap[data.className] || 0) + 1;
+        });
+
+        const logsSnap = await getDocs(collection(db, "attendanceLogs"));
+        let monthlyStats = {};
+        logsSnap.forEach(doc => {
+            const log = doc.data();
+            if (log.date >= startDate && log.date <= endDate && log.className !== EXCLUDED_CLASS) {
+                if (!monthlyStats[log.className]) monthlyStats[log.className] = { hadir: 0, lewat: 0 };
+                if (log.status === "Hadir") monthlyStats[log.className].hadir++;
+                else if (log.status === "Lewat") monthlyStats[log.className].lewat++;
+            }
+        });
+
+        let html = `<div class="monthly-title">📊 Laporan Bulanan: ${monthDisplay}</div>`;
+        html += `<div class="chart-wrapper" style="margin-bottom: 20px;"><div class="chart-inner"><canvas id="monthlyChartCanvas" height="400"></canvas></div></div>`;
+        html += `<table style="width:100%;"><thead><tr><th>KELAS</th><th>BIL. MURID</th><th>HADIR</th><th>LEWAT</th><th>JUMLAH HADIR</th><th>%</th></tr></thead><tbody>`;
+        
+        let totalStudentAll = 0, totalHadirAll = 0, totalLewatAll = 0;
+        const labels = [], hadirData = [], lewatData = [];
+        const sortedClasses = Object.keys(classTotalMap).sort(sortClasses);
+        
+        for (let className of sortedClasses) {
+            const total = classTotalMap[className];
+            const stats = monthlyStats[className] || { hadir: 0, lewat: 0 };
+            const totalHadirClass = stats.hadir + stats.lewat;
+            const per = total > 0 ? ((totalHadirClass / total) * 100).toFixed(2) : "0.00";
+            totalStudentAll += total; totalHadirAll += totalHadirClass; totalLewatAll += stats.lewat;
+            labels.push(className);
+            hadirData.push(stats.hadir);
+            lewatData.push(stats.lewat);
+            html += `<tr><td style="font-weight:500;">${className}</td><td>${total}</td><td>${stats.hadir}</td><td class="lewat-text">${stats.lewat}</td><td>${totalHadirClass}</td><td>${per}%</td></tr>`;
+        }
+        const overallPer = totalStudentAll > 0 ? ((totalHadirAll / totalStudentAll) * 100).toFixed(2) : "0.00";
+        html += `<tr class="summary-row"><td class="total-label"><b>JUMLAH</b></td><td><b>${totalStudentAll}</b></td><td><b>${totalHadirAll}</b></td><td><b>${totalLewatAll}</b></td><td><b>${totalHadirAll}</b></td><td><b>${overallPer}%</b></td></tr>`;
+        html += `</tbody></table><div class="monthly-stats">📅 ${monthDisplay} | 📊 Purata Kehadiran: ${overallPer}%</div>`;
+        
+        document.getElementById('monthlyReportContent').innerHTML = html;
+        
+        // 渲染月度图表 (Hadir vs Lewat 柱状图)
+        const ctx = document.getElementById('monthlyChartCanvas');
+        if (ctx) {
+            if (window.monthlyChart) window.monthlyChart.destroy();
+            const isMany = labels.length > 10;
+            window.monthlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: [
+                    { label: 'Hadir (Bulanan)', data: hadirData, backgroundColor: '#007AFF', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 },
+                    { label: 'Lewat (Bulanan)', data: lewatData, backgroundColor: '#FF9500', borderRadius: 4, maxBarThickness: isMany ? 25 : 45 }
+                ] },
+                options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.6, scales: { x: { ticks: { font: { size: isMany ? 10 : 12 }, maxRotation: 45, minRotation: 45 } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+        lucide.createIcons();
+    };
+
+    // ========== FUNGSI SCREENSHOT YANG DIPERBAIKI ==========
+    async function captureEnhanced(elementId, fileNamePrefix) {
+        // Tunjukkan loading indicator
+        const loadingToast = document.createElement('div');
+        loadingToast.innerHTML = '📸 Menyediakan screenshot...';
+        loadingToast.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#333; color:white; padding:10px 20px; border-radius:8px; z-index:9999; font-size:14px;';
+        document.body.appendChild(loadingToast);
+        
+        try {
+            document.body.classList.add('capture-mode');
+            const targetElement = document.getElementById(elementId);
+            if (!targetElement) { 
+                document.body.classList.remove('capture-mode');
+                loadingToast.remove();
+                return; 
+            }
+            
+            // 🔴 KRUSIAL: Tunggu Chart.js selesai melukis
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 🔴 PAKSA refresh canvas untuk memastikan ia siap
+            if (window.myChart) {
+                window.myChart.update();
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            if (window.monthlyChart) {
+                window.monthlyChart.update();
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            const logoSection = document.getElementById('mainScreenshotArea');
+            const cloneLogo = logoSection.cloneNode(true);
+            const targetClone = targetElement.cloneNode(true);
+            
+            // 🔴 PASTIKAN canvas dalam clone mempunyai saiz yang betul
+            const canvases = targetClone.querySelectorAll('canvas');
+            canvases.forEach(canvas => {
+                if (canvas.width > 0) {
+                    canvas.style.width = '100%';
+                    canvas.style.height = 'auto';
+                    // Simpan data canvas asal jika perlu
+                    const originalCanvas = document.getElementById(canvas.id);
+                    if (originalCanvas && originalCanvas.width > 0) {
+                        const tempCtx = canvas.getContext('2d');
+                        if (tempCtx) {
+                            tempCtx.drawImage(originalCanvas, 0, 0);
+                        }
+                    }
+                }
+            });
+            
+            const tempContainer = document.createElement('div');
+            tempContainer.style.backgroundColor = '#F2F2F7';
+            tempContainer.style.padding = '20px';
+            tempContainer.style.width = '100%';
+            tempContainer.style.display = 'inline-block';
+            tempContainer.appendChild(cloneLogo);
+            tempContainer.appendChild(targetClone);
+            
+            // Untuk monthly report, pastikan canvas chart ada
+            if (elementId === 'monthlyReportSection') {
+                const selectors = tempContainer.querySelectorAll('select, .section-header > div, .btn-action, .date-selector-group, .section-header button');
+                selectors.forEach(el => el.remove());
+                const titleDiv = tempContainer.querySelector('.monthly-title');
+                if (titleDiv) titleDiv.style.display = 'block';
+            }
+            
+            const hideElements = tempContainer.querySelectorAll('.no-print, .btn-action, .section-header button, .date-selector-group');
+            hideElements.forEach(el => el.remove());
+            
+            document.body.appendChild(tempContainer);
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0,10).replace(/-/g, '');
+            const timeStr = now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0');
+            
+            loadingToast.innerHTML = '📸 Mengambil gambar...';
+            
+            const canvas = await html2canvas(tempContainer, { 
+                scale: 2.5, 
+                backgroundColor: '#F2F2F7', 
+                useCORS: true, 
+                logging: false,
+                allowTaint: false,
+                windowWidth: tempContainer.scrollWidth,
+                windowHeight: tempContainer.scrollHeight
+            });
+            
+            const link = document.createElement('a');
+            link.download = `semsira_${fileNamePrefix}_${dateStr}_${timeStr}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            
+            loadingToast.innerHTML = '✅ Screenshot berjaya!';
+            setTimeout(() => loadingToast.remove(), 1500);
+            
+        } catch(e) { 
+            console.error("Screenshot error:", e); 
+            loadingToast.innerHTML = '❌ Gagal! Cuba lagi.';
+            setTimeout(() => loadingToast.remove(), 2000);
+        } 
+        finally { 
+            const tempCont = document.querySelector('body > div:not(#fullReportWrapper)');
+            if (tempCont && tempCont !== loadingToast) tempCont.remove();
+            document.body.classList.remove('capture-mode'); 
+        }
+    }
+
+    window.captureGraphOnly = () => captureEnhanced('graphSection', 'graf');
+    window.captureTableSection = () => captureEnhanced('reportSection', 'jadual_ringkasan');
+    window.captureLateSection = () => captureEnhanced('lateSection', 'senarai_lewat');
+    window.captureMonthlySection = () => captureEnhanced('monthlyReportSection', 'laporan_bulanan');
+
+    // 手动输入逻辑
+    window.toggleManualPanel = () => { document.getElementById('manualPanel').style.display = document.getElementById('manualPanel').style.display === 'block' ? 'none' : 'block'; };
+    window.addRow = () => {
+        const filtered = allStaticClasses.filter(c => c !== EXCLUDED_CLASS);
+        const div = document.createElement('div'); div.className = 'input-row';
+        div.innerHTML = `<select class="m-class-select">${filtered.map(c => `<option value="${c}">${c}</option>`).join('')}</select><input type="text" placeholder="e.g. 8/10" class="m-data"><button class="btn-action" style="background:#FF3B30;" onclick="removeRow(this)">Padam</button>`;
         document.getElementById('manualInputs').appendChild(div);
     };
-    window.removeRow = (b) => b.parentElement.remove();
+    window.removeRow = (btn) => btn.parentElement.remove();
     window.applyManualData = () => {
-        const s = document.querySelectorAll('.m-class-select'), d = document.querySelectorAll('.m-data');
+        const selects = document.querySelectorAll('.m-class-select'), inputs = document.querySelectorAll('.m-data');
         let m = {};
-        for(let i=0; i<s.length; i++){
-            if(!d[i].value.includes('/')) continue;
-            const [h, t] = d[i].value.split('/').map(Number);
-            const className = s[i].value;
-            // 手动模式下也禁止 GURU BDP 的数据
-            if(!isNaN(h) && className !== EXCLUDED_CLASS) {
-                m[className] = { total: t || 0, present: h, late: 0 };
-            }
+        for(let i=0; i<selects.length; i++){
+            if(!inputs[i].value.includes('/')) continue;
+            const [h, t] = inputs[i].value.split('/').map(Number);
+            if(!isNaN(h) && selects[i].value !== EXCLUDED_CLASS) m[selects[i].value] = { total: t || 0, present: h, late: 0 };
         }
         document.body.classList.add('print-no-lewat');
         updateUI(m, []);
     };
     window.resetToFirebase = () => {
         document.body.classList.remove('print-no-lewat');
-        loadDashboard();
+        const today = new Date().toISOString().slice(0,10);
+        document.getElementById('datePicker').value = today;
+        loadDashboardForDate(today);
     };
 
-    // 初始化手动输入框的下拉选项（过滤掉 GURU BDP）
-    const filteredForSelect = allStaticClasses.filter(c => c !== EXCLUDED_CLASS);
-    const optionsHtml = filteredForSelect.map(c => `<option value="${c}">${c}</option>`).join('');
+    // 初始化
+    const todayStr = new Date().toISOString().slice(0,10);
+    document.getElementById('datePicker').value = todayStr;
+    document.getElementById('yearPicker').value = new Date().getFullYear();
+    document.getElementById('monthPicker').value = new Date().getMonth();
     
-    // 为现有的选择框设置过滤后的选项
-    const selects = document.querySelectorAll('.m-class-select');
-    selects.forEach(s => s.innerHTML = optionsHtml);
-
+    const filtered = allStaticClasses.filter(c => c !== EXCLUDED_CLASS);
+    document.querySelectorAll('.m-class-select').forEach(s => s.innerHTML = filtered.map(c => `<option value="${c}">${c}</option>`).join(''));
+    
     setInterval(updateLiveDateTime, 1000);
     updateLiveDateTime();
-    loadDashboard();
+    loadDashboardForDate(todayStr);
+    loadMonthlyReport();
 </script>
 </body>
 </html>
