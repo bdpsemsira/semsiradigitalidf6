@@ -214,70 +214,66 @@
         currentClassMasterData = classMasterData;
         updateUI(classMasterData, lateStudents);
     }
-
-    function updateUI(data, lateStudents) {
-        const tableBody = document.getElementById('tableBody');
-        const isNoLewat = document.body.classList.contains('print-no-lewat');
-        let labels = [], hadirBar = [], lewatBar = [];
-        let gT = 0, gP = 0, gL = 0;
-        tableBody.innerHTML = "";
-        Object.keys(data).sort(sortClasses).forEach(className => {
-            const item = data[className];
-            const totalHadir = item.present + item.late;
-            const per = item.total > 0 ? ((totalHadir / item.total) * 100).toFixed(2) : "0.00";
-            gT += item.total; gP += item.present; gL += item.late;
-            let hadirBar = [];
-            let lewatBar = [];
-            
-            Object.keys(data).sort(sortClasses).forEach(className => {
-                const item = data[className];
-            
-                const totalHadir = item.present + item.late;
-            
-                const hadirPercent = item.total > 0
-                    ? ((totalHadir / item.total) * 100)
+    
+    function updateUI(data) {
+        const labels = [];
+        const hadirBar = [];
+        const lewatBar = [];
+    
+        Object.keys(data)
+            .sort()
+            .forEach(className => {
+                const item = data[className] || {};
+    
+                const present = item.present || 0;
+                const late = item.late || 0;
+                const total = item.total || 0;
+    
+                const totalHadir = present + late;
+    
+                const hadirPercent = total > 0
+                    ? (totalHadir / total) * 100
                     : 0;
-            
-                const lewatPercent = item.total > 0
-                    ? ((item.late / item.total) * 100)
+    
+                const lewatPercent = total > 0
+                    ? (late / total) * 100
                     : 0;
-            
+    
                 labels.push(className);
-            
-                hadirBar.push(Number(hadirPercent.toFixed(2)));
-                lewatBar.push(Number(lewatPercent.toFixed(2)));
+                hadirBar.push(parseFloat(hadirPercent.toFixed(2)));
+                lewatBar.push(parseFloat(lewatPercent.toFixed(2)));
             });
-            tableBody.innerHTML += `<tr><td style="font-weight:500;">${className}</td><td>${item.total}</td><td>${item.present}</td><td class="lewat-text ${isNoLewat ? 'hide-lewat-column' : ''}">${item.late}</td></td><td>${totalHadir}</td><td>${per}%</td></tr>`;
-        });
-        document.getElementById('totalRow').innerHTML = `<td class="total-label">JUMLAH</td><td>${gT}</td><td>${gP}</td><td class="${isNoLewat ? 'hide-lewat-column' : ''}">${gL}</td><td>${gP+gL}</td><td>${gT > 0 ? (((gP+gL)/gT)*100).toFixed(2) : 0}%</td>`;
-        document.getElementById('lateTableBody').innerHTML = lateStudents.filter(s => s.className !== EXCLUDED_CLASS).length ? lateStudents.map(s => `<tr><td>${s.name}</td><td>${s.className}</td><td>${s.time}</td><td class="lewat-text">LEWAT</td></tr>`).join('') : `<tr><td colspan="4">Tiada rekod lewat untuk tarikh ini.</td></tr>`;
-        renderChart(labels, hadirBar, isNoLewat ? [] : lewatBar);
-        lucide.createIcons();
+    
+        renderChart(labels, hadirBar, lewatBar);
     }
-
-    function renderChart(labels, hadirBar, lewatBar) {
+    
+    let attendanceChart;
+    
+    function renderChart(labels, hadirData, lewatData) {
         const canvas = document.getElementById('attendanceChart');
         if (!canvas) return;
-        
+    
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
     
-        if (window.myChart) window.myChart.destroy();
+        if (attendanceChart) {
+            attendanceChart.destroy();
+        }
     
-        window.myChart = new Chart(ctx, {
+        attendanceChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels,
+                labels: labels,
                 datasets: [
                     {
-                        label: 'Hadir',
-                        data: hadirBar,
-                        backgroundColor: '#007AFF'
+                        label: 'Hadir (%)',
+                        data: hadirData,
+                        backgroundColor: 'blue'
                     },
                     {
-                        label: 'Lewat',
-                        data: lewatBar,
-                        backgroundColor: '#FF9500'
+                        label: 'Lewat (%)',
+                        data: lewatData,
+                        backgroundColor: 'orange'
                     }
                 ]
             },
@@ -291,7 +287,11 @@
                         }
                     },
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: value => value + '%'
+                        }
                     }
                 },
                 plugins: {
@@ -302,7 +302,6 @@
             }
         });
     }
-
     // 月度报告 + 月度图表
     window.loadMonthlyReport = async () => {
         const month = parseInt(document.getElementById('monthPicker').value);
