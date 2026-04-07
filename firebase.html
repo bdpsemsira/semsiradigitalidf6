@@ -2,8 +2,8 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pengurusan Pelajar Semsira</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pengurusan Pelajar Semsira - Kelas & Semester</title>
     <link rel="icon" type="image/png" href="semsira.png">
 
     <script>
@@ -24,6 +24,8 @@
             --danger: #FF3B30;
             --bg: #F2F2F7;
             --card: #FFFFFF;
+            --success: #34C759;
+            --secondary: #8e8e93;
         }
 
         body {
@@ -35,7 +37,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -43,7 +45,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .header-left {
@@ -59,87 +63,211 @@
         .total-badge {
             background: var(--primary);
             color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
+            padding: 5px 18px;
+            border-radius: 30px;
             font-size: 14px;
             font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
-        .semester-section { margin-bottom: 20px; }
+        /* 学期主面板 */
+        .semester-panel {
+            background: white;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
 
-        .section-title {
+        .semester-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 15px;
-            background: var(--card);
-            border-radius: 12px;
+            padding: 16px 20px;
+            background: #ffffff;
+            border-bottom: 1px solid #f0f0f5;
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: background 0.3s;
+            transition: background 0.2s;
         }
-
-        .section-title:hover { background: #f9f9fb; }
-
-        .title-left {
+        .semester-header:hover {
+            background: #f9f9fc;
+        }
+        .semester-title {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            color: #1c1c1e;
         }
-
+        .semester-badge {
+            background: #E9ECEF;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #495057;
+        }
         .chevron-icon {
-            transition: transform 0.3s;
+            transition: transform 0.3s ease;
             color: var(--primary);
         }
+        .collapsed .chevron-icon {
+            transform: rotate(-90deg);
+        }
+        .btn-delete-semester {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .btn-delete-semester:active { transform: scale(0.96); opacity: 0.9; }
 
-        .collapsed .chevron-icon { transform: rotate(-90deg); }
+        /* 可折叠内容 */
+        .semester-content {
+            padding: 16px 20px 20px 20px;
+            background: #fefefe;
+            border-top: 1px solid #f2f2f7;
+        }
+        .semester-panel.collapsed .semester-content {
+            display: none;
+        }
 
-        .collapsible-content { padding-top: 15px; display: block; }
-
-        .collapsed + .collapsible-content { display: none; }
-
-        .count-tag {
-            background: #E5E5EA;
-            color: #3a3a3c;
-            padding: 2px 10px;
-            border-radius: 10px;
+        /* 班级手风琴 (嵌套在学期内) */
+        .class-accordion {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .class-header {
+            background: #fafafc;
+            padding: 14px 18px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 15px;
+            color: #1c1c1e;
+            transition: background 0.2s;
+        }
+        .class-header:hover {
+            background: #f1f3f8;
+        }
+        .class-header .class-chevron {
+            transition: transform 0.25s ease;
+            color: var(--primary);
+        }
+        .class-header.active .class-chevron {
+            transform: rotate(180deg);
+        }
+        .class-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+            background: white;
+        }
+        .class-body.show {
+            max-height: 2000px;
+        }
+        .student-list {
+            padding: 8px 0;
+        }
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f5;
+            transition: background 0.1s;
+        }
+        .student-item:last-child {
+            border-bottom: none;
+        }
+        .student-info {
+            flex: 1;
+        }
+        .student-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1c1c1e;
+        }
+        .student-details {
+            font-size: 12px;
+            color: #8e8e93;
+            margin-top: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .btn-delete-student {
+            background: none;
+            border: none;
+            color: #c6c6c8;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 20px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .btn-delete-student:hover {
+            color: var(--danger);
+            background: #fff0f0;
+        }
+        .empty-class-msg {
+            padding: 24px;
+            text-align: center;
+            color: #a0a0a6;
             font-size: 13px;
         }
-
-        .btn-delete-all {
-            background: var(--danger);
-            color: white; border: none;
-            padding: 8px 12px; border-radius: 8px;
-            font-size: 11px; font-weight: bold;
-            cursor: pointer; display: flex; align-items: center; gap: 5px;
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #8e8e93;
         }
-
-        .student-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 8px 18px;
+            border-radius: 30px;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: 0.2s;
         }
-
-        .student-card {
-            background: var(--card);
-            border-radius: 15px;
-            padding: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            position: relative;
+        .back-btn:hover {
+            background: #f2f2f7;
         }
-
-        .student-info h4 { margin: 0 0 5px 0; font-size: 16px; padding-right: 30px;}
-        .student-info p { margin: 2px 0; font-size: 13px; color: #8e8e93; }
-
-        .btn-delete-single {
-            position: absolute; top: 15px; right: 15px;
-            color: #C7C7CC; border: none; background: none; cursor: pointer;
+        @media (max-width: 650px) {
+            .student-details { flex-direction: column; gap: 4px; }
+            .student-item { flex-wrap: wrap; }
+            .btn-delete-student { margin-left: auto; }
         }
-        .btn-delete-single:hover { color: var(--danger); }
-
-        .loading { text-align: center; padding: 50px; color: #8e8e93; }
-        
-        .back-btn { margin-bottom: 20px; display: inline-flex; align-items: center; gap: 5px; color: var(--primary); text-decoration: none; font-size: 14px; font-weight: 600; }
+        .class-count-badge {
+            background: #e9ecef;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: normal;
+            color: #495057;
+        }
     </style>
 </head>
 <body>
@@ -151,46 +279,17 @@
         <div class="header-left">
             <img src="semsira.png" alt="Logo">
             <div>
-                <h1 style="margin:0; font-size: 20px;">Pengurusan Pelajar</h1>
-                <p style="margin:0; color: #8e8e93; font-size: 12px;">Sistem Pengurusan Semsira</p>
+                <h1 style="margin:0; font-size: 22px;">Pengurusan Pelajar</h1>
+                <p style="margin:0; color: #8e8e93; font-size: 13px;">Mengikut Semester & Kelas (Klik untuk buka/tutup)</p>
             </div>
         </div>
-        <div class="total-badge">Total: <span id="overall-count">0</span></div>
+        <div class="total-badge">Jumlah: <span id="overall-count">0</span></div>
     </div>
 
-    <div id="loading" class="loading">Memuatkan data...</div>
+    <div id="loading" class="loading">Memuatkan data pelajar...</div>
 
-    <div class="semester-section" id="section-sem1" style="display:none;">
-        <div class="section-title" onclick="toggleSection('section-sem1')">
-            <div class="title-left">
-                <i data-lucide="chevron-down" class="chevron-icon"></i>
-                <h2 style="margin:0; font-size:17px;">Semester 1</h2>
-                <span class="count-tag" id="count-sem1">0</span>
-            </div>
-            <button class="btn-delete-all" onclick="event.stopPropagation(); deleteWholeSemester('1')">
-                <i data-lucide="trash-2"></i> Padam Semua
-            </button>
-        </div>
-        <div class="collapsible-content">
-            <div class="student-grid" id="grid-sem1"></div>
-        </div>
-    </div>
-
-    <div class="semester-section" id="section-sem2" style="display:none;">
-        <div class="section-title collapsed" onclick="toggleSection('section-sem2')">
-            <div class="title-left">
-                <i data-lucide="chevron-down" class="chevron-icon"></i>
-                <h2 style="margin:0; font-size:17px;">Semester 2</h2>
-                <span class="count-tag" id="count-sem2">0</span>
-            </div>
-            <button class="btn-delete-all" onclick="event.stopPropagation(); deleteWholeSemester('2')">
-                <i data-lucide="trash-2"></i> Padam Semua
-            </button>
-        </div>
-        <div class="collapsible-content">
-            <div class="student-grid" id="grid-sem2"></div>
-        </div>
-    </div>
+    <!-- Semester 1 & 2 动态渲染区域 -->
+    <div id="semester-container"></div>
 </div>
 
 <script type="module">
@@ -209,71 +308,265 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.toggleSection = (id) => {
-        const titleElement = document.querySelector(`#${id} .section-title`);
-        titleElement.classList.toggle('collapsed');
+    // 预定义全部班级显示名称 (用于排序 & 映射)
+    const ALL_CLASS_NAMES = [
+        'Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Sarah', 'Sumayyah', 'Ummukalthom', 'Zainab',
+        'Al Farabi', 'Al Ghazali', 'Al Khawarizmi', 'Al Khindi', 'Al Mawardi', 'Al Razi', 'Ibnu Khaldun', 'Ibnu Rusyd'
+    ];
+    
+    // 映射原始数据库班级 -> 显示名 (兼容现有数据)
+    const CLASS_MAPPING = {
+        '6 AISHAH': 'Aishah', '6 FATIMAH': 'Fatimah', '6 KHADIJAH': 'Khadijah',
+        '6 RUQAYYAH': 'Ruqayyah', '6 SARAH': 'Sarah', '6 SUMAYYAH': 'Sumayyah',
+        '6 UMMU KALTHOM': 'Ummukalthom', '6 ZAINAB': 'Zainab',
+        '6 AL FARABI': 'Al Farabi', '6 AL GHAZALI': 'Al Ghazali',
+        '6 AL KHWARIZMI': 'Al Khawarizmi', '6 AL KHINDI': 'Al Khindi',
+        '6 AL MAWARDI': 'Al Mawardi', '6 AL RAZI': 'Al Razi',
+        '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd'
     };
-
-    async function loadStudents() {
-        const grid1 = document.getElementById('grid-sem1');
-        const grid2 = document.getElementById('grid-sem2');
-        grid1.innerHTML = ""; grid2.innerHTML = "";
-        let c1 = 0, c2 = 0;
-
-        try {
-            const querySnapshot = await getDocs(collection(db, "studentInform"));
-            document.getElementById('loading').style.display = "none";
-            document.getElementById('section-sem1').style.display = "block";
-            document.getElementById('section-sem2').style.display = "block";
-
-            querySnapshot.forEach((document) => {
-                const data = document.data();
-                const id = document.id;
-                const card = `
-                    <div class="student-card" id="card-${id}">
-                        <button class="btn-delete-single" onclick="deleteStudent('${id}', '${data.name}')">
-                            <i data-lucide="x-circle"></i>
-                        </button>
-                        <div class="student-info">
-                            <h4>${data.name}</h4>
-                            <p><strong>ID:</strong> ${data.studentId}</p>
-                            <p><strong>Kelas:</strong> ${data.className}</p>
-                            <p><strong>Phone:</strong> ${data.phone}</p>
-                        </div>
-                    </div>
-                `;
-                if (data.semester === "1") { grid1.innerHTML += card; c1++; } 
-                else { grid2.innerHTML += card; c2++; }
-            });
-
-            document.getElementById('count-sem1').innerText = c1;
-            document.getElementById('count-sem2').innerText = c2;
-            document.getElementById('overall-count').innerText = c1 + c2;
-            lucide.createIcons();
-        } catch (error) { console.error(error); }
+    
+    function getDisplayClass(rawClassName) {
+        if (!rawClassName) return 'Tiada Kelas';
+        return CLASS_MAPPING[rawClassName] || rawClassName;
     }
 
-    window.deleteStudent = async (docId, name) => {
-        if (confirm(`Padam data ${name}?`)) {
-            await deleteDoc(doc(db, "studentInform", docId));
-            loadStudents();
+    let allStudents = [];   // 存储原始学生数据 { id, name, ic, className, semester, phone, studentId }
+
+    // 渲染整个界面：按 semester 分组，再按班级分组，使用嵌套手风琴
+    function renderBySemesterAndClass() {
+        const container = document.getElementById('semester-container');
+        if (!container) return;
+        
+        // 按 semester 分组
+        const studentsSem1 = allStudents.filter(s => s.semester === "1");
+        const studentsSem2 = allStudents.filter(s => s.semester === "2");
+        
+        const semesters = [
+            { num: "1", title: "Semester 1", students: studentsSem1 },
+            { num: "2", title: "Semester 2", students: studentsSem2 }
+        ];
+        
+        let html = '';
+        
+        for (let sem of semesters) {
+            // 按班级分组 (显示名称)
+            const classMap = new Map(); // key: displayClassName, value: array
+            ALL_CLASS_NAMES.forEach(cls => classMap.set(cls, []));
+            // 额外处理可能有未知班级
+            sem.students.forEach(std => {
+                let displayClass = getDisplayClass(std.className);
+                if (!classMap.has(displayClass)) classMap.set(displayClass, []);
+                classMap.get(displayClass).push(std);
+            });
+            
+            // 过滤掉空班级 (但保留班级结构, 若全班无学生也展示但显示空)
+            const classEntries = Array.from(classMap.entries()).sort((a,b) => {
+                const idxA = ALL_CLASS_NAMES.indexOf(a[0]);
+                const idxB = ALL_CLASS_NAMES.indexOf(b[0]);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a[0].localeCompare(b[0]);
+            });
+            
+            const semesterId = `sem-${sem.num}`;
+            const totalInSem = sem.students.length;
+            
+            html += `
+                <div class="semester-panel" id="${semesterId}">
+                    <div class="semester-header" onclick="toggleSemesterPanel('${semesterId}')">
+                        <div class="semester-title">
+                            <i data-lucide="chevron-down" class="chevron-icon"></i>
+                            <span>${sem.title}</span>
+                            <span class="semester-badge">${totalInSem} pelajar</span>
+                        </div>
+                        <button class="btn-delete-semester" onclick="event.stopPropagation(); deleteWholeSemester('${sem.num}')">
+                            <i data-lucide="trash-2"></i> Padam Semua
+                        </button>
+                    </div>
+                    <div class="semester-content">
+            `;
+            
+            // 遍历班级，生成班级手风琴
+            for (let [className, studentsInClass] of classEntries) {
+                const classId = `class-${sem.num}-${className.replace(/\s/g, '')}`;
+                const studentCount = studentsInClass.length;
+                html += `
+                    <div class="class-accordion">
+                        <div class="class-header" onclick="toggleClassBody('${classId}')">
+                            <span>📚 ${className} <span class="class-count-badge">${studentCount} org</span></span>
+                            <i data-lucide="chevron-down" class="class-chevron"></i>
+                        </div>
+                        <div id="${classId}" class="class-body">
+                            <div class="student-list">
+                `;
+                if (studentCount === 0) {
+                    html += `<div class="empty-class-msg">Tiada pelajar dalam kelas ini</div>`;
+                } else {
+                    studentsInClass.forEach(std => {
+                        html += `
+                            <div class="student-item" id="student-item-${std.id}">
+                                <div class="student-info">
+                                    <div class="student-name">${escapeHtml(std.name)}</div>
+                                    <div class="student-details">
+                                        <span>🆔 ${escapeHtml(std.studentId || std.ic || '-')}</span>
+                                        <span>📞 ${escapeHtml(std.phone || '-')}</span>
+                                        <span>🏷️ Kelas: ${escapeHtml(getDisplayClass(std.className))}</span>
+                                    </div>
+                                </div>
+                                <button class="btn-delete-student" onclick="deleteSingleStudent('${std.id}', '${escapeHtml(std.name)}')">
+                                    <i data-lucide="trash-2"></i>
+                                </button>
+                            </div>
+                        `;
+                    });
+                }
+                html += `</div></div></div>`;
+            }
+            
+            html += `</div></div>`; // tutup semester-content dan semester-panel
+        }
+        
+        container.innerHTML = html;
+        document.getElementById('overall-count').innerText = allStudents.length;
+        document.getElementById('loading').style.display = 'none';
+        
+        // 重新绘制 Lucide 图标
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        
+        // 默认所有学期面板展开，班级面板默认全部收起（可选，提升体验）
+        // 让班级全部默认收起（保持整洁）
+        document.querySelectorAll('.class-body').forEach(body => {
+            body.classList.remove('show');
+        });
+        document.querySelectorAll('.class-header').forEach(header => {
+            header.classList.remove('active');
+        });
+        // 学期面板默认展开（保证内容可见）
+        document.querySelectorAll('.semester-panel').forEach(panel => {
+            panel.classList.remove('collapsed');
+        });
+    }
+    
+    // 辅助函数防止XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+    
+    // 全局切换学期面板
+    window.toggleSemesterPanel = (panelId) => {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.classList.toggle('collapsed');
+        const icon = panel.querySelector('.chevron-icon');
+        if (icon && panel.classList.contains('collapsed')) {
+            // 旋转效果通过CSS处理, 但为了视觉一致性保留class
         }
     };
-
-    window.deleteWholeSemester = async (sem) => {
-        if (confirm(`Padam SEMUA pelajar Semester ${sem}?`)) {
-            const q = query(collection(db, "studentInform"), where("semester", "==", sem));
-            const snapshot = await getDocs(q);
-            const batch = writeBatch(db);
-            snapshot.forEach(d => batch.delete(d.ref));
-            await batch.commit();
-            loadStudents();
+    
+    // 切换班级内部手风琴
+    window.toggleClassBody = (bodyId) => {
+        const body = document.getElementById(bodyId);
+        if (!body) return;
+        const accordion = body.closest('.class-accordion');
+        const header = accordion?.querySelector('.class-header');
+        body.classList.toggle('show');
+        if (header) header.classList.toggle('active');
+    };
+    
+    // 删除单个学生
+    window.deleteSingleStudent = async (docId, name) => {
+        if (confirm(`Padam pelajar "${name}"? Tindakan ini tidak dapat dibatalkan.`)) {
+            try {
+                await deleteDoc(doc(db, "studentInform", docId));
+                // 刷新数据
+                await loadStudentsFromFirestore();
+                renderBySemesterAndClass();
+            } catch (err) {
+                console.error(err);
+                alert("Ralat semasa memadam pelajar.");
+            }
         }
     };
+    
+    // 删除整个学期所有学生
+    window.deleteWholeSemester = async (semesterNum) => {
+        if (confirm(`⚠️ PADAM SEMUA PELAJAR SEMESTER ${semesterNum}? Data akan hilang selama-lamanya.`)) {
+            try {
+                const q = query(collection(db, "studentInform"), where("semester", "==", semesterNum));
+                const snapshot = await getDocs(q);
+                if (snapshot.empty) {
+                    alert(`Tiada pelajar dalam Semester ${semesterNum}.`);
+                    return;
+                }
+                const batch = writeBatch(db);
+                snapshot.forEach(docSnap => batch.delete(docSnap.ref));
+                await batch.commit();
+                await loadStudentsFromFirestore();
+                renderBySemesterAndClass();
+                alert(`Semua pelajar Semester ${semesterNum} telah dipadam.`);
+            } catch (err) {
+                console.error(err);
+                alert("Gagal memadam semester. Sila cuba lagi.");
+            }
+        }
+    };
+    
+    // 从Firestore加载所有学生，并映射字段
+    async function loadStudentsFromFirestore() {
+        const students = [];
+        try {
+            const querySnapshot = await getDocs(collection(db, "studentInform"));
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                // 兼容字段: studentId / ic ; 确保至少有一个识别码
+                let studentId = data.studentId || data.ic || '';
+                students.push({
+                    id: docSnap.id,
+                    name: data.name || 'Tanpa Nama',
+                    ic: data.ic || '',
+                    studentId: studentId,
+                    className: data.className || '',
+                    semester: data.semester ? String(data.semester) : "1",   // 默认semester 1
+                    phone: data.phone || '',
+                    address: data.address || ''
+                });
+            });
+            allStudents = students;
+        } catch (error) {
+            console.error("Error loading students: ", error);
+            allStudents = [];
+        }
+    }
+    
+    // 初始化加载
+    async function init() {
+        document.getElementById('loading').style.display = 'block';
+        await loadStudentsFromFirestore();
+        renderBySemesterAndClass();
+    }
+    
+    init();
+    
+    // 辅助全局刷新 (如果需要外部调用)
+    window.refreshStudentList = () => {
+        init();
+    };
+</script>
 
-    // 页面进入后直接加载数据
-    loadStudents();
-    lucide.createIcons();
+<!-- 确保Lucide图标渲染完成 -->
+<script>
+    if (typeof lucide !== 'undefined') {
+        setTimeout(() => lucide.createIcons(), 150);
+    }
 </script>
 </body>
 </html>
