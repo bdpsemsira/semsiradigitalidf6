@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Pengurusan Pelajar Semsira - Ikut Semester & Kumpulan</title>
+    <title>Pengurusan Pelajar Semsira - Dinamik</title>
     <link rel="icon" type="image/png" href="semsira.png">
 
     <script>
@@ -285,6 +285,13 @@
             margin-top: 8px;
             text-align: center;
         }
+        .no-data-msg {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            color: #8e8e93;
+        }
     </style>
 </head>
 <body>
@@ -297,27 +304,27 @@
             <img src="semsira.png" alt="Logo">
             <div>
                 <h1 style="margin:0; font-size: 22px;">Pengurusan Pelajar</h1>
-                <p style="margin:0; color: #8e8e93; font-size: 13px;">Mengikut Kumpulan & Semester (Auto sync dari admin panel)</p>
+                <p style="margin:0; color: #8e8e93; font-size: 13px;">Senarai dinamik mengikut Semester & Kelas</p>
             </div>
         </div>
         <div class="total-badge">Jumlah: <span id="overall-count">0</span></div>
     </div>
 
     <div class="info-note">
-        <i data-lucide="refresh-cw"></i>
-        <span>Semester pelajar akan berubah secara automatik apabila admin menukar tetapan Kumpulan 1 / Kumpulan 2. Data dipadam berdasarkan kumpulan semester semasa.</span>
+        <i data-lucide="database"></i>
+        <span>Sistem membaca semua data dari Firestore. Semester dan kelas dipaparkan secara automatik berdasarkan data sedia ada.</span>
     </div>
 
     <div id="loading" class="loading">Memuatkan data pelajar...</div>
 
-    <!-- Semester 1,2,3 动态渲染区域 -->
+    <!-- Semester 动态渲染区域 -->
     <div id="semester-container"></div>
-    <div class="refresh-hint">🔄 Data dikemas kini setiap 30 saat (atau muat semula halaman)</div>
+    <div class="refresh-hint">🔄 Data dikemas kini setiap 30 saat</div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, deleteDoc, doc, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -331,17 +338,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ==================== KUMPULAN 1 & KUMPULAN 2 班级定义 (与 admin 页面一致) ====================
-    // Kumpulan 1: Sarah, Sumayyah, Aishah, Fatimah, Khadijah, Ruqayyah, Ummukalthom, Zainab
-    // Kumpulan 2: Al Farabi, Al Ghazali, Al Khawarizmi, Al Khindi, Al Mawardi, Al Razi, Ibnu Khaldun, Ibnu Rusyd
-    const KUMPULAN_1_CLASSES = [
-        'Sarah', 'Sumayyah', 'Aishah', 'Fatimah', 'Khadijah', 'Ruqayyah', 'Ummukalthom', 'Zainab'
-    ];
-    const KUMPULAN_2_CLASSES = [
-        'Al Farabi', 'Al Ghazali', 'Al Khawarizmi', 'Al Khindi', 'Al Mawardi', 'Al Razi', 'Ibnu Khaldun', 'Ibnu Rusyd'
-    ];
-    
-    // 映射原始数据库班级 -> 显示名称 (兼容现有数据)
+    // 班级名称映射 (原始数据库格式 -> 显示格式)
     const CLASS_MAPPING = {
         '6 AISHAH': 'Aishah', '6 FATIMAH': 'Fatimah', '6 KHADIJAH': 'Khadijah',
         '6 RUQAYYAH': 'Ruqayyah', '6 SARAH': 'Sarah', '6 SUMAYYAH': 'Sumayyah',
@@ -351,77 +348,44 @@
         '6 AL MAWARDI': 'Al Mawardi', '6 AL RAZI': 'Al Razi',
         '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd'
     };
-    
+
     function getDisplayClass(rawClassName) {
         if (!rawClassName) return 'Tiada Kelas';
         return CLASS_MAPPING[rawClassName] || rawClassName;
     }
-    
-    // 获取班级所属的kumpulan (1 或 2)
-    function getClassKumpulan(displayClassName) {
-        if (KUMPULAN_1_CLASSES.includes(displayClassName)) return 1;
-        if (KUMPULAN_2_CLASSES.includes(displayClassName)) return 2;
-        return null;
-    }
 
-    let allStudents = [];      // 存储所有学生 { id, name, ic, classNameRaw, classNameDisplay, phone, studentId, icRaw }
-    let semesterSettings = {   
-        k1_semester: "1",
-        k2_semester: "1"
-    };
-
-    // 从 Firestore 加载 k1_settings 和 k2_settings (与 admin 页面保存的位置一致)
-    async function loadSemesterSettings() {
-        try {
-            // 注意: admin 页面保存到 systemSettings/k1_settings 和 systemSettings/k2_settings
-            const k1Doc = await getDoc(doc(db, "systemSettings", "k1_settings"));
-            const k2Doc = await getDoc(doc(db, "systemSettings", "k2_settings"));
-            if (k1Doc.exists() && k1Doc.data().semester) {
-                semesterSettings.k1_semester = String(k1Doc.data().semester);
-            } else {
-                // 默认值
-                semesterSettings.k1_semester = "1";
-            }
-            if (k2Doc.exists() && k2Doc.data().semester) {
-                semesterSettings.k2_semester = String(k2Doc.data().semester);
-            } else {
-                semesterSettings.k2_semester = "1";
-            }
-            console.log("Semester settings loaded:", semesterSettings);
-        } catch (err) {
-            console.error("Error loading semester settings:", err);
+    function formatIC(ic) {
+        if (!ic) return '-';
+        const clean = ic.replace(/\D/g, '');
+        if (clean.length === 12) {
+            return `${clean.slice(0, 6)}-${clean.slice(6, 8)}-${clean.slice(8)}`;
         }
+        return ic;
     }
 
-    // 根据班级显示名称 + 当前设定，获取该学生应该显示在哪个 Semester (1,2,3)
-    function getAssignedSemesterFromSettings(displayClassName) {
-        const kumpulan = getClassKumpulan(displayClassName);
-        if (kumpulan === 1) return semesterSettings.k1_semester;
-        if (kumpulan === 2) return semesterSettings.k2_semester;
-        return "1"; // 未知班级默认 semester 1
-    }
+    let allStudents = [];  // 存储所有学生原始数据
 
-    // 加载所有学生 (不依赖学生自身的 semester 字段，完全根据班级 + 系统设定)
+    // 加载所有学生
     async function loadStudentsFromFirestore() {
         const students = [];
         try {
             const querySnapshot = await getDocs(collection(db, "studentInform"));
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
-                let studentId = data.studentId || data.ic || '';
                 const rawClass = data.className || '';
                 const displayClass = getDisplayClass(rawClass);
+                // 获取 semester: 优先使用数据中的 semester 字段，如果没有则默认为 "1"
+                const semester = data.semester ? String(data.semester) : "1";
                 students.push({
                     id: docSnap.id,
                     name: data.name || 'Tanpa Nama',
                     ic: data.ic || '',
-                    studentId: studentId,
+                    studentId: data.studentId || data.ic || '',
                     classNameRaw: rawClass,
                     classNameDisplay: displayClass,
+                    semester: semester,
                     phone: data.phone || '',
-                    address: data.address || '',
-                    // 保留原始 semester 字段以备不时之需，但不用于 UI 分组
-                    originalSemester: data.semester ? String(data.semester) : "1"
+                    address: data.address || ''
                 });
             });
             allStudents = students;
@@ -431,77 +395,97 @@
         }
     }
 
-    // 渲染: 根据 semesterSettings 将学生分配到 Semester 1,2,3 面板，每个面板内按班级分组
-    function renderBySemesterGroup() {
+    // 从学生数据中动态提取所有存在的 semester 值，并排序
+    function getUniqueSemesters() {
+        const semesters = new Set();
+        allStudents.forEach(s => {
+            if (s.semester) semesters.add(s.semester);
+        });
+        // 排序: 1,2,3 或任何字符串顺序
+        return Array.from(semesters).sort((a, b) => {
+            const numA = parseInt(a);
+            const numB = parseInt(b);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return String(a).localeCompare(String(b));
+        });
+    }
+
+    // 从学生数据中动态提取某个 semester 下所有存在的班级 (显示名称)，并排序
+    function getClassesInSemester(semester) {
+        const classes = new Set();
+        allStudents.forEach(s => {
+            if (s.semester === semester && s.classNameDisplay) {
+                classes.add(s.classNameDisplay);
+            }
+        });
+        // 排序: 保持一定顺序 (先字母顺序，但保持一致性)
+        return Array.from(classes).sort();
+    }
+
+    // 渲染动态手风琴列表: 基于 Firestore 中实际存在的 semester 和班级
+    function renderDynamicAccordion() {
         const container = document.getElementById('semester-container');
         if (!container) return;
         
-        const semesterNumbers = ["1", "2", "3"];
+        const semesters = getUniqueSemesters();
         
-        // 为每个学生计算当前应该显示的 semester (基于班级 + 系统设定)
-        const studentsWithDisplaySem = allStudents.map(std => {
-            let displaySem = getAssignedSemesterFromSettings(std.classNameDisplay);
-            return { ...std, displaySemester: displaySem };
-        });
+        if (semesters.length === 0) {
+            container.innerHTML = `<div class="no-data-msg">📭 Tiada data pelajar. Sila daftar pelajar terlebih dahulu.</div>`;
+            document.getElementById('overall-count').innerText = "0";
+            document.getElementById('loading').style.display = 'none';
+            return;
+        }
         
         let html = '';
         
-        for (let semNum of semesterNumbers) {
-            // 过滤出显示学期等于当前 semNum 的学生
-            const semStudents = studentsWithDisplaySem.filter(s => s.displaySemester === semNum);
+        for (let sem of semesters) {
+            // 获取该 semester 下的所有班级
+            const classes = getClassesInSemester(sem);
             
-            // 按班级分组 (只显示属于 Kumpulan 1 或 Kumpulan 2 的班级)
-            // 收集该学期应该显示哪些班级: 根据 k1_semester 和 k2_semester 决定
-            const showK1Classes = (semesterSettings.k1_semester === semNum);
-            const showK2Classes = (semesterSettings.k2_semester === semNum);
+            // 构建班级 -> 学生列表的映射
+            const classStudentsMap = new Map();
+            classes.forEach(cls => classStudentsMap.set(cls, []));
             
-            let targetClassNames = [];
-            if (showK1Classes) targetClassNames.push(...KUMPULAN_1_CLASSES);
-            if (showK2Classes) targetClassNames.push(...KUMPULAN_2_CLASSES);
-            targetClassNames = [...new Map(targetClassNames.map(c => [c, c])).values()];
-            
-            // 保持顺序: Kumpulan 1 在前，Kumpulan 2 在后
-            const orderedClassNames = [...KUMPULAN_1_CLASSES, ...KUMPULAN_2_CLASSES].filter(c => targetClassNames.includes(c));
-            
-            // 构建班级分组 Map
-            const classMap = new Map();
-            orderedClassNames.forEach(cls => classMap.set(cls, []));
-            
-            semStudents.forEach(std => {
-                const displayClass = std.classNameDisplay;
-                if (classMap.has(displayClass)) {
-                    classMap.get(displayClass).push(std);
-                } else {
-                    if (!classMap.has(displayClass)) classMap.set(displayClass, []);
-                    classMap.get(displayClass).push(std);
+            // 将学生分配到对应班级
+            allStudents.forEach(std => {
+                if (std.semester === sem) {
+                    const displayClass = std.classNameDisplay;
+                    if (classStudentsMap.has(displayClass)) {
+                        classStudentsMap.get(displayClass).push(std);
+                    } else {
+                        // 如果班级不在预映射中 (理论上已在 classes 中)
+                        if (!classStudentsMap.has(displayClass)) classStudentsMap.set(displayClass, []);
+                        classStudentsMap.get(displayClass).push(std);
+                    }
                 }
             });
             
-            const totalInSem = semStudents.length;
-            const semesterId = `sem-${semNum}`;
+            const totalInSem = allStudents.filter(s => s.semester === sem).length;
+            const semesterId = `sem-${sem.replace(/\s/g, '')}`;
             
             html += `
                 <div class="semester-panel" id="${semesterId}">
                     <div class="semester-header" onclick="toggleSemesterPanel('${semesterId}')">
                         <div class="semester-title">
                             <i data-lucide="chevron-down" class="chevron-icon"></i>
-                            <span>Semester ${semNum}</span>
+                            <span>Semester ${sem}</span>
                             <span class="semester-badge">${totalInSem} pelajar</span>
                         </div>
-                        <button class="btn-delete-semester" onclick="event.stopPropagation(); deleteWholeSemesterByDisplay('${semNum}')">
+                        <button class="btn-delete-semester" onclick="event.stopPropagation(); deleteWholeSemester('${sem}')">
                             <i data-lucide="trash-2"></i> Padam Semua
                         </button>
                     </div>
                     <div class="semester-content">
             `;
             
-            if (orderedClassNames.length === 0 && totalInSem === 0) {
-                html += `<div class="empty-class-msg" style="text-align:center; padding:20px;">Tiada kelas untuk semester ini.</div>`;
-            } else if (orderedClassNames.length > 0) {
-                for (let className of orderedClassNames) {
-                    const studentsInClass = classMap.get(className) || [];
+            if (classes.length === 0) {
+                html += `<div class="empty-class-msg">Tiada kelas dalam semester ini.</div>`;
+            } else {
+                for (let className of classes) {
+                    const studentsInClass = classStudentsMap.get(className) || [];
                     const studentCount = studentsInClass.length;
-                    const classId = `class-${semNum}-${className.replace(/\s/g, '')}`;
+                    const classId = `class-${sem.replace(/\s/g, '')}-${className.replace(/\s/g, '')}`;
+                    
                     html += `
                         <div class="class-accordion">
                             <div class="class-header" onclick="toggleClassBody('${classId}')">
@@ -511,21 +495,18 @@
                             <div id="${classId}" class="class-body">
                                 <div class="student-list">
                     `;
+                    
                     if (studentCount === 0) {
                         html += `<div class="empty-class-msg">Tiada pelajar dalam kelas ini</div>`;
                     } else {
                         studentsInClass.forEach(std => {
-                            // 格式化 IC 显示
-                            let formattedIc = std.ic;
-                            if (formattedIc && formattedIc.length === 12 && !formattedIc.includes('-')) {
-                                formattedIc = `${formattedIc.slice(0,6)}-${formattedIc.slice(6,8)}-${formattedIc.slice(8)}`;
-                            }
+                            const formattedIc = formatIC(std.ic);
                             html += `
                                 <div class="student-item" id="student-item-${std.id}">
                                     <div class="student-info">
                                         <div class="student-name">${escapeHtml(std.name)}</div>
                                         <div class="student-details">
-                                            <span>🆔 ${escapeHtml(std.studentId || std.ic || '-')}</span>
+                                            <span>🆔 ${escapeHtml(std.studentId)}</span>
                                             <span>📞 ${escapeHtml(std.phone || '-')}</span>
                                             <span>🏷️ Kelas: ${escapeHtml(std.classNameDisplay)}</span>
                                             ${std.ic ? `<span>🪪 IC: ${escapeHtml(formattedIc)}</span>` : ''}
@@ -538,10 +519,9 @@
                             `;
                         });
                     }
+                    
                     html += `</div></div></div>`;
                 }
-            } else {
-                html += `<div class="empty-class-msg">Tiada pelajar untuk semester ini.</div>`;
             }
             
             html += `</div></div>`;
@@ -593,7 +573,7 @@
         if (header) header.classList.toggle('active');
     };
     
-    // 删除单个学生 (基于学生实际id)
+    // 删除单个学生
     window.deleteSingleStudent = async (docId, name) => {
         if (confirm(`Padam pelajar "${name}"? Tindakan ini tidak dapat dibatalkan.`)) {
             try {
@@ -606,21 +586,14 @@
         }
     };
     
-    // 根据显示学期删除整个学期所有学生 (删除所有 displaySemester == semNum 的学生)
-    // 注意: 删除基于当前设定下的班级分组，而不是基于学生原有的 semester 字段
-    window.deleteWholeSemesterByDisplay = async (displaySemNum) => {
-        if (confirm(`⚠️ PADAM SEMUA PELAJAR yang berada di Semester ${displaySemNum} (berdasarkan kumpulan kelas)? Data akan hilang selama-lamanya.`)) {
+    // 删除整个学期所有学生
+    window.deleteWholeSemester = async (semesterNum) => {
+        if (confirm(`⚠️ PADAM SEMUA PELAJAR SEMESTER ${semesterNum}? Data akan hilang selama-lamanya.`)) {
             try {
-                // 找出所有当前设定下应该属于该 semester 的学生 ID
-                const studentsToDelete = [];
-                for (let std of allStudents) {
-                    const displaySem = getAssignedSemesterFromSettings(std.classNameDisplay);
-                    if (displaySem === displaySemNum) {
-                        studentsToDelete.push(std.id);
-                    }
-                }
+                // 找出该 semester 的所有学生 ID
+                const studentsToDelete = allStudents.filter(s => s.semester === semesterNum).map(s => s.id);
                 if (studentsToDelete.length === 0) {
-                    alert(`Tiada pelajar dalam Semester ${displaySemNum}.`);
+                    alert(`Tiada pelajar dalam Semester ${semesterNum}.`);
                     return;
                 }
                 const batch = writeBatch(db);
@@ -629,7 +602,7 @@
                 }
                 await batch.commit();
                 await refreshAllData();
-                alert(`${studentsToDelete.length} pelajar Semester ${displaySemNum} telah dipadam.`);
+                alert(`${studentsToDelete.length} pelajar Semester ${semesterNum} telah dipadam.`);
             } catch (err) {
                 console.error(err);
                 alert("Gagal memadam semester. Sila cuba lagi.");
@@ -637,29 +610,26 @@
         }
     };
     
-    // 刷新所有数据 (重新加载设定和学生)
+    // 刷新所有数据
     async function refreshAllData() {
         document.getElementById('loading').style.display = 'block';
-        await loadSemesterSettings();
         await loadStudentsFromFirestore();
-        renderBySemesterGroup();
+        renderDynamicAccordion();
     }
     
     // 初始化
     async function init() {
         document.getElementById('loading').style.display = 'block';
-        await loadSemesterSettings();
         await loadStudentsFromFirestore();
-        renderBySemesterGroup();
+        renderDynamicAccordion();
     }
     
     init();
     
-    // 每30秒自动刷新设定 (因为 admin 可能在另一个页面修改了 k1/k2 semester)
+    // 每30秒自动刷新 (如果管理员在其他页面修改了数据)
     setInterval(async () => {
-        await loadSemesterSettings();
-        // 重新计算每个学生的显示学期并重新渲染
-        renderBySemesterGroup();
+        await loadStudentsFromFirestore();
+        renderDynamicAccordion();
     }, 30000);
 </script>
 
