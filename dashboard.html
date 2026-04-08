@@ -16,6 +16,7 @@
             --card: #FFFFFF;
             --success: #34C759;
             --danger: #FF3B30;
+            --tidak-hadir: #FF3B30;
         }
 
         * {
@@ -66,7 +67,6 @@
         .chart-inner { width: 80%; max-width: 800px; min-width: 300px; }
         canvas { width: 100% !important; height: auto !important; max-height: 400px; }
         
-        /* ========== 表格居中样式 ========== */
         .table-wrapper {
             display: flex;
             justify-content: center;
@@ -93,20 +93,24 @@
             font-weight: bold;
             text-align: center;
         }
-        /* 确保表格容器居中 */
-        #tableCaptureArea, #lateCaptureArea {
+        #tableCaptureArea, #lateCaptureArea, #tidakHadirCaptureArea {
             display: flex;
             justify-content: center;
             width: 100%;
         }
-        #attendanceTable, #lateStudentsTable {
+        #attendanceTable, #lateStudentsTable, #tidakHadirTable {
             margin-left: auto;
             margin-right: auto;
+        }
+        
+        .red-title {
+            color: #FF3B30 !important;
         }
         
         .summary-row { background-color: #FFEB3B !important; font-weight: bold; }
         .total-label { background-color: #FF9800 !important; color: white !important; }
         .lewat-text { color: var(--lewat); font-weight: bold; }
+        .tidak-hadir-text { color: var(--tidak-hadir); font-weight: bold; }
         .monthly-stats { font-size: 14px; margin-top: 10px; padding: 10px; background: #f9f9fb; border-radius: 10px; text-align: center; }
         .capture-mode .no-print, .capture-mode .btn-action, .capture-mode .section-header button, .capture-mode .date-selector-group { display: none !important; }
         .monthly-title { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #1c1c1e; }
@@ -133,14 +137,13 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
         
-        /* 移动端适配 */
         @media (max-width: 768px) {
             table {
                 display: block;
                 overflow-x: auto;
                 white-space: nowrap;
             }
-            #tableCaptureArea, #lateCaptureArea {
+            #tableCaptureArea, #lateCaptureArea, #tidakHadirCaptureArea {
                 display: block;
                 overflow-x: auto;
             }
@@ -217,6 +220,22 @@
         </div>
     </div>
 
+    <div id="tidakHadirSection" class="dashboard-container">
+        <div class="section-header"><h3 class="red-title" style="color: #FF3B30;"><i data-lucide="user-minus"></i> Senarai Murid Tidak Hadir</h3><button class="btn-action" style="background:#FF3B30;" onclick="captureTidakHadirSection()"><i data-lucide="camera"></i> Screenshot Senarai</button></div>
+        <div id="tidakHadirCaptureArea">
+            <table id="tidakHadirTable">
+                <thead>
+                    <tr>
+                        <th>NAMA</th>
+                        <th>KELAS</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody id="tidakHadirTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="dashboard-container" id="monthlyReportSection">
         <div class="section-header">
             <h3><i data-lucide="calendar"></i> Laporan Bulanan</h3>
@@ -262,7 +281,6 @@
 
     function sortClasses(a, b) { return allStaticClasses.indexOf(a) - allStaticClasses.indexOf(b); }
     
-    // ========== 获取马来西亚当前日期 (YYYY-MM-DD 格式) ==========
     function getMalaysiaDate() {
         const now = new Date();
         const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
@@ -272,7 +290,6 @@
         return `${year}-${month}-${day}`;
     }
     
-    // ========== 格式化马来西亚日期显示 ==========
     function formatMalaysiaDate() {
         const now = new Date();
         const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
@@ -302,7 +319,35 @@
         await loadDashboardForDate(dateInput);
     };
 
-    function renderTable(data, lateStudentsArray) {
+    function renderTidakHadirTable(allStudentsList, hadirSet, lewatSet) {
+        const tbody = document.getElementById('tidakHadirTableBody');
+        if (!tbody) return;
+        
+        const tidakHadirList = [];
+        for (let student of allStudentsList) {
+            const key = `${student.name}|${student.className}`;
+            if (!hadirSet.has(key) && !lewatSet.has(key)) {
+                tidakHadirList.push(student);
+            }
+        }
+        
+        if (tidakHadirList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">✅ Tiada murid tidak hadir pada hari ini</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        tidakHadirList.forEach(s => {
+            html += `<tr>
+                        <td>${s.name || 'N/A'}</td>
+                        <td>${s.className || '-'}</td>
+                        <td class="tidak-hadir-text">Tidak Hadir</td>
+                      </tr>`;
+        });
+        tbody.innerHTML = html;
+    }
+    
+    function renderTable(data, lateStudentsArray, hadirStudentsSet, allStudentsFullList, lewatStudentsSet) {
         const tbody = document.getElementById('tableBody');
         const tfoot = document.getElementById('totalRow');
         if (!tbody) return;
@@ -335,11 +380,11 @@
         tfoot.innerHTML = `<tr class="summary-row">
                             <td class="total-label"><b>JUMLAH</b></td>
                             <td><b>${totalStudents}</b></td>
-                            <td><b>${totalHadir}</b></td>
+                            <td><b>${totalHadir - totalLewat}</b></td>
                             <td><b>${totalLewat}</b></td>
                             <td><b>${totalHadir}</b></td>
                             <td><b>${overallPercent}%</b></td>
-                            </tr>`;
+                          </tr>`;
         tbody.innerHTML = html;
         
         const lateTbody = document.getElementById('lateTableBody');
@@ -348,32 +393,44 @@
                 let lateHtml = '';
                 lateStudentsArray.forEach(s => {
                     lateHtml += `<tr>
-                                    <td>${s.name || 'N/A'}</td>
-                                    <td>${s.className || '-'}</td>
-                                    <td>${s.time || '-'}</td>
-                                    <td><span style="color:#FF9500;">Lewat</span></td>
-                                </tr>`;
+                                      <td>${s.name || 'N/A'}</td>
+                                      <td>${s.className || '-'}</td>
+                                      <td>${s.time || '-'}</td>
+                                      <td><span style="color:#FF9500;">Lewat</span></td>
+                                  </tr>`;
                 });
                 lateTbody.innerHTML = lateHtml;
             } else {
                 lateTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tiada murid lewat pada hari ini</td></tr>';
             }
         }
+        
+        if (allStudentsFullList && hadirStudentsSet && lewatStudentsSet) {
+            renderTidakHadirTable(allStudentsFullList, hadirStudentsSet, lewatStudentsSet);
+        }
     }
-
+    
     async function loadDashboardForDate(dateStr) {
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classMasterData = {};
+        let allStudentsList = [];
+        
         studentSnap.forEach(doc => {
             const data = doc.data();
             const className = data.className || "Lain-lain";
             if (className === EXCLUDED_CLASS) return;
             if (!classMasterData[className]) classMasterData[className] = { total: 0, present: 0, late: 0 };
             classMasterData[className].total++;
+            if (data.name) {
+                allStudentsList.push({ name: data.name, className: className });
+            }
         });
-
+        
         const attendSnap = await getDocs(query(collection(db, "attendanceLogs"), where("date", "==", dateStr)));
         let lateStudents = [];
+        let hadirStudentSet = new Set();
+        let lewatStudentSet = new Set();
+        
         attendSnap.forEach(doc => {
             const data = doc.data();
             const studentClass = data.className;
@@ -385,20 +442,26 @@
                     const hm = timePart.split(" ")[0].split(":").slice(0,2).join(":");
                     displayTime = hm + " " + (timePart.split(" ")[1] || "");
                 } else displayTime = data.time || "--:--";
+                
+                const studentKey = `${data.name || 'unknown'}|${studentClass}`;
                 if (data.status === "Lewat") { 
                     classMasterData[studentClass].late++; 
-                    lateStudents.push({ name: data.name || "Tidak Dikenali", className: studentClass, time: displayTime }); 
+                    lateStudents.push({ name: data.name || "Tidak Dikenali", className: studentClass, time: displayTime });
+                    lewatStudentSet.add(studentKey);
                 }
-                else if (data.status === "Hadir") classMasterData[studentClass].present++;
+                else if (data.status === "Hadir") {
+                    classMasterData[studentClass].present++;
+                    hadirStudentSet.add(studentKey);
+                }
             }
         });
+        
         currentClassMasterData = classMasterData;
-        updateChartAndTable(classMasterData, lateStudents);
+        renderTable(classMasterData, lateStudents, hadirStudentSet, allStudentsList, lewatStudentSet);
+        updateChart(classMasterData);
     }
     
-    function updateChartAndTable(classData, lateList) {
-        renderTable(classData, lateList);
-        
+    function updateChart(classData) {
         const labels = [];
         const hadirPercentData = [];
         const lewatPercentData = [];
@@ -503,80 +566,155 @@
         });
     }
     
+    // ==================== 修复月度报表 - 使用上学天数计算百分比 ====================
     window.loadMonthlyReport = async () => {
         const month = parseInt(document.getElementById('monthPicker').value);
         let year = parseInt(document.getElementById('yearPicker').value);
         if (isNaN(year)) year = new Date().getFullYear();
+        
         const startDate = `${year}-${String(month+1).padStart(2,'0')}-01`;
         const lastDay = new Date(year, month+1, 0).getDate();
         const endDate = `${year}-${String(month+1).padStart(2,'0')}-${lastDay}`;
         const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
         const monthDisplay = `${monthNames[month]} ${year}`;
         
+        // 1. 获取所有学生，构建班级总人数映射 (排除 GURU BDP)
         const studentSnap = await getDocs(collection(db, "studentInform"));
         let classTotalMap = {};
         studentSnap.forEach(doc => {
             const data = doc.data();
-            if (data.className !== EXCLUDED_CLASS) classTotalMap[data.className] = (classTotalMap[data.className] || 0) + 1;
-        });
-
-        const logsSnap = await getDocs(collection(db, "attendanceLogs"));
-        let monthlyStats = {};
-        logsSnap.forEach(doc => {
-            const log = doc.data();
-            if (log.date >= startDate && log.date <= endDate && log.className !== EXCLUDED_CLASS) {
-                if (!monthlyStats[log.className]) monthlyStats[log.className] = { hadir: 0, lewat: 0 };
-                if (log.status === "Hadir") monthlyStats[log.className].hadir++;
-                else if (log.status === "Lewat") monthlyStats[log.className].lewat++;
+            const className = data.className;
+            if (className && className !== EXCLUDED_CLASS) {
+                classTotalMap[className] = (classTotalMap[className] || 0) + 1;
             }
         });
 
-        let html = `<div class="monthly-title">📊 Laporan Bulanan: ${monthDisplay}</div>`;
-        html += `<div class="chart-wrapper" style="margin-bottom: 20px;"><div class="chart-inner"><canvas id="monthlyChartCanvas" height="400"></canvas></div></div>`;
-        html += `<div style="display: flex; justify-content: center; width: 100%;"><table style="width: 100%; max-width: 1200px; margin: 0 auto;"><thead><tr><th>KELAS</th><th>BIL. MURID</th><th>HADIR</th><th>LEWAT</th><th>JUMLAH HADIR</th><th>%</th></tr></thead><tbody>`;
+        // 2. 获取该月份的所有 attendance 记录
+        const logsSnap = await getDocs(collection(db, "attendanceLogs"));
         
-        let totalStudentAll = 0, totalHadirAll = 0, totalLewatAll = 0;
-        const labels = [], hadirPercentData = [], lewatPercentData = [];
+        // 2.1 收集该月份内所有有记录的上学日期 (有任何人 Hadir 或 Lewat 的日期)
+        const schoolDaysSet = new Set();
+        let monthlyStats = {}; // { className: { hadir: 0, lewat: 0 } }
+        
+        logsSnap.forEach(doc => {
+            const log = doc.data();
+            // 过滤日期范围 + 排除 GURU BDP
+            if (log.date >= startDate && log.date <= endDate && log.className !== EXCLUDED_CLASS) {
+                // 记录上学日
+                schoolDaysSet.add(log.date);
+                
+                if (!monthlyStats[log.className]) {
+                    monthlyStats[log.className] = { hadir: 0, lewat: 0 };
+                }
+                if (log.status === "Hadir") {
+                    monthlyStats[log.className].hadir++;
+                } else if (log.status === "Lewat") {
+                    monthlyStats[log.className].lewat++;
+                }
+            }
+        });
+        
+        // 上学天数 = 该月份有 attendance 记录的天数
+        const schoolDays = schoolDaysSet.size;
+        
+        // 如果没有上学日，显示提示
+        if (schoolDays === 0) {
+            document.getElementById('monthlyReportContent').innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <i data-lucide="calendar-x" style="width: 48px; height: 48px; color: #999;"></i>
+                    <p style="margin-top: 15px;">Tiada rekod kehadiran untuk ${monthDisplay}</p>
+                    <p style="color: #666; font-size: 14px;">Sila pastikan data attendance telah direkodkan.</p>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        // 3. 构建表格 HTML 和图表数据
+        let html = `<div class="monthly-title">📊 Laporan Bulanan: ${monthDisplay}</div>`;
+        html += `<div style="margin-bottom: 15px; padding: 8px 15px; background: #e8f0fe; border-radius: 10px; text-align: center; font-size: 14px;">
+                    📅 Bilangan Hari Persekolahan: ${schoolDays} hari
+                 </div>`;
+        html += `<div class="chart-wrapper" style="margin-bottom: 20px;"><div class="chart-inner"><canvas id="monthlyChartCanvas" height="400"></canvas></div></div>`;
+        html += `<div style="display: flex; justify-content: center; width: 100%;">
+                    <table style="width: 100%; max-width: 1200px; margin: 0 auto;">
+                        <thead>
+                            <tr><th>KELAS</th><th>BIL. MURID</th><th>HADIR</th><th>LEWAT</th><th>JUMLAH HADIR</th><th>%</th></tr>
+                        </thead>
+                        <tbody>`;
+        
+        let totalStudentAll = 0;           // 全校总学生数
+        let totalHadirCountAll = 0;        // 全校总出席人次 (Hadir + Lewat)
+        let totalLewatCountAll = 0;        // 全校总迟到人次
+        
+        const labels = [];
+        const hadirPercentData = [];
+        const lewatPercentData = [];
+        
         const sortedClasses = Object.keys(classTotalMap).sort(sortClasses);
         
         for (let className of sortedClasses) {
-            const total = classTotalMap[className];
+            const totalStudentsInClass = classTotalMap[className];
             const stats = monthlyStats[className] || { hadir: 0, lewat: 0 };
-            const totalHadirClass = stats.hadir + stats.lewat;
-            const per = total > 0 ? ((totalHadirClass / total) * 100).toFixed(2) : "0.00";
-            const hadirPercent = total > 0 ? ((totalHadirClass / total) * 100) : 0;
-            const lewatPercent = total > 0 ? ((stats.lewat / total) * 100) : 0;
             
-            totalStudentAll += total;
-            totalHadirAll += totalHadirClass;
-            totalLewatAll += stats.lewat;
+            // 该班级总出席人次 = 准时出席人次 + 迟到人次
+            const totalHadirClass = stats.hadir + stats.lewat;
+            
+            // 正确计算百分比: % = (总出席人次 / (学生人数 × 上学天数)) × 100%
+            const totalPossibleAttendance = totalStudentsInClass * schoolDays;
+            const percent = totalPossibleAttendance > 0 
+                ? ((totalHadirClass / totalPossibleAttendance) * 100).toFixed(2) 
+                : "0.00";
+            
+            // 用于图表的百分比数据
+            const hadirPercentForChart = totalPossibleAttendance > 0 
+                ? ((totalHadirClass / totalPossibleAttendance) * 100) 
+                : 0;
+            const lewatPercentForChart = totalPossibleAttendance > 0 
+                ? ((stats.lewat / totalPossibleAttendance) * 100) 
+                : 0;
+            
+            // 累加全校总数 (人次)
+            totalStudentAll += totalStudentsInClass;
+            totalHadirCountAll += totalHadirClass;
+            totalLewatCountAll += stats.lewat;
             
             labels.push(className);
-            hadirPercentData.push(parseFloat(hadirPercent.toFixed(2)));
-            lewatPercentData.push(parseFloat(lewatPercent.toFixed(2)));
+            hadirPercentData.push(parseFloat(hadirPercentForChart.toFixed(2)));
+            lewatPercentData.push(parseFloat(lewatPercentForChart.toFixed(2)));
             
             html += `<tr>
                         <td style="font-weight:500;">${className}</td>
-                        <td>${total}</td>
+                        <td>${totalStudentsInClass}</td>
                         <td>${stats.hadir}</td>
                         <td class="lewat-text">${stats.lewat}</td>
                         <td>${totalHadirClass}</td>
-                        <td>${per}%</td>
-                      </tr>`;
+                        <td>${percent}%</td>
+                     </tr>`;
         }
-        const overallPer = totalStudentAll > 0 ? ((totalHadirAll / totalStudentAll) * 100).toFixed(2) : "0.00";
+        
+        // 计算全校总出席率: 全校总出席人次 / (全校总学生数 × 上学天数) × 100%
+        const totalPossibleAll = totalStudentAll * schoolDays;
+        const overallPercent = totalPossibleAll > 0 
+            ? ((totalHadirCountAll / totalPossibleAll) * 100).toFixed(2) 
+            : "0.00";
+        
         html += `<tr class="summary-row">
                     <td class="total-label"><b>JUMLAH</b></td>
                     <td><b>${totalStudentAll}</b></td>
-                    <td><b>${totalHadirAll}</b></td>
-                    <td><b>${totalLewatAll}</b></td>
-                    <td><b>${totalHadirAll}</b></td>
-                    <td><b>${overallPer}%</b></td>
-                  </tr>`;
-        html += `</tbody></table></div><div class="monthly-stats">📅 ${monthDisplay} | 📊 Purata Kehadiran: ${overallPer}%</div>`;
+                    <td><b>${totalHadirCountAll - totalLewatCountAll}</b></td>
+                    <td><b>${totalLewatCountAll}</b></td>
+                    <td><b>${totalHadirCountAll}</b></td>
+                    <td><b>${overallPercent}%</b></td>
+                 </tr>`;
+        html += `</tbody></table></div>`;
+        html += `<div class="monthly-stats">
+                    📅 ${monthDisplay} | 🏫 Hari Persekolahan: ${schoolDays} hari | 📊 Purata Kehadiran: ${overallPercent}%
+                 </div>`;
         
         document.getElementById('monthlyReportContent').innerHTML = html;
         
+        // 渲染月度图表
         const ctx = document.getElementById('monthlyChartCanvas');
         if (ctx) {
             if (window.monthlyChart) window.monthlyChart.destroy();
@@ -634,6 +772,7 @@
         }
         lucide.createIcons();
     };
+    // ==================== 修复结束 ====================
 
     async function takeScreenshot(element, fileName) {
         const overlay = document.createElement('div');
@@ -643,7 +782,6 @@
         
         try {
             await new Promise(resolve => setTimeout(resolve, 100));
-            
             const canvas = await html2canvas(element, {
                 scale: 2,
                 backgroundColor: '#F2F2F7',
@@ -653,7 +791,6 @@
                 windowWidth: element.scrollWidth,
                 windowHeight: element.scrollHeight
             });
-            
             const link = document.createElement('a');
             const now = new Date();
             const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
@@ -662,7 +799,6 @@
             link.download = `semsira_${fileName}_${dateStr}_${timeStr}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
-            
             return true;
         } catch (error) {
             console.error('Screenshot error:', error);
@@ -675,30 +811,23 @@
     async function captureWithHeader(contentElementId, fileName) {
         const headerArea = document.getElementById('mainScreenshotArea');
         const contentArea = document.getElementById(contentElementId);
-        
         if (!headerArea || !contentArea) {
             alert('Elemen tidak dijumpai!');
             return;
         }
-        
         const headerClone = headerArea.cloneNode(true);
         const contentClone = contentArea.cloneNode(true);
-        
         const headerBtns = headerClone.querySelectorAll('.btn-action, .no-print, select');
         headerBtns.forEach(el => el.remove());
-        
         const contentBtns = contentClone.querySelectorAll('.btn-action, .section-header button, .no-print, select, .section-header > div');
         contentBtns.forEach(el => el.remove());
-        
         const contentHeaders = contentClone.querySelectorAll('.section-header h3');
         contentHeaders.forEach(h => {
             const icon = h.querySelector('i');
             if (icon) icon.remove();
         });
-        
         const originalCanvases = contentArea.querySelectorAll('canvas');
         const cloneCanvases = contentClone.querySelectorAll('canvas');
-        
         for (let i = 0; i < originalCanvases.length && i < cloneCanvases.length; i++) {
             const origCanvas = originalCanvases[i];
             const cloneCanvas = cloneCanvases[i];
@@ -706,12 +835,9 @@
                 cloneCanvas.width = origCanvas.width;
                 cloneCanvas.height = origCanvas.height;
                 const ctx = cloneCanvas.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(origCanvas, 0, 0);
-                }
+                if (ctx) ctx.drawImage(origCanvas, 0, 0);
             }
         }
-        
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.top = '-9999px';
@@ -722,46 +848,33 @@
         tempContainer.appendChild(headerClone);
         tempContainer.appendChild(contentClone);
         document.body.appendChild(tempContainer);
-        
         const success = await takeScreenshot(tempContainer, fileName);
         tempContainer.remove();
-        
-        if (success) {
-            alert('✅ Screenshot berjaya disimpan!');
-        } else {
-            alert('❌ Screenshot gagal. Sila cuba lagi.');
-        }
+        if (success) alert('✅ Screenshot berjaya disimpan!');
+        else alert('❌ Screenshot gagal. Sila cuba lagi.');
     }
     
     async function captureMonthlyWithHeader() {
         const headerArea = document.getElementById('mainScreenshotArea');
         const monthlyContent = document.getElementById('monthlyReportContent');
-        
         if (!headerArea || !monthlyContent) {
             alert('Elemen tidak dijumpai!');
             return;
         }
-        
         const headerClone = headerArea.cloneNode(true);
         const headerBtns = headerClone.querySelectorAll('.btn-action, .no-print, select');
         headerBtns.forEach(el => el.remove());
-        
         const contentClone = monthlyContent.cloneNode(true);
-        
         const contentBtns = contentClone.querySelectorAll('.btn-action, .section-header button, .no-print, select, .section-header > div');
         contentBtns.forEach(el => el.remove());
-        
         const originalCanvas = document.getElementById('monthlyChartCanvas');
         const cloneCanvas = contentClone.querySelector('#monthlyChartCanvas');
         if (originalCanvas && cloneCanvas && originalCanvas.width > 0) {
             cloneCanvas.width = originalCanvas.width;
             cloneCanvas.height = originalCanvas.height;
             const ctx = cloneCanvas.getContext('2d');
-            if (ctx) {
-                ctx.drawImage(originalCanvas, 0, 0);
-            }
+            if (ctx) ctx.drawImage(originalCanvas, 0, 0);
         }
-        
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.top = '-9999px';
@@ -772,17 +885,13 @@
         tempContainer.appendChild(headerClone);
         tempContainer.appendChild(contentClone);
         document.body.appendChild(tempContainer);
-        
         const success = await takeScreenshot(tempContainer, 'laporan_bulanan');
         tempContainer.remove();
-        
-        if (success) {
-            alert('✅ Screenshot laporan bulanan berjaya!');
-        } else {
-            alert('❌ Screenshot gagal. Sila cuba lagi.');
-        }
+        if (success) alert('✅ Screenshot laporan bulanan berjaya!');
+        else alert('❌ Screenshot gagal. Sila cuba lagi.');
     }
 
+    window.captureTidakHadirSection = () => captureWithHeader('tidakHadirSection', 'senarai_tidak_hadir');
     window.captureGraphOnly = () => captureWithHeader('graphSection', 'graf_kehadiran');
     window.captureTableSection = () => captureWithHeader('reportSection', 'jadual_ringkasan');
     window.captureLateSection = () => captureWithHeader('lateSection', 'senarai_lewat');
@@ -804,7 +913,8 @@
             const [h, t] = inputs[i].value.split('/').map(Number);
             if(!isNaN(h) && selects[i].value !== EXCLUDED_CLASS) m[selects[i].value] = { total: t || 0, present: h, late: 0 };
         }
-        updateChartAndTable(m, []);
+        renderTable(m, [], new Set(), [], new Set());
+        updateChart(m);
     };
     window.resetToFirebase = () => {
         const today = getMalaysiaDate();
@@ -812,7 +922,7 @@
         loadDashboardForDate(today);
     };
 
-    // 初始化 - 使用马来西亚日期
+    // 初始化
     const todayStr = getMalaysiaDate();
     document.getElementById('datePicker').value = todayStr;
     document.getElementById('yearPicker').value = new Date().getFullYear();
