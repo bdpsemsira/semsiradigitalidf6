@@ -385,18 +385,6 @@
             margin-bottom: 5px;
             padding-left: 5px;
         }
-        .time-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 8px;
-        }
-        .time-input {
-            flex: 1;
-            padding: 10px;
-            border-radius: 12px;
-            border: 1px solid #d1d1d6;
-            font-size: 14px;
-        }
         .timelapse-badge {
             background: var(--timelapse);
             color: white;
@@ -413,6 +401,16 @@
             font-size: 11px;
             margin-top: 10px;
             text-align: left;
+        }
+        .permission-banner {
+            background: #e8f0fe;
+            color: var(--primary);
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 10px;
+            display: none;
         }
     </style>
 </head>
@@ -443,6 +441,10 @@
     <div class="recording-dot"></div>
     <span>Merekod...</span>
     <span id="recording-timer">00:00</span>
+</div>
+
+<div id="permission-banner" class="permission-banner">
+    ⚠️ Sila klik butang rakaman 🎥 untuk memulakan rakaman skrin
 </div>
 
 <div class="controls-container">
@@ -580,6 +582,7 @@
     const recordBtn = document.getElementById('record-btn');
     const recordingIndicator = document.getElementById('recording-indicator');
     const recordingTimerSpan = document.getElementById('recording-timer');
+    const permissionBanner = document.getElementById('permission-banner');
     
     const settingsModal = document.getElementById('settings-modal');
     const openSettingsBtn = document.getElementById('open-settings-btn');
@@ -603,6 +606,14 @@
     let wakeLock = null;
     let currentCameraId = null;
     let isScanning = false;
+    
+    // 显示权限提示
+    function showPermissionBanner() {
+        permissionBanner.style.display = 'block';
+        setTimeout(() => {
+            permissionBanner.style.display = 'none';
+        }, 5000);
+    }
     
     function getRecordingSettings() {
         const quality = parseInt(qualitySelect.value);
@@ -638,9 +649,18 @@
         const settings = getRecordingSettings();
         const recordFps = isTimelapseMode ? timelapseFps : 30;
         
+        // 检查浏览器支持
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+            alert("Pelayar anda tidak menyokong rakaman skrin.\n\nSila gunakan:\n- Google Chrome (version 72+)\n- Microsoft Edge (version 80+)\n- Firefox (version 66+)\n\nAtau pastikan anda menggunakan HTTPS (bukan HTTP).");
+            showResult("Ralat", "Pelayar tidak menyokong rakaman skrin", "error");
+            setTimeout(resetResult, 3000);
+            return;
+        }
+        
         try {
             showResult("Memproses", "Meminta kebenaran skrin...", "wait");
             
+            // 请求屏幕共享权限
             const displayStream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     width: { ideal: settings.width },
@@ -648,21 +668,29 @@
                     frameRate: { ideal: recordFps, min: Math.max(1, recordFps - 2) }
                 },
                 audio: false,
-                preferCurrentTab: true
+                preferCurrentTab: true  // 优先推荐当前标签页
             });
             
             recordedChunks = [];
             
-            // 检查支持的 MIME 类型
-            let mimeType = 'video/webm;codecs=vp8';
-            if (!MediaRecorder.isTypeSupported(mimeType)) {
+            // 检测支持的 MIME 类型
+            let mimeType = '';
+            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                mimeType = 'video/webm;codecs=vp9';
+            } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+                mimeType = 'video/webm;codecs=vp8';
+            } else if (MediaRecorder.isTypeSupported('video/webm')) {
                 mimeType = 'video/webm';
+            } else {
+                mimeType = '';
             }
             
-            mediaRecorder = new MediaRecorder(displayStream, {
+            const options = {
                 mimeType: mimeType,
                 videoBitsPerSecond: isTimelapseMode ? 1000000 : 4000000
-            });
+            };
+            
+            mediaRecorder = new MediaRecorder(displayStream, options);
             
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
@@ -685,7 +713,9 @@
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = fileName;
+                document.body.appendChild(a);
                 a.click();
+                document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
                 if (isTimelapseMode) {
@@ -736,9 +766,10 @@
             updateRecordingTimer();
             recordingTimerInterval = setInterval(updateRecordingTimer, 1000);
             
-            showResult("Merakam", "Rakaman sedang berjalan...", "wait");
+            showResult("Merakam", "Rakaman sedang berjalan... Klik 🎥 untuk berhenti", "wait");
             setTimeout(resetResult, 2000);
             
+            // 监听用户关闭分享屏幕弹窗
             displayStream.getVideoTracks()[0].onended = () => {
                 if (isRecording) {
                     stopScreenRecording();
@@ -747,16 +778,28 @@
             
         } catch (err) {
             console.error('录屏启动失败:', err);
-            let errorMsg = "Tidak dapat merakam skrin.\n";
+            let errorMsg = "";
+            let userMsg = "";
+            
             if (err.name === 'NotAllowedError') {
-                errorMsg += "Sila izinkan kebenaran skrin.";
+                errorMsg = "Anda tidak memberi kebenaran untuk merakam skrin.";
+                userMsg = "Sila klik butang rakaman 🎥 dan pilih 'Skrin' atau 'Tab Semasa'.\n\nJika pop-up tidak muncul, semak tetapan penyekat pop-up pelayar anda.";
             } else if (err.name === 'NotFoundError') {
-                errorMsg += "Tiada sumber skrin dijumpai.";
+                errorMsg = "Tiada sumber skrin dijumpai.";
+                userMsg = "Pastikan anda mempunyai skrin atau tab untuk dikongsi.";
+            } else if (err.name === 'AbortError') {
+                errorMsg = "Pengguna membatalkan permintaan rakaman.";
+                userMsg = "Sila klik butang rakaman 🎥 sekali lagi dan pilih skrin untuk dikongsi.";
+            } else if (err.message && err.message.includes('not supported')) {
+                errorMsg = "Pelayar tidak menyokong rakaman skrin.";
+                userMsg = "Sila guna Chrome, Edge atau Firefox versi terkini.\nPastikan laman web menggunakan HTTPS.";
             } else {
-                errorMsg += err.message;
+                errorMsg = err.message || "Ralat tidak diketahui";
+                userMsg = "Sila cuba lagi. Pastikan anda menggunakan HTTPS dan pelayar terkini.";
             }
-            alert(errorMsg);
-            showResult("Ralat", errorMsg, "error");
+            
+            alert(`Rakaman Gagal: ${errorMsg}\n\n${userMsg}`);
+            showResult("Ralat Rakaman", errorMsg, "error");
             setTimeout(resetResult, 3000);
         }
     }
@@ -938,6 +981,7 @@
         startOverlay.style.opacity = '0';
         setTimeout(() => startOverlay.style.display = 'none', 400);
         initCameraList();
+        showPermissionBanner();
     }, { once: true });
     
     function initCameraList() {
@@ -1046,13 +1090,16 @@
         lucide.createIcons();
     }
     
+    // 检查是否在 HTTPS 环境
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && !location.hostname.includes('127.0.0.1')) {
+        const warning = document.createElement('div');
+        warning.style.cssText = 'position:fixed; bottom:10px; left:10px; right:10px; background:#FF3B30; color:white; padding:10px; border-radius:10px; text-align:center; font-size:12px; z-index:9999;';
+        warning.innerHTML = '⚠️ Rakaman skrin memerlukan HTTPS. Sila gunakan HTTPS untuk fungsi rakaman. ⚠️';
+        document.body.appendChild(warning);
+    }
+    
     loadSettings();
     lucide.createIcons();
-    
-    // 检查浏览器支持
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        alert("Pelayar anda tidak menyokong rakaman skrin. Sila guna Chrome/Edge/Firefox versi terkini.");
-    }
 </script>
 </body>
 </html>
