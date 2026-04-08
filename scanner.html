@@ -402,16 +402,6 @@
             margin-top: 10px;
             text-align: left;
         }
-        .permission-banner {
-            background: #e8f0fe;
-            color: var(--primary);
-            padding: 10px 15px;
-            border-radius: 12px;
-            font-size: 12px;
-            text-align: center;
-            margin-bottom: 10px;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -441,10 +431,6 @@
     <div class="recording-dot"></div>
     <span>Merekod...</span>
     <span id="recording-timer">00:00</span>
-</div>
-
-<div id="permission-banner" class="permission-banner">
-    ⚠️ Sila klik butang rakaman 🎥 untuk memulakan rakaman skrin
 </div>
 
 <div class="controls-container">
@@ -492,7 +478,7 @@
             <div class="setting-label">
                 <i data-lucide="timer"></i>
                 <span>Rakaman Time-lapse</span>
-                <span class="timelapse-badge">Rekod Terus</span>
+                <span class="timelapse-badge">6x-30x</span>
             </div>
             <label class="toggle-switch">
                 <input type="checkbox" id="timelapse-toggle">
@@ -502,21 +488,19 @@
         <div class="setting-item">
             <div class="setting-label">
                 <i data-lucide="gauge"></i>
-                <span>Frame Rate Rakaman</span>
+                <span>Kelajuan Time-lapse</span>
             </div>
-            <select id="timelapse-fps" class="setting-select" style="width: 100px;">
-                <option value="1">1 fps (30x lebih cepat)</option>
-                <option value="2">2 fps (15x lebih cepat)</option>
-                <option value="3">3 fps (10x lebih cepat)</option>
-                <option value="5" selected="selected">5 fps (6x lebih cepat)</option>
-                <option value="10">10 fps (3x lebih cepat)</option>
-                <option value="15">15 fps (2x lebih cepat)</option>
-                <option value="30">30 fps (Normal)</option>
+            <select id="speed-factor" class="setting-select" style="width: 100px;">
+                <option value="6">6x (2 jam → 20 min)</option>
+                <option value="10">10x (2 jam → 12 min)</option>
+                <option value="15">15x (2 jam → 8 min)</option>
+                <option value="20" selected="selected">20x (2 jam → 6 min)</option>
+                <option value="30">30x (2 jam → 4 min)</option>
             </select>
         </div>
         <div class="warning-text">
             <i data-lucide="info" style="width: 14px; height: 14px;"></i> 
-            Time-lapse: Mengurangkan fps semasa rakaman. Contoh: 1 fps = 1 saat rakaman = 30 saat dalam video sebenar.
+            Time-lapse: Video akan dipercepatkan selepas rakaman selesai. Proses mungkin mengambil masa.
         </div>
         
         <div class="section-title">🖥️ Tetapan Skrin</div>
@@ -551,7 +535,7 @@
             </label>
         </div>
         <div class="info-text">
-            <i data-lucide="info"></i> Klik butang rakaman (🎥) untuk mula merakam skrin. Pilih "Skrin" dan "Tab Semasa".
+            <i data-lucide="info"></i> Klik butang rakaman (🎥) untuk mula merakam skrin. Pilih "Skrin" atau "Tab Semasa".
         </div>
     </div>
 </div>
@@ -582,7 +566,6 @@
     const recordBtn = document.getElementById('record-btn');
     const recordingIndicator = document.getElementById('recording-indicator');
     const recordingTimerSpan = document.getElementById('recording-timer');
-    const permissionBanner = document.getElementById('permission-banner');
     
     const settingsModal = document.getElementById('settings-modal');
     const openSettingsBtn = document.getElementById('open-settings-btn');
@@ -592,7 +575,7 @@
     const vibrationToggle = document.getElementById('vibration-toggle');
     const qualitySelect = document.getElementById('quality-select');
     const timelapseToggle = document.getElementById('timelapse-toggle');
-    const timelapseFpsSelect = document.getElementById('timelapse-fps');
+    const speedFactorSelect = document.getElementById('speed-factor');
     
     let mediaRecorder = null;
     let recordedChunks = [];
@@ -600,20 +583,12 @@
     let recordingStartTime = null;
     let recordingTimerInterval = null;
     let isTimelapseMode = false;
-    let timelapseFps = 5;
+    let speedFactor = 20;
     
     let isProcessing = false;
     let wakeLock = null;
     let currentCameraId = null;
     let isScanning = false;
-    
-    // 显示权限提示
-    function showPermissionBanner() {
-        permissionBanner.style.display = 'block';
-        setTimeout(() => {
-            permissionBanner.style.display = 'none';
-        }, 5000);
-    }
     
     function getRecordingSettings() {
         const quality = parseInt(qualitySelect.value);
@@ -627,14 +602,56 @@
         return { width, height };
     }
     
-    function getSpeedFactorText(fps) {
-        if (fps === 1) return "30x (1 jam → 2 minit)";
-        if (fps === 2) return "15x (1 jam → 4 minit)";
-        if (fps === 3) return "10x (1 jam → 6 minit)";
-        if (fps === 5) return "6x (1 jam → 10 minit)";
-        if (fps === 10) return "3x (1 jam → 20 minit)";
-        if (fps === 15) return "2x (1 jam → 30 minit)";
-        return "Normal";
+    // 抽帧加速视频 (简单可靠的实现)
+    async function speedUpVideo(webmBlob, speed) {
+        return new Promise(async (resolve) => {
+            try {
+                const video = document.createElement('video');
+                const videoUrl = URL.createObjectURL(webmBlob);
+                video.src = videoUrl;
+                await new Promise(r => { video.onloadedmetadata = r; });
+                
+                const originalDuration = video.duration;
+                const targetDuration = originalDuration / speed;
+                const targetFps = 30;
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                const stream = canvas.captureStream(targetFps);
+                const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                const chunks = [];
+                
+                recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+                
+                const finishPromise = new Promise(r => { recorder.onstop = () => r(new Blob(chunks, { type: 'video/webm' })); });
+                
+                recorder.start(100);
+                
+                const frameStep = speed / targetFps;
+                const totalFrames = Math.min(3000, Math.floor(targetDuration * targetFps));
+                
+                for (let i = 0; i < totalFrames; i++) {
+                    const targetTime = Math.min(i * frameStep, originalDuration - 0.01);
+                    if (targetTime >= originalDuration) break;
+                    
+                    video.currentTime = targetTime;
+                    await new Promise(r => { video.onseeked = r; });
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    await new Promise(r => setTimeout(r, 10));
+                }
+                
+                recorder.stop();
+                const resultBlob = await finishPromise;
+                URL.revokeObjectURL(videoUrl);
+                resolve(resultBlob);
+            } catch (err) {
+                console.warn('加速失败:', err);
+                resolve(webmBlob);
+            }
+        });
     }
     
     async function startScreenRecording() {
@@ -644,53 +661,27 @@
         }
         
         isTimelapseMode = timelapseToggle.checked;
-        timelapseFps = parseInt(timelapseFpsSelect.value);
-        
+        speedFactor = parseInt(speedFactorSelect.value);
         const settings = getRecordingSettings();
-        const recordFps = isTimelapseMode ? timelapseFps : 30;
-        
-        // 检查浏览器支持
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-            alert("Pelayar anda tidak menyokong rakaman skrin.\n\nSila gunakan:\n- Google Chrome (version 72+)\n- Microsoft Edge (version 80+)\n- Firefox (version 66+)\n\nAtau pastikan anda menggunakan HTTPS (bukan HTTP).");
-            showResult("Ralat", "Pelayar tidak menyokong rakaman skrin", "error");
-            setTimeout(resetResult, 3000);
-            return;
-        }
         
         try {
-            showResult("Memproses", "Meminta kebenaran skrin...", "wait");
+            showResult("Memproses", "Pilih skrin untuk dikongsi...", "wait");
             
-            // 请求屏幕共享权限
+            // 第一代成功的录屏代码 - 不使用复杂的帧率约束
             const displayStream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     width: { ideal: settings.width },
-                    height: { ideal: settings.height },
-                    frameRate: { ideal: recordFps, min: Math.max(1, recordFps - 2) }
+                    height: { ideal: settings.height }
                 },
                 audio: false,
-                preferCurrentTab: true  // 优先推荐当前标签页
+                preferCurrentTab: true
             });
             
             recordedChunks = [];
-            
-            // 检测支持的 MIME 类型
-            let mimeType = '';
-            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-                mimeType = 'video/webm;codecs=vp9';
-            } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
-                mimeType = 'video/webm;codecs=vp8';
-            } else if (MediaRecorder.isTypeSupported('video/webm')) {
-                mimeType = 'video/webm';
-            } else {
-                mimeType = '';
-            }
-            
-            const options = {
-                mimeType: mimeType,
-                videoBitsPerSecond: isTimelapseMode ? 1000000 : 4000000
-            };
-            
-            mediaRecorder = new MediaRecorder(displayStream, options);
+            mediaRecorder = new MediaRecorder(displayStream, {
+                mimeType: 'video/webm',
+                videoBitsPerSecond: 3000000
+            });
             
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
@@ -698,14 +689,17 @@
                 }
             };
             
-            mediaRecorder.onstop = () => {
-                if (recordedChunks.length === 0) {
-                    showResult("Ralat", "Tiada data rakaman", "error");
-                    return;
-                }
+            mediaRecorder.onstop = async () => {
+                if (recordedChunks.length === 0) return;
                 
-                const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                recordingIndicator.querySelector('span').innerHTML = "Memproses...";
+                let webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
                 const duration = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0;
+                
+                if (isTimelapseMode && duration > 5 && speedFactor > 1) {
+                    recordingIndicator.querySelector('span').innerHTML = `Mempercepatkan ${speedFactor}x...`;
+                    webmBlob = await speedUpVideo(webmBlob, speedFactor);
+                }
                 
                 const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, '-');
                 const fileName = `semsira_${isTimelapseMode ? 'timelapse' : 'recording'}_${timestamp}.webm`;
@@ -713,32 +707,11 @@
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = fileName;
-                document.body.appendChild(a);
                 a.click();
-                document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                if (isTimelapseMode) {
-                    const speedText = getSpeedFactorText(timelapseFps);
-                    showResult("Time-lapse Selesai", `${speedText} | Masa: ${Math.floor(duration)} saat`, "success", "");
-                    setTimeout(resetResult, 3000);
-                } else {
-                    showResult("Rakaman Selesai", `Video disimpan: ${Math.floor(duration)} saat`, "success", "");
-                    setTimeout(resetResult, 3000);
-                }
-                
-                // 保存历史记录
-                let history = localStorage.getItem('recording_history');
-                let historyList = history ? JSON.parse(history) : [];
-                historyList.unshift({
-                    filename: fileName,
-                    date: new Date().toLocaleString('ms-MY'),
-                    duration: Math.floor(duration),
-                    timelapse: isTimelapseMode,
-                    fps: isTimelapseMode ? timelapseFps : 30
-                });
-                if (historyList.length > 20) historyList.pop();
-                localStorage.setItem('recording_history', JSON.stringify(historyList));
+                showResult("Selesai", `Video disimpan: ${Math.floor(duration)} saat`, "success", "");
+                setTimeout(resetResult, 2000);
                 
                 displayStream.getTracks().forEach(track => track.stop());
                 isRecording = false;
@@ -746,77 +719,52 @@
                 recordBtn.classList.remove('recording-active');
                 if (recordingTimerInterval) clearInterval(recordingTimerInterval);
                 recordedChunks = [];
+                recordingIndicator.querySelector('span').innerHTML = "Merekod...";
             };
             
             mediaRecorder.start(1000);
             isRecording = true;
             recordingStartTime = Date.now();
             recordingIndicator.classList.add('active');
-            
-            if (isTimelapseMode) {
-                recordingIndicator.classList.add('timelapse-mode');
-                const speedText = getSpeedFactorText(timelapseFps);
-                recordingIndicator.querySelector('span').innerHTML = `Time-lapse (${timelapseFps}fps → ${speedText})`;
-            } else {
-                recordingIndicator.classList.remove('timelapse-mode');
-                recordingIndicator.querySelector('span').innerHTML = "Merekod...";
-            }
-            
+            if (isTimelapseMode) recordingIndicator.classList.add('timelapse-mode');
+            else recordingIndicator.classList.remove('timelapse-mode');
             recordBtn.classList.add('recording-active');
-            updateRecordingTimer();
-            recordingTimerInterval = setInterval(updateRecordingTimer, 1000);
             
-            showResult("Merakam", "Rakaman sedang berjalan... Klik 🎥 untuk berhenti", "wait");
+            recordingTimerInterval = setInterval(() => {
+                if (recordingStartTime) {
+                    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                    const secs = String(elapsed % 60).padStart(2, '0');
+                    recordingTimerSpan.innerText = `${mins}:${secs}`;
+                }
+            }, 1000);
+            
+            showResult("Merakam", "Klik 🎥 untuk berhenti", "wait");
             setTimeout(resetResult, 2000);
             
-            // 监听用户关闭分享屏幕弹窗
             displayStream.getVideoTracks()[0].onended = () => {
                 if (isRecording) {
-                    stopScreenRecording();
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
                 }
             };
             
         } catch (err) {
             console.error('录屏启动失败:', err);
-            let errorMsg = "";
-            let userMsg = "";
-            
+            let errorMsg = "Tidak dapat merakam skrin.\n\n";
             if (err.name === 'NotAllowedError') {
-                errorMsg = "Anda tidak memberi kebenaran untuk merakam skrin.";
-                userMsg = "Sila klik butang rakaman 🎥 dan pilih 'Skrin' atau 'Tab Semasa'.\n\nJika pop-up tidak muncul, semak tetapan penyekat pop-up pelayar anda.";
+                errorMsg += "Sila izinkan kebenaran skrin apabila pop-up muncul.";
             } else if (err.name === 'NotFoundError') {
-                errorMsg = "Tiada sumber skrin dijumpai.";
-                userMsg = "Pastikan anda mempunyai skrin atau tab untuk dikongsi.";
+                errorMsg += "Tiada sumber skrin dijumpai.";
             } else if (err.name === 'AbortError') {
-                errorMsg = "Pengguna membatalkan permintaan rakaman.";
-                userMsg = "Sila klik butang rakaman 🎥 sekali lagi dan pilih skrin untuk dikongsi.";
-            } else if (err.message && err.message.includes('not supported')) {
-                errorMsg = "Pelayar tidak menyokong rakaman skrin.";
-                userMsg = "Sila guna Chrome, Edge atau Firefox versi terkini.\nPastikan laman web menggunakan HTTPS.";
+                errorMsg += "Anda membatalkan permintaan rakaman.";
             } else {
-                errorMsg = err.message || "Ralat tidak diketahui";
-                userMsg = "Sila cuba lagi. Pastikan anda menggunakan HTTPS dan pelayar terkini.";
+                errorMsg += err.message || "Ralat tidak diketahui";
             }
-            
-            alert(`Rakaman Gagal: ${errorMsg}\n\n${userMsg}`);
-            showResult("Ralat Rakaman", errorMsg, "error");
-            setTimeout(resetResult, 3000);
-        }
-    }
-    
-    function updateRecordingTimer() {
-        if (recordingStartTime) {
-            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-            const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
-            const secs = String(elapsed % 60).padStart(2, '0');
-            recordingTimerSpan.innerText = `${mins}:${secs}`;
-            
-            if (isTimelapseMode && timelapseFps > 0) {
-                const actualDuration = elapsed * (30 / timelapseFps);
-                const actualMins = Math.floor(actualDuration / 60);
-                const actualSecs = Math.floor(actualDuration % 60);
-                recordingTimerSpan.title = `Video sebenar: ${actualMins}:${String(actualSecs).padStart(2,'0')}`;
-            }
+            alert(errorMsg);
+            showResult("Ralat", "Rakaman gagal", "error");
+            setTimeout(resetResult, 2000);
         }
     }
     
@@ -829,18 +777,17 @@
     function loadRecordingSettings() {
         const savedQuality = localStorage.getItem('recording_quality');
         const savedTimelapse = localStorage.getItem('recording_timelapse') === 'true';
-        const savedTimelapseFps = localStorage.getItem('recording_timelapse_fps');
+        const savedSpeed = localStorage.getItem('recording_speed');
         
         if (savedQuality) qualitySelect.value = savedQuality;
-        if (savedTimelapseFps) timelapseFpsSelect.value = savedTimelapseFps;
-        
+        if (savedSpeed) speedFactorSelect.value = savedSpeed;
         timelapseToggle.checked = savedTimelapse;
     }
     
     function saveRecordingSettings() {
         localStorage.setItem('recording_quality', qualitySelect.value);
         localStorage.setItem('recording_timelapse', timelapseToggle.checked);
-        localStorage.setItem('recording_timelapse_fps', timelapseFpsSelect.value);
+        localStorage.setItem('recording_speed', speedFactorSelect.value);
     }
     
     function loadSettings() {
@@ -973,7 +920,7 @@
     vibrationToggle.addEventListener('change', (e) => saveVibrationSetting(e.target.checked));
     qualitySelect.addEventListener('change', () => saveRecordingSettings());
     timelapseToggle.addEventListener('change', () => saveRecordingSettings());
-    timelapseFpsSelect.addEventListener('change', () => saveRecordingSettings());
+    speedFactorSelect.addEventListener('change', () => saveRecordingSettings());
     
     startBtn.addEventListener('click', () => {
         triggerVibration();
@@ -981,7 +928,6 @@
         startOverlay.style.opacity = '0';
         setTimeout(() => startOverlay.style.display = 'none', 400);
         initCameraList();
-        showPermissionBanner();
     }, { once: true });
     
     function initCameraList() {
@@ -1088,14 +1034,6 @@
         icon.className = 'status-icon ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'waiting'));
         icon.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2')}"></i>`;
         lucide.createIcons();
-    }
-    
-    // 检查是否在 HTTPS 环境
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && !location.hostname.includes('127.0.0.1')) {
-        const warning = document.createElement('div');
-        warning.style.cssText = 'position:fixed; bottom:10px; left:10px; right:10px; background:#FF3B30; color:white; padding:10px; border-radius:10px; text-align:center; font-size:12px; z-index:9999;';
-        warning.innerHTML = '⚠️ Rakaman skrin memerlukan HTTPS. Sila gunakan HTTPS untuk fungsi rakaman. ⚠️';
-        document.body.appendChild(warning);
     }
     
     loadSettings();
