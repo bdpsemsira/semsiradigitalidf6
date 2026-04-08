@@ -12,6 +12,7 @@
             --success: #34C759;
             --error: #FF3B30;
             --bg: #F2F2F7;
+            --recording: #FF3B30;
         }
 
         body {
@@ -68,10 +69,8 @@
         .header-text h2 { margin: 0; font-size: 17px; color: #1c1c1e; }
         .header-text p { margin: 0; font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* 设置按钮 */
-        .settings-btn {
+        .settings-btn, .record-btn {
             position: absolute;
-            right: 16px;
             top: 50%;
             transform: translateY(-50%);
             background: #f2f2f7;
@@ -83,11 +82,27 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: var(--primary);
             transition: all 0.2s ease;
         }
-        .settings-btn:active {
-            background: #e5e5ea;
+        .settings-btn {
+            right: 16px;
+            color: var(--primary);
+        }
+        .record-btn {
+            left: 16px;
+            color: var(--recording);
+        }
+        .record-btn.recording-active {
+            background: var(--recording);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: translateY(-50%) scale(1); }
+            50% { opacity: 0.7; transform: translateY(-50%) scale(1.05); }
+            100% { opacity: 1; transform: translateY(-50%) scale(1); }
+        }
+        .settings-btn:active, .record-btn:active {
             transform: translateY(-50%) scale(0.95);
         }
 
@@ -137,6 +152,39 @@
             box-shadow: 0 4px 12px rgba(0,122,255,0.2);
         }
 
+        /* 录屏状态指示器 */
+        .recording-indicator {
+            position: fixed;
+            top: 70px;
+            right: 16px;
+            background: var(--recording);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: none;
+        }
+        .recording-indicator.active {
+            display: flex;
+        }
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
         #reader {
             width: 92%;
             max-width: 480px;
@@ -147,7 +195,6 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             transition: transform 0.2s ease;
         }
-        /* 镜像反转样式 */
         .mirror-video video {
             transform: scaleX(-1) !important;
         }
@@ -198,12 +245,14 @@
         }
         .settings-card {
             background: white;
-            width: 85%;
-            max-width: 340px;
+            width: 90%;
+            max-width: 380px;
             border-radius: 28px;
             padding: 24px 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
             animation: modalSlide 0.3s ease-out;
+            max-height: 85vh;
+            overflow-y: auto;
         }
         @keyframes modalSlide {
             from { transform: translateY(30px); opacity: 0; }
@@ -256,12 +305,22 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
             color: #1c1c1e;
         }
         .setting-label i {
             color: var(--primary);
+            width: 20px;
+        }
+        .setting-select {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid #d1d1d6;
+            background: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
         }
         .toggle-switch {
             position: relative;
@@ -311,6 +370,26 @@
             padding-top: 12px;
             border-top: 1px solid #f0f0f5;
         }
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 10px;
+            margin-bottom: 5px;
+            padding-left: 5px;
+        }
+        .time-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .time-input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #d1d1d6;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -323,6 +402,9 @@
 </div>
 
 <div class="header">
+    <button class="record-btn" id="record-btn">
+        <i data-lucide="video"></i>
+    </button>
     <img src="/semsira.png" alt="Logo">
     <div class="header-text">
         <h2>Semsira Attendance</h2>
@@ -331,6 +413,13 @@
     <button class="settings-btn" id="open-settings-btn">
         <i data-lucide="settings"></i>
     </button>
+</div>
+
+<!-- 录屏状态指示器 -->
+<div id="recording-indicator" class="recording-indicator">
+    <div class="recording-dot"></div>
+    <span>Merekod...</span>
+    <span id="recording-timer">00:00</span>
 </div>
 
 <div class="controls-container">
@@ -359,9 +448,64 @@
 <div id="settings-modal" class="settings-modal">
     <div class="settings-card">
         <div class="settings-header">
-            <h3><i data-lucide="settings"></i> Tetapan Scanner</h3>
+            <h3><i data-lucide="settings"></i> Tetapan</h3>
             <button class="close-settings" id="close-settings-btn">✕</button>
         </div>
+        
+        <div class="section-title">📹 Tetapan Rakaman</div>
+        <div class="setting-item">
+            <div class="setting-label">
+                <i data-lucide="video"></i>
+                <span>Kualiti Video</span>
+            </div>
+            <select id="quality-select" class="setting-select">
+                <option value="480">Rendah (480p)</option>
+                <option value="720" selected="selected">Sederhana (720p)</option>
+                <option value="1080">Tinggi (1080p)</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">
+                <i data-lucide="refresh-cw"></i>
+                <span>Frame Rate (fps)</span>
+            </div>
+            <select id="fps-select" class="setting-select">
+                <option value="15">15 fps (Jimat)</option>
+                <option value="24" selected="selected">24 fps (Standard)</option>
+                <option value="30">30 fps (Lancar)</option>
+                <option value="60">60 fps (Sangat Lancar)</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">
+                <i data-lucide="database"></i>
+                <span>Bitrate</span>
+            </div>
+            <select id="bitrate-select" class="setting-select">
+                <option value="1000000">Rendah (1 Mbps)</option>
+                <option value="2500000" selected="selected">Sederhana (2.5 Mbps)</option>
+                <option value="5000000">Tinggi (5 Mbps)</option>
+                <option value="8000000">Ultra (8 Mbps)</option>
+            </select>
+        </div>
+        
+        <div class="section-title">⏰ Rakaman Berjadual</div>
+        <div class="setting-item">
+            <div class="setting-label">
+                <i data-lucide="calendar"></i>
+                <span>Dayakan Jadual</span>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="schedule-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="time-row">
+            <input type="time" id="start-time" class="time-input" value="08:00">
+            <input type="time" id="end-time" class="time-input" value="17:00">
+        </div>
+        
+        <div class="section-title">🖥️ Tetapan Skrin</div>
         <div class="setting-item">
             <div class="setting-label">
                 <i data-lucide="flip-horizontal"></i>
@@ -393,7 +537,7 @@
             </label>
         </div>
         <div class="info-text">
-            <i data-lucide="info"></i> Mirror mode membantu membaca QR dari cermin atau permukaan reflektif.
+            <i data-lucide="info"></i> Kualiti tinggi memerlukan prestasi komputer yang baik. 60 fps disyorkan untuk skrin 120Hz+.
         </div>
     </div>
 </div>
@@ -421,6 +565,9 @@
     const startOverlay = document.getElementById('start-overlay');
     const wakelockBtn = document.getElementById('wakelock-toggle');
     const readerDiv = document.getElementById('reader');
+    const recordBtn = document.getElementById('record-btn');
+    const recordingIndicator = document.getElementById('recording-indicator');
+    const recordingTimerSpan = document.getElementById('recording-timer');
     
     // 设置相关元素
     const settingsModal = document.getElementById('settings-modal');
@@ -429,37 +576,232 @@
     const mirrorToggle = document.getElementById('mirror-toggle');
     const wakelockSettingsToggle = document.getElementById('wakelock-settings-toggle');
     const vibrationToggle = document.getElementById('vibration-toggle');
+    const scheduleToggle = document.getElementById('schedule-toggle');
+    const startTimeInput = document.getElementById('start-time');
+    const endTimeInput = document.getElementById('end-time');
+    const qualitySelect = document.getElementById('quality-select');
+    const fpsSelect = document.getElementById('fps-select');
+    const bitrateSelect = document.getElementById('bitrate-select');
+    
+    // 录屏相关变量
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let recordingStartTime = null;
+    let recordingTimerInterval = null;
+    let scheduleCheckInterval = null;
     
     let isProcessing = false;
     let wakeLock = null;
     let currentCameraId = null;
     let isScanning = false;
     
+    // 获取录屏画质设置
+    function getRecordingSettings() {
+        const quality = parseInt(qualitySelect.value);
+        const fps = parseInt(fpsSelect.value);
+        const bitrate = parseInt(bitrateSelect.value);
+        
+        let width, height;
+        switch(quality) {
+            case 480: width = 854; height = 480; break;
+            case 720: width = 1280; height = 720; break;
+            case 1080: width = 1920; height = 1080; break;
+            default: width = 1280; height = 720;
+        }
+        
+        return {
+            width: width,
+            height: height,
+            frameRate: fps,
+            bitrate: bitrate,
+            mimeType: 'video/webm;codecs=vp9,opus'
+        };
+    }
+    
+    // 开始录屏
+    async function startScreenRecording() {
+        if (isRecording) return;
+        
+        const settings = getRecordingSettings();
+        
+        try {
+            // 获取屏幕流
+            const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                    width: { ideal: settings.width },
+                    height: { ideal: settings.height },
+                    frameRate: { ideal: settings.frameRate }
+                },
+                audio: true,
+                preferCurrentTab: true
+            });
+            
+            // 同时获取音频（麦克风可选，这里只录系统声音）
+            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+            
+            let finalStream = displayStream;
+            if (audioStream) {
+                finalStream = new MediaStream([
+                    ...displayStream.getVideoTracks(),
+                    ...audioStream.getAudioTracks()
+                ]);
+            }
+            
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(finalStream, {
+                mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm',
+                videoBitsPerSecond: settings.bitrate
+            });
+            
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const now = new Date();
+                const timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `semsira_recording_${timestamp}.webm`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                // 停止所有轨道
+                finalStream.getTracks().forEach(track => track.stop());
+                if (audioStream) audioStream.getTracks().forEach(track => track.stop());
+                
+                isRecording = false;
+                recordingIndicator.classList.remove('active');
+                recordBtn.classList.remove('recording-active');
+                if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+                
+                // 保存录屏历史记录到 localStorage
+                saveRecordingHistory(timestamp);
+            };
+            
+            mediaRecorder.start(1000);
+            isRecording = true;
+            recordingStartTime = Date.now();
+            recordingIndicator.classList.add('active');
+            recordBtn.classList.add('recording-active');
+            updateRecordingTimer();
+            recordingTimerInterval = setInterval(updateRecordingTimer, 1000);
+            
+            // 监听停止事件（用户关闭分享屏幕弹窗）
+            displayStream.getVideoTracks()[0].onended = () => {
+                if (isRecording) stopScreenRecording();
+            };
+            
+        } catch (err) {
+            console.error('录屏启动失败:', err);
+            alert('无法启动录屏。请确保已授权屏幕共享权限。');
+        }
+    }
+    
+    function updateRecordingTimer() {
+        if (recordingStartTime) {
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const secs = String(elapsed % 60).padStart(2, '0');
+            recordingTimerSpan.innerText = `${mins}:${secs}`;
+        }
+    }
+    
+    function stopScreenRecording() {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+        }
+    }
+    
+    function saveRecordingHistory(timestamp) {
+        let history = localStorage.getItem('recording_history');
+        let historyList = history ? JSON.parse(history) : [];
+        historyList.unshift({
+            timestamp: timestamp,
+            date: new Date().toLocaleString('ms-MY'),
+            settings: getRecordingSettings()
+        });
+        if (historyList.length > 20) historyList.pop();
+        localStorage.setItem('recording_history', JSON.stringify(historyList));
+    }
+    
+    // 定时录屏检查
+    function startScheduleCheck() {
+        if (scheduleCheckInterval) clearInterval(scheduleCheckInterval);
+        
+        scheduleCheckInterval = setInterval(() => {
+            const scheduleEnabled = scheduleToggle.checked;
+            if (!scheduleEnabled) return;
+            
+            const now = new Date();
+            const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+            
+            // 检查是否在录制时间段内
+            if (currentTime >= startTime && currentTime < endTime) {
+                if (!isRecording) {
+                    console.log('⏰ 定时录屏开始:', currentTime);
+                    startScreenRecording();
+                }
+            } else {
+                if (isRecording) {
+                    console.log('⏰ 定时录屏结束:', currentTime);
+                    stopScreenRecording();
+                }
+            }
+        }, 30000); // 每30秒检查一次
+    }
+    
+    // 加载录屏设置
+    function loadRecordingSettings() {
+        const savedQuality = localStorage.getItem('recording_quality');
+        const savedFps = localStorage.getItem('recording_fps');
+        const savedBitrate = localStorage.getItem('recording_bitrate');
+        const savedSchedule = localStorage.getItem('recording_schedule') === 'true';
+        const savedStartTime = localStorage.getItem('recording_start_time');
+        const savedEndTime = localStorage.getItem('recording_end_time');
+        
+        if (savedQuality) qualitySelect.value = savedQuality;
+        if (savedFps) fpsSelect.value = savedFps;
+        if (savedBitrate) bitrateSelect.value = savedBitrate;
+        if (savedStartTime) startTimeInput.value = savedStartTime;
+        if (savedEndTime) endTimeInput.value = savedEndTime;
+        
+        scheduleToggle.checked = savedSchedule;
+    }
+    
+    function saveRecordingSettings() {
+        localStorage.setItem('recording_quality', qualitySelect.value);
+        localStorage.setItem('recording_fps', fpsSelect.value);
+        localStorage.setItem('recording_bitrate', bitrateSelect.value);
+        localStorage.setItem('recording_schedule', scheduleToggle.checked);
+        localStorage.setItem('recording_start_time', startTimeInput.value);
+        localStorage.setItem('recording_end_time', endTimeInput.value);
+    }
+    
     // 加载保存的设置
     function loadSettings() {
         const mirrorEnabled = localStorage.getItem('scanner_mirror') === 'true';
         const wakelockEnabled = localStorage.getItem('scanner_wakelock') === 'true';
-        const vibrationEnabled = localStorage.getItem('scanner_vibration') !== 'false'; // 默认 true
+        const vibrationEnabled = localStorage.getItem('scanner_vibration') !== 'false';
         
         mirrorToggle.checked = mirrorEnabled;
         wakelockSettingsToggle.checked = wakelockEnabled;
         vibrationToggle.checked = vibrationEnabled;
+        loadRecordingSettings();
         
-        // 应用镜像设置
-        if (mirrorEnabled) {
-            readerDiv.classList.add('mirror-video');
-        } else {
-            readerDiv.classList.remove('mirror-video');
-        }
+        if (mirrorEnabled) readerDiv.classList.add('mirror-video');
+        else readerDiv.classList.remove('mirror-video');
         
-        // 应用唤醒锁设置
-        if (wakelockEnabled) {
-            requestWakeLock();
-        } else {
-            releaseWakeLock();
-        }
+        if (wakelockEnabled) requestWakeLock();
+        else releaseWakeLock();
         
-        // 同步主界面的唤醒锁按钮状态
         if (wakelockBtn) {
             if (wakelockEnabled && wakeLock) {
                 wakelockBtn.classList.add('wakelock-active');
@@ -469,27 +811,20 @@
                 wakelockBtn.querySelector('span').innerText = "Kekal Skrin Terang";
             }
         }
+        
+        startScheduleCheck();
     }
     
-    // 保存镜像设置
     function saveMirrorSetting(enabled) {
         localStorage.setItem('scanner_mirror', enabled);
-        if (enabled) {
-            readerDiv.classList.add('mirror-video');
-        } else {
-            readerDiv.classList.remove('mirror-video');
-        }
+        if (enabled) readerDiv.classList.add('mirror-video');
+        else readerDiv.classList.remove('mirror-video');
     }
     
-    // 保存唤醒锁设置
     function saveWakelockSetting(enabled) {
         localStorage.setItem('scanner_wakelock', enabled);
-        if (enabled) {
-            requestWakeLock();
-        } else {
-            releaseWakeLock();
-        }
-        // 同步主按钮
+        if (enabled) requestWakeLock();
+        else releaseWakeLock();
         if (wakelockBtn) {
             if (enabled && wakeLock) {
                 wakelockBtn.classList.add('wakelock-active');
@@ -501,12 +836,10 @@
         }
     }
     
-    // 保存振动设置
     function saveVibrationSetting(enabled) {
         localStorage.setItem('scanner_vibration', enabled);
     }
     
-    // 触发振动
     function triggerVibration() {
         const vibrationEnabled = localStorage.getItem('scanner_vibration') !== 'false';
         if (vibrationEnabled && 'vibrate' in navigator) {
@@ -514,22 +847,17 @@
         }
     }
     
-    // --- Screen Wake Lock Logic ---
     async function requestWakeLock() {
         try {
             if ('wakeLock' in navigator) {
-                if (wakeLock) {
-                    try { wakeLock.release(); } catch(e) {}
-                }
+                if (wakeLock) { try { wakeLock.release(); } catch(e) {} }
                 wakeLock = await navigator.wakeLock.request('screen');
                 wakelockBtn.classList.add('wakelock-active');
                 wakelockBtn.querySelector('span').innerText = "Skrin Sentiasa Terang (ON)";
             }
-        } catch (err) {
-            console.error(`${err.name}, ${err.message}`);
-        }
+        } catch (err) { console.error(err); }
     }
-
+    
     function releaseWakeLock() {
         if (wakeLock !== null) {
             wakeLock.release();
@@ -538,21 +866,16 @@
             wakelockBtn.querySelector('span').innerText = "Kekal Skrin Terang";
         }
     }
-
-    // 监听页面可见性变化，重新获取唤醒锁
+    
     function handleVisibilityChange() {
         const wakelockEnabled = localStorage.getItem('scanner_wakelock') === 'true';
-        if (document.visibilityState === 'visible' && wakelockEnabled && wakeLock === null) {
-            requestWakeLock();
-        }
+        if (document.visibilityState === 'visible' && wakelockEnabled && wakeLock === null) requestWakeLock();
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // 主界面唤醒锁按钮点击事件
+    
     wakelockBtn.addEventListener('click', async () => {
         const wakelockEnabled = localStorage.getItem('scanner_wakelock') === 'true';
         if (wakelockEnabled) {
-            // 如果设置中开启了，但实际锁不存在则请求
             if (wakeLock === null) {
                 await requestWakeLock();
                 localStorage.setItem('scanner_wakelock', 'true');
@@ -568,7 +891,16 @@
             if (wakelockSettingsToggle) wakelockSettingsToggle.checked = true;
         }
     });
-
+    
+    // 录屏按钮事件
+    recordBtn.addEventListener('click', () => {
+        if (isRecording) {
+            stopScreenRecording();
+        } else {
+            startScreenRecording();
+        }
+    });
+    
     // 设置模态框事件
     openSettingsBtn.addEventListener('click', () => {
         settingsModal.style.display = 'flex';
@@ -577,6 +909,7 @@
     
     function closeSettingsModal() {
         settingsModal.style.display = 'none';
+        saveRecordingSettings();
     }
     
     closeSettingsBtn.addEventListener('click', closeSettingsModal);
@@ -584,19 +917,16 @@
         if (e.target === settingsModal) closeSettingsModal();
     });
     
-    // 监听设置开关变化
-    mirrorToggle.addEventListener('change', (e) => {
-        saveMirrorSetting(e.target.checked);
-    });
+    mirrorToggle.addEventListener('change', (e) => saveMirrorSetting(e.target.checked));
+    wakelockSettingsToggle.addEventListener('change', (e) => saveWakelockSetting(e.target.checked));
+    vibrationToggle.addEventListener('change', (e) => saveVibrationSetting(e.target.checked));
+    scheduleToggle.addEventListener('change', () => saveRecordingSettings());
+    qualitySelect.addEventListener('change', () => saveRecordingSettings());
+    fpsSelect.addEventListener('change', () => saveRecordingSettings());
+    bitrateSelect.addEventListener('change', () => saveRecordingSettings());
+    startTimeInput.addEventListener('change', () => saveRecordingSettings());
+    endTimeInput.addEventListener('change', () => saveRecordingSettings());
     
-    wakelockSettingsToggle.addEventListener('change', (e) => {
-        saveWakelockSetting(e.target.checked);
-    });
-    
-    vibrationToggle.addEventListener('change', (e) => {
-        saveVibrationSetting(e.target.checked);
-    });
-
     startBtn.addEventListener('click', () => {
         triggerVibration();
         beepSound.play().catch(() => {});
@@ -604,7 +934,7 @@
         setTimeout(() => startOverlay.style.display = 'none', 400);
         initCameraList();
     }, { once: true });
-
+    
     function initCameraList() {
         Html5Qrcode.getCameras().then(cameras => {
             if (cameras && cameras.length > 0) {
@@ -616,31 +946,25 @@
             }
         }).catch(err => console.error(err));
     }
-
+    
     async function switchCamera(cameraId) {
         if (isScanning) {
-            try {
-                await html5QrCode.stop();
-                isScanning = false;
-            } catch(e) {}
+            try { await html5QrCode.stop(); isScanning = false; } catch(e) {}
         }
         setTimeout(() => startScanning(cameraId), 300);
     }
-
+    
     function startScanning(cameraId) {
         currentCameraId = cameraId;
         const config = { fps: 25, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
         html5QrCode.start(cameraId, config, onScanSuccess)
-            .then(() => {
-                isScanning = true;
-                applyAdvancedSettings();
-            })
+            .then(() => { isScanning = true; applyAdvancedSettings(); })
             .catch(() => {
                 html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess)
                     .then(() => isScanning = true);
             });
     }
-
+    
     async function applyAdvancedSettings() {
         try {
             const track = html5QrCode.getRunningTrack();
@@ -652,99 +976,53 @@
             await track.applyConstraints({ advanced: [settings] });
         } catch (e) { console.warn("Hardware optimization not supported."); }
     }
-
+    
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
         playBeep();
         triggerVibration();
         showResult("Memproses", "Sila tunggu sebentar...", "wait");
-
+        
         try {
             const parts = decodedText.split('|');
             if (parts.length < 2) throw new Error("Format QR Tidak Sah");
-
             const scannedIC = parts[0];
             const qrTimeStr = parts[1];
             if (!validateTime(qrTimeStr, 30)) throw new Error("Kod Luput (Sila refresh QR)");
-
             const timeSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
             let late = "07:30", absent = "08:30";
-            if (timeSnap.exists()) {
-                late = timeSnap.data().lateTime;
-                absent = timeSnap.data().absentTime;
-            }
-
+            if (timeSnap.exists()) { late = timeSnap.data().lateTime; absent = timeSnap.data().absentTime; }
             const now = new Date();
             const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             if (timeStr > absent) throw new Error(`Masa tamat (${absent}).`);
-
             const today = now.toLocaleDateString('en-CA');
             const check = await getDocs(query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", today)));
             if (!check.empty) throw new Error("Dah scan hari ini.");
-
             const studentSnap = await getDocs(query(collection(db, "studentInform"), where("ic", "==", scannedIC)));
             if (studentSnap.empty) throw new Error("Pelajar tidak berdaftar.");
-
             const student = studentSnap.docs[0].data();
             const status = timeStr > late ? "Lewat" : "Hadir";
-
             const expireDate = new Date();
             expireDate.setDate(now.getDate() + 35);
-
             await addDoc(collection(db, "attendanceLogs"), {
-                name: student.name,
-                ic: student.ic,
-                className: student.className,
-                status: status,
-                date: today,
-                timeFull: now.toLocaleString('ms-MY'),
-                timestamp: serverTimestamp(),
-                expireAt: expireDate
+                name: student.name, ic: student.ic, className: student.className,
+                status: status, date: today, timeFull: now.toLocaleString('ms-MY'),
+                timestamp: serverTimestamp(), expireAt: expireDate
             });
-
             showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", now.toLocaleTimeString());
             setTimeout(resetResult, 3000);
-
         } catch (err) {
             showResult("Gagal", err.message, "error");
             setTimeout(resetResult, 3000);
         }
     }
-
-    function playBeep() {
-        beepSound.currentTime = 0;
-        beepSound.play().catch(() => {});
-    }
-
-    function resetResult() {
-        isProcessing = false;
-        const icon = document.getElementById('status-icon');
-        icon.className = 'status-icon waiting';
-        icon.innerHTML = '<i data-lucide="qr-code"></i>';
-        document.getElementById('res-name').innerText = "Sila halakan kod QR";
-        document.getElementById('res-msg').innerText = "";
-        document.getElementById('res-time').innerText = "";
-        lucide.createIcons();
-    }
-
-    function validateTime(str, limit) {
-        if (str.length !== 14) return false;
-        const qrDate = new Date(str.substring(0,4), parseInt(str.substring(4,6))-1, str.substring(6,8), str.substring(8,10), str.substring(10,12), str.substring(12,14));
-        return Math.abs(new Date() - qrDate) <= (limit * 1000);
-    }
-
-    function showResult(name, msg, type, time = "") {
-        const icon = document.getElementById('status-icon');
-        document.getElementById('res-name').innerText = name;
-        document.getElementById('res-msg').innerText = msg;
-        document.getElementById('res-time').innerText = time;
-        icon.className = 'status-icon ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'waiting'));
-        icon.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2')}"></i>`;
-        lucide.createIcons();
-    }
     
-    // 初始化所有设置
+    function playBeep() { beepSound.currentTime = 0; beepSound.play().catch(() => {}); }
+    function resetResult() { isProcessing = false; const icon = document.getElementById('status-icon'); icon.className = 'status-icon waiting'; icon.innerHTML = '<i data-lucide="qr-code"></i>'; document.getElementById('res-name').innerText = "Sila halakan kod QR"; document.getElementById('res-msg').innerText = ""; document.getElementById('res-time').innerText = ""; lucide.createIcons(); }
+    function validateTime(str, limit) { if (str.length !== 14) return false; const qrDate = new Date(str.substring(0,4), parseInt(str.substring(4,6))-1, str.substring(6,8), str.substring(8,10), str.substring(10,12), str.substring(12,14)); return Math.abs(new Date() - qrDate) <= (limit * 1000); }
+    function showResult(name, msg, type, time = "") { const icon = document.getElementById('status-icon'); document.getElementById('res-name').innerText = name; document.getElementById('res-msg').innerText = msg; document.getElementById('res-time').innerText = time; icon.className = 'status-icon ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'waiting')); icon.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2')}"></i>`; lucide.createIcons(); }
+    
     loadSettings();
     lucide.createIcons();
 </script>
