@@ -269,6 +269,54 @@
             font-weight: normal;
             color: #495057;
         }
+        
+        /* 底部线条按钮样式 - 纯新增，不影响任何现有样式 */
+        .footer-line-button {
+            text-align: center;
+            margin: 32px auto 20px auto;
+            position: relative;
+            width: 100%;
+        }
+        .line-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--primary);
+            padding: 10px 18px 8px 18px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 0;
+            letter-spacing: 0.3px;
+            backdrop-filter: none;
+            box-shadow: none;
+        }
+        .line-btn:hover {
+            color: #005fc1;
+            border-bottom-color: #005fc1;
+            transform: translateY(-2px);
+            background: transparent;
+        }
+        .line-btn:active {
+            transform: translateY(1px);
+            opacity: 0.8;
+        }
+        .line-btn i {
+            width: 18px;
+            height: 18px;
+        }
+        /* 确保响应式下按钮依然美观 */
+        @media (max-width: 768px) {
+            .line-btn {
+                font-size: 13px;
+                padding: 8px 14px 6px 14px;
+            }
+        }
     </style>
 </head>
 <body oncontextmenu="return false" onkeydown="handleGlobalKeys(event)">
@@ -372,6 +420,16 @@
         </div>
         <div id="class-accordion-container"></div>
     </div>
+    
+    <!-- ========== 新增底部线条按钮：导航到 firebase_admin.html，不修改/删除任何原有代码 ========== -->
+    <div class="footer-line-button">
+        <button class="line-btn" onclick="navigateToFirebaseAdmin()" id="firebase-admin-line-btn">
+            <i data-lucide="database"></i> 
+            <span>Firebase Admin Console</span>
+        </button>
+    </div>
+    <!-- ========== 底部按钮结束 ========== -->
+    
 </div>
 
 <script type="module">
@@ -504,6 +562,11 @@
     async function loadInitialData() {
         await Promise.all([loadSettings(), loadTeacherSettings(), loadStudents(), loadDeviceVerifySetting()]);
         lucide.createIcons();
+        // 确保底部按钮的图标也能被渲染 (因为动态加入)
+        const bottomBtnIcon = document.querySelector('#firebase-admin-line-btn i');
+        if (bottomBtnIcon && typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 
     async function loadSettings() {
@@ -720,6 +783,12 @@
     }
 
     window.logout = () => { localStorage.removeItem("semsira_isLoggedIn"); location.reload(); };
+    
+    // ========== 新增底部按钮导航函数，纯粹跳转不修改现有逻辑 ==========
+    window.navigateToFirebaseAdmin = () => {
+        // 跳转到 firebase_admin.html，保留当前域名路径下的文件
+        window.location.href = 'firebase_admin.html';
+    };
 </script>
 </body>
 </html>
