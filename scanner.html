@@ -6,8 +6,6 @@
     <title>Semsira Scanner - Anti-Glare Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- FFmpeg.wasm - 真正的视频加速处理 -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
     <style>
         :root {
             --primary: #007AFF;
@@ -195,7 +193,6 @@
             50% { opacity: 0.3; }
         }
 
-        /* 进度条样式 */
         .progress-overlay {
             position: fixed;
             top: 0;
@@ -237,6 +234,18 @@
         .progress-text {
             font-size: 14px;
             color: #666;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e5ea;
+            border-top-color: var(--timelapse);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         #reader {
@@ -451,10 +460,6 @@
             font-size: 10px;
             margin-left: 8px;
         }
-        .speed-select {
-            margin-left: 10px;
-            width: 70px;
-        }
     </style>
 </head>
 <body>
@@ -466,10 +471,9 @@
     </button>
 </div>
 
-<!-- 进度条弹窗 -->
-<div id="progress-overlay" class="progress-overlay">
+<div class="progress-overlay" id="progress-overlay">
     <div class="progress-card">
-        <i data-lucide="loader-2" style="width: 40px; height: 40px; color: var(--timelapse); animation: spin 1s linear infinite;"></i>
+        <div class="spinner"></div>
         <h3 id="progress-title">Memproses Time-lapse...</h3>
         <div class="progress-bar">
             <div id="progress-fill" class="progress-fill"></div>
@@ -477,13 +481,6 @@
         <p id="progress-text" class="progress-text">0%</p>
     </div>
 </div>
-
-<style>
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-</style>
 
 <div class="header">
     <button class="record-btn" id="record-btn">
@@ -631,7 +628,7 @@
             </label>
         </div>
         <div class="info-text">
-            <i data-lucide="info"></i> Time-lapse menggunakan FFmpeg untuk mempercepatkan video. Video asal akan dipadam selepas diproses.
+            <i data-lucide="info"></i> Time-lapse: Video akan dipercepatkan. Menggunakan teknik frame-sampling untuk kompatibiliti maksimum.
         </div>
     </div>
 </div>
@@ -688,97 +685,105 @@
     let recordingTimerInterval = null;
     let scheduleCheckInterval = null;
     let isTimelapseMode = false;
-    let ffmpeg = null;
-    let ffmpegLoaded = false;
     
     let isProcessing = false;
     let wakeLock = null;
     let currentCameraId = null;
     let isScanning = false;
     
-    // 初始化 FFmpeg
-    async function initFFmpeg() {
-        if (ffmpegLoaded) return true;
-        try {
-            progressOverlay.style.display = 'flex';
-            progressTitle.innerText = 'Memuatkan FFmpeg...';
-            progressFill.style.width = '30%';
-            progressText.innerText = 'Memuatkan encoder video (30%)';
-            
-            const { FFmpeg } = window.FFmpeg;
-            ffmpeg = new FFmpeg();
-            
-            progressFill.style.width = '60%';
-            progressText.innerText = 'Memuatkan core (60%)';
-            
-            await ffmpeg.load({
-                coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
-                wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/ffmpeg-core.wasm'
-            });
-            
-            ffmpegLoaded = true;
-            progressOverlay.style.display = 'none';
-            return true;
-        } catch (err) {
-            console.error('FFmpeg 加载失败:', err);
-            progressOverlay.style.display = 'none';
-            alert('FFmpeg 加载失败，将使用原始视频格式');
-            return false;
-        }
-    }
-    
-    // 使用 FFmpeg 加速视频
-    async function speedUpVideoWithFFmpeg(webmBlob, speedFactor) {
+    // 备用加速方案：抽帧法 (不需要 FFmpeg)
+    async function speedUpVideoByFrameSampling(webmBlob, speedFactor) {
         return new Promise(async (resolve, reject) => {
             try {
-                // 确保 FFmpeg 已加载
-                if (!ffmpegLoaded) {
-                    const loaded = await initFFmpeg();
-                    if (!loaded) {
-                        resolve(webmBlob);
-                        return;
-                    }
-                }
-                
                 progressOverlay.style.display = 'flex';
                 progressTitle.innerText = `Mempercepatkan video ${speedFactor}x...`;
                 progressFill.style.width = '10%';
-                progressText.innerText = 'Menulis fail input (10%)';
+                progressText.innerText = 'Memuatkan video (10%)';
                 
-                // 写入输入文件
-                const inputData = new Uint8Array(await webmBlob.arrayBuffer());
-                await ffmpeg.writeFile('input.webm', inputData);
+                // 创建视频元素
+                const video = document.createElement('video');
+                const videoUrl = URL.createObjectURL(webmBlob);
+                video.src = videoUrl;
                 
-                progressFill.style.width = '30%';
-                progressText.innerText = 'Memproses video (30%)';
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = resolve;
+                });
                 
-                // FFmpeg 加速命令: setpts 降低播放速度，atempo 加速音频
-                // 注意：webm 可能没有音频轨道，所以只处理视频
-                await ffmpeg.exec([
-                    '-i', 'input.webm',
-                    '-filter:v', `setpts=${1/speedFactor}*PTS`,
-                    '-an',  // 忽略音频（屏幕录制通常无音频或不需要）
-                    '-c:v', 'libx264',
-                    '-preset', 'fast',
-                    '-crf', '23',
-                    '-pix_fmt', 'yuv420p',
-                    '-movflags', '+faststart',
-                    'output.mp4'
-                ]);
+                const originalDuration = video.duration;
+                const targetDuration = originalDuration / speedFactor;
+                const fps = parseInt(fpsSelect.value) || 30;
+                const targetFps = Math.min(60, fps);
                 
-                progressFill.style.width = '70%';
-                progressText.innerText = 'Menulis output (70%)';
+                progressFill.style.width = '20%';
+                progressText.innerText = `Duration asal: ${originalDuration.toFixed(1)}s → Target: ${targetDuration.toFixed(1)}s (20%)`;
                 
-                // 读取输出文件
-                const outputData = await ffmpeg.readFile('output.mp4');
-                const outputBlob = new Blob([outputData], { type: 'video/mp4' });
+                // 设置 canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
                 
+                // 准备录制流
+                const stream = canvas.captureStream(targetFps);
+                const recorder = new MediaRecorder(stream, {
+                    mimeType: 'video/webm;codecs=vp8',
+                    videoBitsPerSecond: 3000000
+                });
+                
+                const chunks = [];
+                recorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) chunks.push(e.data);
+                };
+                
+                const outputPromise = new Promise((resolveOutput) => {
+                    recorder.onstop = () => {
+                        const outputBlob = new Blob(chunks, { type: 'video/webm' });
+                        resolveOutput(outputBlob);
+                    };
+                });
+                
+                recorder.start(100);
+                
+                // 计算需要抽取的帧数
+                const totalFrames = Math.floor(targetDuration * targetFps);
+                const frameInterval = speedFactor; // 每 speedFactor 帧取一帧
+                const frameStep = frameInterval / fps; // 时间步长
+                
+                let frameIndex = 0;
+                let lastProgress = 0;
+                
+                for (let i = 0; i < totalFrames; i++) {
+                    const targetTime = i * frameStep;
+                    if (targetTime >= originalDuration) break;
+                    
+                    video.currentTime = targetTime;
+                    await new Promise(r => { video.onseeked = r; });
+                    
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    frameIndex++;
+                    
+                    // 更新进度
+                    const progress = Math.floor((targetTime / originalDuration) * 100);
+                    if (progress >= lastProgress + 5) {
+                        lastProgress = progress;
+                        progressFill.style.width = `${20 + progress * 0.7}%`;
+                        progressText.innerText = `Memproses bingkai ${frameIndex}: ${progress}%`;
+                    }
+                    
+                    // 让事件循环继续
+                    await new Promise(r => setTimeout(r, 5));
+                }
+                
+                progressFill.style.width = '95%';
+                progressText.innerText = 'Menamatkan rakaman (95%)';
+                
+                recorder.stop();
+                const outputBlob = await outputPromise;
+                
+                URL.revokeObjectURL(videoUrl);
                 progressFill.style.width = '100%';
-                progressText.innerText = 'Selesai (100%)';
-                
-                // 清理临时文件
-                await ffmpeg.deleteFile('input.webm');
-                await ffmpeg.deleteFile('output.mp4');
+                progressText.innerText = 'Selesai! (100%)';
                 
                 setTimeout(() => {
                     progressOverlay.style.display = 'none';
@@ -787,9 +792,8 @@
                 resolve(outputBlob);
                 
             } catch (err) {
-                console.error('FFmpeg 加速失败:', err);
+                console.error('抽帧加速失败:', err);
                 progressOverlay.style.display = 'none';
-                alert(`Video acceleration failed: ${err.message}\nSaving original video.`);
                 resolve(webmBlob);
             }
         });
@@ -807,18 +811,22 @@
         return { width, height };
     }
     
-    // 导出视频
+    // 导出视频 (使用抽帧加速)
     async function exportVideo(webmBlob, isTimelapse, duration, speedFactor) {
         let finalBlob = webmBlob;
         let fileName = `semsira_recording_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}`;
         
         if (isTimelapse && duration > 10) {
             recordingIndicator.querySelector('span').innerText = "Memproses time-lapse...";
-            finalBlob = await speedUpVideoWithFFmpeg(webmBlob, speedFactor);
-            fileName += `_timelapse_${speedFactor}x`;
+            try {
+                finalBlob = await speedUpVideoByFrameSampling(webmBlob, speedFactor);
+                fileName += `_timelapse_${speedFactor}x`;
+            } catch (err) {
+                console.warn('加速失败，使用原始视频');
+            }
         }
         
-        fileName += '.mp4';
+        fileName += '.webm';
         const url = URL.createObjectURL(finalBlob);
         const a = document.createElement('a');
         a.href = url;
@@ -827,16 +835,11 @@
         URL.revokeObjectURL(url);
         
         recordingIndicator.querySelector('span').innerText = "Merekod...";
-        saveRecordingHistory(fileName.replace('.mp4', ''), duration);
+        saveRecordingHistory(fileName.replace('.webm', ''), duration);
     }
     
     async function startScreenRecording() {
         if (isRecording) return;
-        
-        // 预加载 FFmpeg（如果需要）
-        if (timelapseToggle.checked) {
-            await initFFmpeg();
-        }
         
         isTimelapseMode = timelapseToggle.checked;
         const settings = getRecordingSettings();
@@ -855,7 +858,7 @@
             
             recordedChunks = [];
             mediaRecorder = new MediaRecorder(displayStream, {
-                mimeType: 'video/webm;codecs=vp9,opus',
+                mimeType: 'video/webm;codecs=vp8,opus',
                 videoBitsPerSecond: 4000000
             });
             
