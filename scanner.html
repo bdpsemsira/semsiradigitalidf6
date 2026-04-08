@@ -193,61 +193,6 @@
             50% { opacity: 0.3; }
         }
 
-        .progress-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
-            z-index: 3000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            display: none;
-        }
-        .progress-card {
-            background: white;
-            padding: 30px;
-            border-radius: 28px;
-            text-align: center;
-            width: 80%;
-            max-width: 300px;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e5e5ea;
-            border-radius: 4px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-        .progress-fill {
-            width: 0%;
-            height: 100%;
-            background: var(--timelapse);
-            border-radius: 4px;
-            transition: width 0.3s;
-        }
-        .progress-text {
-            font-size: 14px;
-            color: #666;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e5e5ea;
-            border-top-color: var(--timelapse);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
         #reader {
             width: 92%;
             max-width: 480px;
@@ -480,17 +425,6 @@
     </button>
 </div>
 
-<div class="progress-overlay" id="progress-overlay">
-    <div class="progress-card">
-        <div class="spinner"></div>
-        <h3 id="progress-title">Memproses Time-lapse...</h3>
-        <div class="progress-bar">
-            <div id="progress-fill" class="progress-fill"></div>
-        </div>
-        <p id="progress-text" class="progress-text">0%</p>
-    </div>
-</div>
-
 <div class="header">
     <button class="record-btn" id="record-btn">
         <i data-lucide="video"></i>
@@ -569,34 +503,18 @@
                 <span>Frame Rate Rakaman</span>
             </div>
             <select id="timelapse-fps" class="setting-select" style="width: 100px;">
-                <option value="1">1 fps (30x lebih perlahan)</option>
-                <option value="2">2 fps (15x lebih perlahan)</option>
-                <option value="3">3 fps (10x lebih perlahan)</option>
-                <option value="5" selected="selected">5 fps (6x lebih perlahan)</option>
-                <option value="10">10 fps (3x lebih perlahan)</option>
-                <option value="15">15 fps (2x lebih perlahan)</option>
+                <option value="1">1 fps (30x lebih cepat)</option>
+                <option value="2">2 fps (15x lebih cepat)</option>
+                <option value="3">3 fps (10x lebih cepat)</option>
+                <option value="5" selected="selected">5 fps (6x lebih cepat)</option>
+                <option value="10">10 fps (3x lebih cepat)</option>
+                <option value="15">15 fps (2x lebih cepat)</option>
                 <option value="30">30 fps (Normal)</option>
             </select>
         </div>
         <div class="warning-text">
             <i data-lucide="info" style="width: 14px; height: 14px;"></i> 
-            Time-lapse: Mengurangkan fps semasa rakaman. Contoh: 1 fps = 1 saat rakaman = 30 saat dalam video sebenar (30x lebih cepat).
-        </div>
-        
-        <div class="section-title">⏰ Rakaman Berjadual</div>
-        <div class="setting-item">
-            <div class="setting-label">
-                <i data-lucide="calendar"></i>
-                <span>Dayakan Jadual</span>
-            </div>
-            <label class="toggle-switch">
-                <input type="checkbox" id="schedule-toggle">
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-        <div class="time-row">
-            <input type="time" id="start-time" class="time-input" value="08:00">
-            <input type="time" id="end-time" class="time-input" value="17:00">
+            Time-lapse: Mengurangkan fps semasa rakaman. Contoh: 1 fps = 1 saat rakaman = 30 saat dalam video sebenar.
         </div>
         
         <div class="section-title">🖥️ Tetapan Skrin</div>
@@ -631,7 +549,7 @@
             </label>
         </div>
         <div class="info-text">
-            <i data-lucide="info"></i> Time-lapse: Video akan direkod dengan fps rendah, tiada pemprosesan selepas rakaman. Hasil terus siap!
+            <i data-lucide="info"></i> Klik butang rakaman (🎥) untuk mula merakam skrin. Pilih "Skrin" dan "Tab Semasa".
         </div>
     </div>
 </div>
@@ -662,10 +580,6 @@
     const recordBtn = document.getElementById('record-btn');
     const recordingIndicator = document.getElementById('recording-indicator');
     const recordingTimerSpan = document.getElementById('recording-timer');
-    const progressOverlay = document.getElementById('progress-overlay');
-    const progressFill = document.getElementById('progress-fill');
-    const progressText = document.getElementById('progress-text');
-    const progressTitle = document.getElementById('progress-title');
     
     const settingsModal = document.getElementById('settings-modal');
     const openSettingsBtn = document.getElementById('open-settings-btn');
@@ -673,9 +587,6 @@
     const mirrorToggle = document.getElementById('mirror-toggle');
     const wakelockSettingsToggle = document.getElementById('wakelock-settings-toggle');
     const vibrationToggle = document.getElementById('vibration-toggle');
-    const scheduleToggle = document.getElementById('schedule-toggle');
-    const startTimeInput = document.getElementById('start-time');
-    const endTimeInput = document.getElementById('end-time');
     const qualitySelect = document.getElementById('quality-select');
     const timelapseToggle = document.getElementById('timelapse-toggle');
     const timelapseFpsSelect = document.getElementById('timelapse-fps');
@@ -685,7 +596,6 @@
     let isRecording = false;
     let recordingStartTime = null;
     let recordingTimerInterval = null;
-    let scheduleCheckInterval = null;
     let isTimelapseMode = false;
     let timelapseFps = 5;
     
@@ -706,7 +616,6 @@
         return { width, height };
     }
     
-    // 获取加速倍数显示文字
     function getSpeedFactorText(fps) {
         if (fps === 1) return "30x (1 jam → 2 minit)";
         if (fps === 2) return "15x (1 jam → 4 minit)";
@@ -718,16 +627,20 @@
     }
     
     async function startScreenRecording() {
-        if (isRecording) return;
+        if (isRecording) {
+            showResult("Info", "Rakaman sedang berjalan", "wait");
+            return;
+        }
         
         isTimelapseMode = timelapseToggle.checked;
         timelapseFps = parseInt(timelapseFpsSelect.value);
         
         const settings = getRecordingSettings();
-        // 如果开启延时摄影，使用低帧率录制
         const recordFps = isTimelapseMode ? timelapseFps : 30;
         
         try {
+            showResult("Memproses", "Meminta kebenaran skrin...", "wait");
+            
             const displayStream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     width: { ideal: settings.width },
@@ -739,21 +652,35 @@
             });
             
             recordedChunks = [];
+            
+            // 检查支持的 MIME 类型
+            let mimeType = 'video/webm;codecs=vp8';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'video/webm';
+            }
+            
             mediaRecorder = new MediaRecorder(displayStream, {
-                mimeType: 'video/webm;codecs=vp8',
+                mimeType: mimeType,
                 videoBitsPerSecond: isTimelapseMode ? 1000000 : 4000000
             });
             
             mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) recordedChunks.push(event.data);
+                if (event.data && event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
             };
             
-            mediaRecorder.onstop = async () => {
+            mediaRecorder.onstop = () => {
+                if (recordedChunks.length === 0) {
+                    showResult("Ralat", "Tiada data rakaman", "error");
+                    return;
+                }
+                
                 const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
                 const duration = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0;
                 
-                // 直接保存，无需后处理
-                const fileName = `semsira_${isTimelapseMode ? 'timelapse' : 'recording'}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.webm`;
+                const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+                const fileName = `semsira_${isTimelapseMode ? 'timelapse' : 'recording'}_${timestamp}.webm`;
                 const url = URL.createObjectURL(webmBlob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -761,28 +688,41 @@
                 a.click();
                 URL.revokeObjectURL(url);
                 
-                // 显示速度信息
                 if (isTimelapseMode) {
                     const speedText = getSpeedFactorText(timelapseFps);
-                    setTimeout(() => {
-                        showResult("Time-lapse Selesai", `${speedText} | Masa rakaman: ${Math.floor(duration)} saat`, "success", "");
-                    }, 500);
+                    showResult("Time-lapse Selesai", `${speedText} | Masa: ${Math.floor(duration)} saat`, "success", "");
+                    setTimeout(resetResult, 3000);
+                } else {
+                    showResult("Rakaman Selesai", `Video disimpan: ${Math.floor(duration)} saat`, "success", "");
                     setTimeout(resetResult, 3000);
                 }
                 
-                saveRecordingHistory(fileName, duration);
+                // 保存历史记录
+                let history = localStorage.getItem('recording_history');
+                let historyList = history ? JSON.parse(history) : [];
+                historyList.unshift({
+                    filename: fileName,
+                    date: new Date().toLocaleString('ms-MY'),
+                    duration: Math.floor(duration),
+                    timelapse: isTimelapseMode,
+                    fps: isTimelapseMode ? timelapseFps : 30
+                });
+                if (historyList.length > 20) historyList.pop();
+                localStorage.setItem('recording_history', JSON.stringify(historyList));
                 
                 displayStream.getTracks().forEach(track => track.stop());
                 isRecording = false;
                 recordingIndicator.classList.remove('active');
                 recordBtn.classList.remove('recording-active');
                 if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+                recordedChunks = [];
             };
             
             mediaRecorder.start(1000);
             isRecording = true;
             recordingStartTime = Date.now();
             recordingIndicator.classList.add('active');
+            
             if (isTimelapseMode) {
                 recordingIndicator.classList.add('timelapse-mode');
                 const speedText = getSpeedFactorText(timelapseFps);
@@ -791,17 +731,33 @@
                 recordingIndicator.classList.remove('timelapse-mode');
                 recordingIndicator.querySelector('span').innerHTML = "Merekod...";
             }
+            
             recordBtn.classList.add('recording-active');
             updateRecordingTimer();
             recordingTimerInterval = setInterval(updateRecordingTimer, 1000);
             
+            showResult("Merakam", "Rakaman sedang berjalan...", "wait");
+            setTimeout(resetResult, 2000);
+            
             displayStream.getVideoTracks()[0].onended = () => {
-                if (isRecording) stopScreenRecording();
+                if (isRecording) {
+                    stopScreenRecording();
+                }
             };
             
         } catch (err) {
             console.error('录屏启动失败:', err);
-            alert('无法启动录屏。请确保已授权屏幕共享权限。');
+            let errorMsg = "Tidak dapat merakam skrin.\n";
+            if (err.name === 'NotAllowedError') {
+                errorMsg += "Sila izinkan kebenaran skrin.";
+            } else if (err.name === 'NotFoundError') {
+                errorMsg += "Tiada sumber skrin dijumpai.";
+            } else {
+                errorMsg += err.message;
+            }
+            alert(errorMsg);
+            showResult("Ralat", errorMsg, "error");
+            setTimeout(resetResult, 3000);
         }
     }
     
@@ -812,7 +768,6 @@
             const secs = String(elapsed % 60).padStart(2, '0');
             recordingTimerSpan.innerText = `${mins}:${secs}`;
             
-            // 在延时摄影模式下显示估算的实际视频时长
             if (isTimelapseMode && timelapseFps > 0) {
                 const actualDuration = elapsed * (30 / timelapseFps);
                 const actualMins = Math.floor(actualDuration / 60);
@@ -823,64 +778,24 @@
     }
     
     function stopScreenRecording() {
-        if (mediaRecorder && isRecording) {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
         }
     }
     
-    function saveRecordingHistory(filename, duration) {
-        let history = localStorage.getItem('recording_history');
-        let historyList = history ? JSON.parse(history) : [];
-        historyList.unshift({
-            filename: filename,
-            date: new Date().toLocaleString('ms-MY'),
-            duration: Math.floor(duration),
-            timelapse: isTimelapseMode,
-            fps: isTimelapseMode ? timelapseFps : 30
-        });
-        if (historyList.length > 20) historyList.pop();
-        localStorage.setItem('recording_history', JSON.stringify(historyList));
-    }
-    
-    function startScheduleCheck() {
-        if (scheduleCheckInterval) clearInterval(scheduleCheckInterval);
-        scheduleCheckInterval = setInterval(() => {
-            if (!scheduleToggle.checked) return;
-            const now = new Date();
-            const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-            const startTime = startTimeInput.value;
-            const endTime = endTimeInput.value;
-            
-            if (currentTime >= startTime && currentTime < endTime) {
-                if (!isRecording) startScreenRecording();
-            } else {
-                if (isRecording) stopScreenRecording();
-            }
-        }, 30000);
-    }
-    
     function loadRecordingSettings() {
         const savedQuality = localStorage.getItem('recording_quality');
-        const savedSchedule = localStorage.getItem('recording_schedule') === 'true';
-        const savedStartTime = localStorage.getItem('recording_start_time');
-        const savedEndTime = localStorage.getItem('recording_end_time');
         const savedTimelapse = localStorage.getItem('recording_timelapse') === 'true';
         const savedTimelapseFps = localStorage.getItem('recording_timelapse_fps');
         
         if (savedQuality) qualitySelect.value = savedQuality;
-        if (savedStartTime) startTimeInput.value = savedStartTime;
-        if (savedEndTime) endTimeInput.value = savedEndTime;
         if (savedTimelapseFps) timelapseFpsSelect.value = savedTimelapseFps;
         
-        scheduleToggle.checked = savedSchedule;
         timelapseToggle.checked = savedTimelapse;
     }
     
     function saveRecordingSettings() {
         localStorage.setItem('recording_quality', qualitySelect.value);
-        localStorage.setItem('recording_schedule', scheduleToggle.checked);
-        localStorage.setItem('recording_start_time', startTimeInput.value);
-        localStorage.setItem('recording_end_time', endTimeInput.value);
         localStorage.setItem('recording_timelapse', timelapseToggle.checked);
         localStorage.setItem('recording_timelapse_fps', timelapseFpsSelect.value);
     }
@@ -910,8 +825,6 @@
                 wakelockBtn.querySelector('span').innerText = "Kekal Skrin Terang";
             }
         }
-        
-        startScheduleCheck();
     }
     
     function saveMirrorSetting(enabled) {
@@ -990,8 +903,11 @@
     });
     
     recordBtn.addEventListener('click', () => {
-        if (isRecording) stopScreenRecording();
-        else startScreenRecording();
+        if (isRecording) {
+            stopScreenRecording();
+        } else {
+            startScreenRecording();
+        }
     });
     
     openSettingsBtn.addEventListener('click', () => {
@@ -1012,12 +928,9 @@
     mirrorToggle.addEventListener('change', (e) => saveMirrorSetting(e.target.checked));
     wakelockSettingsToggle.addEventListener('change', (e) => saveWakelockSetting(e.target.checked));
     vibrationToggle.addEventListener('change', (e) => saveVibrationSetting(e.target.checked));
-    scheduleToggle.addEventListener('change', () => saveRecordingSettings());
     qualitySelect.addEventListener('change', () => saveRecordingSettings());
     timelapseToggle.addEventListener('change', () => saveRecordingSettings());
     timelapseFpsSelect.addEventListener('change', () => saveRecordingSettings());
-    startTimeInput.addEventListener('change', () => saveRecordingSettings());
-    endTimeInput.addEventListener('change', () => saveRecordingSettings());
     
     startBtn.addEventListener('click', () => {
         triggerVibration();
@@ -1135,6 +1048,11 @@
     
     loadSettings();
     lucide.createIcons();
+    
+    // 检查浏览器支持
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        alert("Pelayar anda tidak menyokong rakaman skrin. Sila guna Chrome/Edge/Firefox versi terkini.");
+    }
 </script>
 </body>
 </html>
