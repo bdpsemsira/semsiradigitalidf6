@@ -328,6 +328,7 @@
     <div class="glass" style="width:85%; max-width:300px; padding:24px; margin:auto; text-align:center;">
         <h3 style="margin-bottom:15px;">Reset Kata Laluan</h3>
         <p style="font-size:13px; color:#666; margin-bottom:15px;">Masukkan emel Gmail anda. Kami akan hantar pautan reset.</p>
+        <p style="font-size:11px; color:#FF9500; margin-bottom:15px;">📧 Sila periksa kotak masuk dan folder SPAM/JUNK selepas hantar.</p>
         <input type="email" id="reset-email" placeholder="Gmail" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:15px;">
         <button onclick="sendPasswordReset()" style="margin-top:0;">Hantar Email</button>
         <button onclick="closeForgotPassword()" style="background:#8E8E93; margin-top:10px;">Tutup</button>
@@ -347,6 +348,7 @@
         <input type="number" id="reg-ic" placeholder="No. Kad Pengenalan (IC)*" oninput="autoFillIC(this.value)">
         <input type="text" id="reg-name" placeholder="Nama Penuh">
         <input type="tel" id="reg-phone" placeholder="No. Telefon (601xxxxxxxxx)*">
+        <input type="text" id="reg-vehicle" placeholder="No. Kenderaan (Jika ada)">
         <select id="reg-class">
             <option value="">Pilih Kelas</option>
             <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
@@ -411,6 +413,7 @@
             <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
             <div class="profile-label"><span>Semester:</span> <b id="prof-sem">-</b></div>
+            <div class="profile-label"><span>No. Kenderaan:</span> <b id="prof-vehicle">-</b></div>
             <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
             <div class="setting-item">
                 <span style="font-size: 14px; font-weight: 600;">Dark Mode</span>
@@ -429,6 +432,8 @@
             <input type="tel" id="upd-phone">
             <label style="font-size: 12px; color: #888;">Alamat Rumah:</label>
             <input type="text" id="upd-address">
+            <label style="font-size: 12px; color: #888;">No. Kenderaan:</label>
+            <input type="text" id="upd-vehicle" placeholder="Jika ada, isikan nombor kenderaan">
             <label style="font-size: 12px; color: #888;">Kelas:</label>
             <select id="upd-class">
                 <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
@@ -487,41 +492,33 @@
         const isLoggedIn = mainApp && mainApp.style.display === 'block';
         
         if (!isLoggedIn) {
-            // 未登录时，直接退出
             showExitConfirm();
             return;
         }
         
-        // 获取当前显示的页面
         let activePageId = 'tab-home';
         if (document.getElementById('tab-home').classList.contains('active')) activePageId = 'tab-home';
         else if (document.getElementById('tab-scan').classList.contains('active')) activePageId = 'tab-scan';
         else if (document.getElementById('tab-account').classList.contains('active')) activePageId = 'tab-account';
         
         if (activePageId === 'tab-home') {
-            // 在 Utama 页面，询问是否退出
             showExitConfirm();
         } else {
-            // 在 Imbas 或 Akaun 页面，返回 Utama
             const homeNav = document.querySelector('.nav-item[onclick*="tab-home"]');
             if (homeNav) switchTab('tab-home', homeNav);
-            // 修正历史记录
             window.history.pushState({ tab: 'tab-home' }, '');
         }
     }
     
     function showExitConfirm() {
         if (confirm("Anda pasti mahu keluar dari aplikasi?")) {
-            // 退出应用: 对于PWA或浏览器，关闭页面或返回上一页
             window.history.back();
             setTimeout(() => {
                 window.close();
-                // 如果无法关闭，尝试退出到空白页
                 if (window.history.length > 1) window.history.go(-1);
                 else document.body.innerHTML = '<div style="text-align:center;padding:50px">Aplikasi ditutup. Sila tutup tab ini.</div>';
             }, 100);
         } else {
-            // 取消退出，重新推入状态
             window.history.pushState({ tab: currentTabId }, '');
         }
     }
@@ -595,7 +592,6 @@
         return true;
     }
 
-    // --- 核心修复：解锁音频 & 显示二维码 ---
     window.startSystem = () => {
         const sound = document.getElementById('beep-sound');
         sound.play().then(() => {
@@ -621,7 +617,7 @@
             }).catch(e => {});
         }
     }
-    // 忘记密码功能
+    
     window.showForgotPassword = () => {
         document.getElementById('forgotPasswordModal').style.display = 'flex';
     };
@@ -640,7 +636,6 @@
         }
         
         try {
-            // Firebase 内置的密码重置功能
             await sendPasswordResetEmail(auth, email);
             toast("✅ Email reset telah dihantar! Sila periksa inbox/spam anda.");
             closeForgotPassword();
@@ -679,7 +674,6 @@
         return isK1 ? semK1 : semK2;
     }
 
-    // 水印显示函数
     function applyWatermark(info) {
         const layer = document.getElementById('watermark-layer');
         if(!layer) return; 
@@ -701,11 +695,10 @@
         }
     }
 
-    let isRegistering = false; // 🔥 全局锁
+    let isRegistering = false;
     
     window.handleRegister = async () => {
-        if (isRegistering) return; // 🚫 防重复点击
-    
+        if (isRegistering) return;
         isRegistering = true;
     
         const btn = document.querySelector('#page-register button');
@@ -718,6 +711,7 @@
         const ic = document.getElementById('reg-ic').value;
         const phone = document.getElementById('reg-phone').value;
         const className = document.getElementById('reg-class').value;
+        const vehicleNo = document.getElementById('reg-vehicle').value;
     
         if (!email || !pw1 || !ic || !phone || !className) {
             resetButton(btn);
@@ -739,7 +733,6 @@
             }
     
             const assignedSemester = await getSemesterForClass(className);
-    
             const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
     
             await setDoc(doc(db, COLLECTION_NAME, userCredential.user.uid), {
@@ -753,6 +746,7 @@
                 gender: document.getElementById('reg-gender').value,
                 address: document.getElementById('reg-address').value,
                 email: email,
+                vehicleNo: vehicleNo || "",
                 createdAt: new Date()
             });
     
@@ -765,25 +759,58 @@
         }
     };
     
-    // 🔥 重置按钮函数
     function resetButton(btn) {
         isRegistering = false;
         btn.disabled = false;
         btn.innerText = "Daftar";
     }
    
+    // ✅ 修复：处理 auth/invalid-credential 错误
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
+        
+        if (!email || !pw) {
+            toast("❌ Sila masukkan emel dan kata laluan");
+            return;
+        }
+        
+        // 显示加载状态
+        const loginBtn = document.querySelector('#page-login button');
+        const originalText = loginBtn.innerText;
+        loginBtn.disabled = true;
+        loginBtn.innerText = "Sedang log masuk...";
+        
         try { 
-            toast("Berjaya log masuk, sedang berproses");
-            await signInWithEmailAndPassword(auth, email, pw); 
-        } catch (e) { alert("Gagal: " + e.message); }
+            // 先尝试登录
+            await signInWithEmailAndPassword(auth, email, pw);
+            // 登录成功后才显示成功消息
+            toast("✅ Log masuk berjaya! Sedang beralih...");
+        } catch (e) { 
+            // 根据错误类型显示友好消息
+            if (e.code === 'auth/user-not-found') {
+                toast("❌ Akaun tidak wujud. Sila daftar terlebih dahulu.");
+            } else if (e.code === 'auth/wrong-password') {
+                toast("❌ Kata laluan salah. Sila cuba lagi.");
+            } else if (e.code === 'auth/invalid-credential') {
+                // ✅ 新增：处理 invalid-credential 错误
+                toast("❌ Akaun atau kata laluan yang salah.");
+            } else if (e.code === 'auth/invalid-email') {
+                toast("❌ Format emel tidak sah.");
+            } else if (e.code === 'auth/too-many-requests') {
+                toast("❌ Terlalu banyak percubaan. Sila cuba sebentar lagi.");
+            } else {
+                toast("❌ Gagal log masuk: " + e.message);
+            }
+        } finally {
+            // 恢复按钮状态
+            loginBtn.disabled = false;
+            loginBtn.innerText = originalText;
+        }
     }
 
     window.handleLogout = () => { if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe(); signOut(auth).then(() => location.reload()); }
 
-    // 启动页逻辑: 检查登录状态后隐藏splash
     setTimeout(() => {
         const splash = document.getElementById('splash-screen');
         if (splash) splash.style.opacity = '0';
@@ -812,7 +839,6 @@
                     applyWatermark(`${userData.name} (${userData.ic})`);
                     loadHomeData(); setupAccountPage(); listenToAttendance(userData.ic);
                     lucide.createIcons();
-                    // 重置历史状态
                     window.history.pushState({ tab: 'tab-home' }, '');
                 }, 1200);
             }
@@ -831,9 +857,10 @@
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: black; color: white; padding: 10px 20px; border-radius: 8px;
             z-index: 99999; font-size: 14px; font-family: system-ui;
+            white-space: nowrap;
         `;
         document.body.appendChild(div);
-        setTimeout(() => div.remove(), 2000);
+        setTimeout(() => div.remove(), 2500);
     }
     
     function listenToAttendance(studentIc) {
@@ -934,8 +961,12 @@
         document.getElementById('prof-name').innerText = d.name;
         document.getElementById('prof-ic').innerText = d.ic;
         document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
-        document.getElementById('upd-name').value = d.name || ""; document.getElementById('upd-id').value = d.studentId || "";
-        document.getElementById('upd-phone').value = d.phone || ""; document.getElementById('upd-address').value = d.address || "";
+        document.getElementById('prof-vehicle').innerText = d.vehicleNo || "Tiada";
+        document.getElementById('upd-name').value = d.name || "";
+        document.getElementById('upd-id').value = d.studentId || "";
+        document.getElementById('upd-phone').value = d.phone || "";
+        document.getElementById('upd-address').value = d.address || "";
+        document.getElementById('upd-vehicle').value = d.vehicleNo || "";
         document.getElementById('upd-class').value = d.className;
     }
 
@@ -945,12 +976,29 @@
         const newPhone = document.getElementById('upd-phone').value;
         const newClass = document.getElementById('upd-class').value;
         const newAddress = document.getElementById('upd-address').value;
+        const newVehicle = document.getElementById('upd-vehicle').value;
         if(!newName || !newId || !newPhone) return alert("Isi maklumat!");
         try {
             const newSemester = await getSemesterForClass(newClass);
-            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), { name: newName, studentId: newId, phone: newPhone, address: newAddress, className: newClass, semester: newSemester });
-            window.currentUserData.name = newName; window.currentUserData.studentId = newId; window.currentUserData.phone = newPhone; window.currentUserData.className = newClass; window.currentUserData.semester = newSemester; window.currentUserData.address = newAddress;
-            setupAccountPage(); applyWatermark(`${newName} (${window.currentUserData.ic})`); alert("Berjaya!");
+            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), { 
+                name: newName, 
+                studentId: newId, 
+                phone: newPhone, 
+                address: newAddress, 
+                className: newClass, 
+                semester: newSemester,
+                vehicleNo: newVehicle || ""
+            });
+            window.currentUserData.name = newName; 
+            window.currentUserData.studentId = newId; 
+            window.currentUserData.phone = newPhone; 
+            window.currentUserData.className = newClass; 
+            window.currentUserData.semester = newSemester; 
+            window.currentUserData.address = newAddress;
+            window.currentUserData.vehicleNo = newVehicle;
+            setupAccountPage(); 
+            applyWatermark(`${newName} (${window.currentUserData.ic})`); 
+            alert("Berjaya!");
         } catch(e) { alert(e.message); }
     }
 
