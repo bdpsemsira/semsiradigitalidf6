@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Pasang SEMSIRA - Satu Klik</title>
+    <title>SEMSIRA - Pasang App</title>
     <style>
         * {
             margin: 0;
@@ -24,23 +24,11 @@
         .card {
             background: white;
             border-radius: 48px;
-            max-width: 400px;
+            max-width: 380px;
             width: 100%;
             padding: 48px 32px;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-            animation: fadeInUp 0.5s ease;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .logo {
@@ -53,7 +41,6 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
         .logo img {
@@ -84,245 +71,79 @@
             font-size: 18px;
             font-weight: 700;
             border-radius: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 8px 20px rgba(0, 122, 255, 0.4);
-            margin-bottom: 20px;
         }
 
         .install-btn:active {
             transform: scale(0.97);
         }
 
-        .install-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-
-        .success-message {
-            background: #34C759;
-            color: white;
-            padding: 12px;
-            border-radius: 60px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-top: 20px;
-            display: none;
-        }
-
-        .info-text {
-            font-size: 13px;
-            color: #94a3b8;
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .open-app-btn {
-            background: #34C759;
-            display: none;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
+        .install-btn:disabled {
+            opacity: 0.6;
+            transform: none;
         }
     </style>
 </head>
 <body>
 
-<div class="card" id="installCard">
+<div class="card">
     <div class="logo">
-        <img src="/semsira.png" alt="SEMSIRA Logo" onerror="this.src='https://bdpsemsira.github.io/semsira.png'">
+        <img src="/semsira.png" alt="SEMSIRA" onerror="this.src='https://bdpsemsira.github.io/semsira.png'">
     </div>
     <h1>SEMSIRA Digital ID</h1>
-    <div class="subtitle">Klik sekali untuk pasang aplikasi</div>
-
-    <!-- 一键安装按钮 -->
-    <button class="install-btn" id="installBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-        </svg>
-        📲 Satu Klik Pasang Aplikasi
-    </button>
-
-    <!-- 直接打开应用按钮（安装后显示） -->
-    <button class="install-btn open-app-btn" id="openAppBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="white">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-        </svg>
-        🚀 Buka Aplikasi
-    </button>
-
-    <div id="successMsg" class="success-message">
-        ✅ Aplikasi sedang dipasang...
-    </div>
-
-    <div class="info-text">
-        ⚡ Satu klik sahaja! Pop-up akan muncul, klik "Install" / "Pasang"
-    </div>
+    <div class="subtitle">Klik untuk pasang aplikasi</div>
+    <button class="install-btn" id="installBtn">📲 Pasang Aplikasi</button>
 </div>
 
 <script>
     let deferredPrompt = null;
-    let isAppInstalled = false;
+    let isInstalling = false;
 
-    // 检查是否已经在 PWA 模式运行
-    function isStandalone() {
-        return window.matchMedia('(display-mode: standalone)').matches ||
-               window.navigator.standalone === true;
-    }
-
-    // 检查是否已经安装
-    if (isStandalone()) {
-        isAppInstalled = true;
-        const installBtn = document.getElementById('installBtn');
-        const openAppBtn = document.getElementById('openAppBtn');
-        if (installBtn) installBtn.style.display = 'none';
-        if (openAppBtn) {
-            openAppBtn.style.display = 'flex';
-            openAppBtn.style.background = '#007AFF';
-        }
-        document.querySelector('.subtitle').innerHTML = '✅ Aplikasi sudah dipasang';
-    }
-
-    // 监听 beforeinstallprompt 事件
+    // 监听安装事件
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        
-        // 显示安装按钮（如果之前隐藏了）
-        const installBtn = document.getElementById('installBtn');
-        if (installBtn && !isStandalone()) {
-            installBtn.style.display = 'flex';
-        }
-        
-        console.log('✅ Sedia untuk dipasang - klik butang sahaja!');
     });
 
-    // 监听应用安装完成事件
+    // 监听安装完成
     window.addEventListener('appinstalled', () => {
-        console.log('🎉 Aplikasi berjaya dipasang!');
-        isAppInstalled = true;
-        
-        const successMsg = document.getElementById('successMsg');
-        if (successMsg) {
-            successMsg.style.display = 'block';
-            successMsg.innerText = '✅ Aplikasi berjaya dipasang! Buka dari skrin utama.';
-        }
-        
-        // 隐藏安装按钮，显示打开应用按钮
-        const installBtn = document.getElementById('installBtn');
-        const openAppBtn = document.getElementById('openAppBtn');
-        if (installBtn) installBtn.style.display = 'none';
-        if (openAppBtn) {
-            openAppBtn.style.display = 'flex';
-            openAppBtn.style.background = '#007AFF';
-        }
-        
-        setTimeout(() => {
-            if (successMsg) successMsg.style.display = 'none';
-        }, 3000);
-    });
-
-    // 一键安装按钮点击
-    document.getElementById('installBtn').addEventListener('click', async () => {
-        if (!deferredPrompt) {
-            // 如果没有触发安装事件，可能是：
-            // 1. 已经安装了
-            // 2. 浏览器不支持
-            // 3. 需要刷新页面
-            
-            if (isStandalone()) {
-                alert('✅ Aplikasi sudah dipasang! Anda boleh buka dari skrin utama.');
-            } else {
-                // 尝试手动触发 - 对于某些浏览器，可能需要先访问 PWA
-                alert('⚠️ Sila muat semula halaman ini, kemudian klik butang semula.\n\nAtau buka Chrome menu → "Install app" / "Pasang Aplikasi"');
-                // 备用方案：直接跳转到 PWA 页面
-                window.location.href = 'https://bdpsemsira.github.io/semsiradigitalidf6';
-            }
-            return;
-        }
-        
-        // 显示加载状态
-        const btn = document.getElementById('installBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Memproses...';
-        btn.disabled = true;
-        
-        const successMsg = document.getElementById('successMsg');
-        if (successMsg) {
-            successMsg.style.display = 'block';
-            successMsg.innerText = '📲 Sedang memaparkan pop-up pemasangan...';
-        }
-        
-        // 显示安装提示
-        deferredPrompt.prompt();
-        
-        // 等待用户选择
-        const { outcome } = await deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-            console.log('✅ User accepted installation');
-            if (successMsg) {
-                successMsg.innerText = '✅ Memasang aplikasi... Sila tunggu sebentar.';
-            }
-        } else {
-            console.log('❌ User dismissed installation');
-            if (successMsg) {
-                successMsg.innerText = '❌ Pemasangan dibatalkan. Klik butang semula untuk cuba.';
-                setTimeout(() => {
-                    if (successMsg) successMsg.style.display = 'none';
-                }, 2000);
-            }
-        }
-        
-        // 恢复按钮
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        
-        // 清空 deferredPrompt，不能重复使用
-        deferredPrompt = null;
-        
-        setTimeout(() => {
-            if (successMsg && outcome !== 'accepted') {
-                successMsg.style.display = 'none';
-            }
-        }, 3000);
-    });
-
-    // 打开已安装的应用
-    document.getElementById('openAppBtn').addEventListener('click', () => {
+        // 安装成功后，跳转到应用
         window.location.href = 'https://bdpsemsira.github.io/semsiradigitalidf6';
     });
 
-    // 页面加载完成后的检查
-    window.addEventListener('load', () => {
-        // 如果已经安装了，显示打开按钮
-        if (isStandalone()) {
-            const installBtn = document.getElementById('installBtn');
-            const openAppBtn = document.getElementById('openAppBtn');
-            if (installBtn) installBtn.style.display = 'none';
-            if (openAppBtn) {
-                openAppBtn.style.display = 'flex';
-                openAppBtn.style.background = '#007AFF';
-            }
-            document.querySelector('.subtitle').innerHTML = '✅ Aplikasi sudah dipasang';
-        }
+    // 安装按钮点击 - 无任何弹窗提示
+    document.getElementById('installBtn').addEventListener('click', async () => {
+        if (isInstalling) return;
         
-        // 延迟检查，确保 beforeinstallprompt 有机会触发
-        setTimeout(() => {
-            if (!deferredPrompt && !isStandalone()) {
-                // 如果没有触发安装事件，可能是需要 HTTPS 或 manifest 问题
-                console.log('No install prompt detected - check manifest and HTTPS');
+        if (deferredPrompt) {
+            isInstalling = true;
+            const btn = document.getElementById('installBtn');
+            btn.disabled = true;
+            btn.innerText = '⏳ Memasang...';
+            
+            // 显示安装弹窗
+            deferredPrompt.prompt();
+            
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                // 用户点击安装，等待 appinstalled 事件跳转
+                btn.innerText = '✅ Berjaya!';
+            } else {
+                // 用户取消，恢复按钮
+                btn.disabled = false;
+                btn.innerText = '📲 Pasang Aplikasi';
+                isInstalling = false;
             }
-        }, 2000);
+            
+            deferredPrompt = null;
+        } else {
+            // 没有安装事件，静默失败 - 不显示任何提示
+            // 直接跳转到 PWA 页面
+            window.location.href = 'https://bdpsemsira.github.io/semsiradigitalidf6';
+        }
     });
 </script>
 </body>
