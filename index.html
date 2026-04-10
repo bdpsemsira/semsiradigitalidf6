@@ -23,6 +23,10 @@
             --border: rgba(200, 200, 200, 0.3);
             --text: #000000;
             --nav-bg: rgba(255, 255, 255, 0.9);
+            --calendar-weekend: #E5E5EA;
+            --calendar-hadir: #34C759;
+            --calendar-lewat: #FF9500;
+            --calendar-tidakhadir: #FF3B30;
         }
 
         /* 暗色模式变量 */
@@ -32,6 +36,7 @@
             --border: rgba(84, 84, 88, 0.5);
             --text: #FFFFFF;
             --nav-bg: rgba(28, 28, 30, 0.9);
+            --calendar-weekend: #2C2C2E;
         }
 
         /* 强制扫码页始终为亮色模式 */
@@ -289,6 +294,154 @@
             white-space: pre-wrap;
             line-height: 1.5;
         }
+
+        /* ========== 新增：Kalendar Kehadiran Bulanan 样式 ========== */
+        .calendar-panel {
+            margin-top: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .calendar-nav button {
+            width: auto;
+            padding: 8px 16px;
+            margin: 0;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .calendar-nav button:active {
+            transform: scale(0.96);
+        }
+        
+        .calendar-month-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--primary);
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--card);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 6px;
+            border: 1px solid var(--border);
+            transition: all 0.1s ease;
+        }
+        
+        .calendar-day.weekend {
+            background: var(--calendar-weekend);
+            opacity: 0.6;
+        }
+        
+        .calendar-day.empty {
+            background: transparent;
+            border: 1px dashed var(--border);
+            opacity: 0.4;
+        }
+        
+        .calendar-status {
+            font-size: 18px;
+            margin-top: 2px;
+        }
+        
+        .calendar-status.hadir {
+            color: var(--calendar-hadir);
+        }
+        
+        .calendar-status.lewat {
+            color: var(--calendar-lewat);
+        }
+        
+        .calendar-status.tidakhadir {
+            color: var(--calendar-tidakhadir);
+        }
+        
+        .calendar-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        
+        .legend-icon.hadir { background: var(--calendar-hadir); }
+        .legend-icon.lewat { background: var(--calendar-lewat); }
+        .legend-icon.tidakhadir { background: var(--calendar-tidakhadir); }
+        .legend-icon.weekend { background: var(--calendar-weekend); border: 1px solid var(--border); }
+        
+        .calendar-loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+        
+        @media (max-width: 500px) {
+            .calendar-day {
+                font-size: 11px;
+            }
+            .calendar-status {
+                font-size: 14px;
+            }
+            .calendar-weekdays {
+                font-size: 11px;
+            }
+        }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -422,6 +575,44 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            
+            <!-- ========== 新增：Laporan Kehadiran Bulanan ========== -->
+            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
+            <div class="calendar-panel">
+                <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">
+                    📅 Laporan Kehadiran Bulanan
+                </div>
+                
+                <div class="calendar-header">
+                    <div class="calendar-nav">
+                        <button onclick="changeMonth(-1)">◀</button>
+                        <span class="calendar-month-title" id="calendarMonthTitle">--</span>
+                        <button onclick="changeMonth(1)">▶</button>
+                    </div>
+                </div>
+                
+                <div class="calendar-weekdays">
+                    <span>Isn</span>
+                    <span>Sel</span>
+                    <span>Rab</span>
+                    <span>Kha</span>
+                    <span>Jum</span>
+                    <span style="color:#888;">Sab</span>
+                    <span style="color:#888;">Ahd</span>
+                </div>
+                
+                <div id="calendarDaysContainer" class="calendar-days">
+                    <div class="calendar-loading">Memuatkan kalendar...</div>
+                </div>
+                
+                <div class="calendar-legend">
+                    <div class="legend-item"><span class="legend-icon hadir"></span><span>Hadir</span></div>
+                    <div class="legend-item"><span class="legend-icon lewat"></span><span>Lewat</span></div>
+                    <div class="legend-item"><span class="legend-icon tidakhadir"></span><span>Tidak Hadir</span></div>
+                    <div class="legend-item"><span class="legend-icon weekend"></span><span>Sabtu/Ahad</span></div>
+                </div>
+            </div>
+            
             <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
             <p style="font-weight: bold; font-size: 14px;">Kemaskini maklumat:</p>
             <label style="font-size: 12px; color: #888;">Nama Penuh:</label>
@@ -481,6 +672,10 @@
     let isAttendedToday = false; 
     let attendanceListenerUnsubscribe = null;
     let isAudioUnlocked = false; 
+
+    // ========== 新增：Kalendar Kehadiran Bulanan 变量 ==========
+    let currentCalendarDate = new Date();
+    let currentAttendanceRecords = {}; // 格式: { "YYYY-MM-DD": { status: "Hadir"/"Lewat", time: "..." } }
 
     // 返回键历史管理
     let currentTabId = 'tab-home';
@@ -765,7 +960,6 @@
         btn.innerText = "Daftar";
     }
    
-    // ✅ 修复：处理 auth/invalid-credential 错误
     window.handleLogin = async () => {
         const email = document.getElementById('login-email').value;
         const pw = document.getElementById('login-pw').value;
@@ -775,25 +969,20 @@
             return;
         }
         
-        // 显示加载状态
         const loginBtn = document.querySelector('#page-login button');
         const originalText = loginBtn.innerText;
         loginBtn.disabled = true;
         loginBtn.innerText = "Sedang log masuk...";
         
         try { 
-            // 先尝试登录
             await signInWithEmailAndPassword(auth, email, pw);
-            // 登录成功后才显示成功消息
             toast("✅ Log masuk berjaya! Sedang beralih...");
         } catch (e) { 
-            // 根据错误类型显示友好消息
             if (e.code === 'auth/user-not-found') {
                 toast("❌ Akaun tidak wujud. Sila daftar terlebih dahulu.");
             } else if (e.code === 'auth/wrong-password') {
                 toast("❌ Kata laluan salah. Sila cuba lagi.");
             } else if (e.code === 'auth/invalid-credential') {
-                // ✅ 新增：处理 invalid-credential 错误
                 toast("❌ Akaun atau kata laluan yang salah.");
             } else if (e.code === 'auth/invalid-email') {
                 toast("❌ Format emel tidak sah.");
@@ -803,7 +992,6 @@
                 toast("❌ Gagal log masuk: " + e.message);
             }
         } finally {
-            // 恢复按钮状态
             loginBtn.disabled = false;
             loginBtn.innerText = originalText;
         }
@@ -837,7 +1025,13 @@
                     document.getElementById('main-app').style.display = 'block';
                     loadingOverlay.style.display = 'none';
                     applyWatermark(`${userData.name} (${userData.ic})`);
-                    loadHomeData(); setupAccountPage(); listenToAttendance(userData.ic);
+                    loadHomeData(); 
+                    setupAccountPage(); 
+                    listenToAttendance(userData.ic);
+                    
+                    // ========== 新增：加载月度日历数据 ==========
+                    loadMonthlyAttendanceData(userData.ic);
+                    
                     lucide.createIcons();
                     window.history.pushState({ tab: 'tab-home' }, '');
                 }, 1200);
@@ -1053,7 +1247,140 @@
         if (id === 'tab-scan') watermarkLayer.style.display = 'flex';
         else watermarkLayer.style.display = 'none';
         window.history.pushState({ tab: id }, '');
+        
+        // 当切换到 Akaun 页面时，刷新日历显示
+        if (id === 'tab-account' && window.currentUserData) {
+            renderCalendar();
+        }
     };
+
+    // ========== 新增：月度考勤数据加载和日历渲染 ==========
+    
+    async function loadMonthlyAttendanceData(studentIc) {
+        // 获取当前显示月份的开始和结束日期
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
+        
+        try {
+            const q = query(
+                collection(db, ATTENDANCE_LOGS),
+                where("ic", "==", studentIc),
+                where("date", ">=", startDate),
+                where("date", "<=", endDate)
+            );
+            const snapshot = await getDocs(q);
+            
+            // 清空当前记录
+            currentAttendanceRecords = {};
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                currentAttendanceRecords[data.date] = {
+                    status: data.status,
+                    time: data.time || data.timeFull || "--:--"
+                };
+            });
+            
+            // 渲染日历
+            renderCalendar();
+            
+        } catch (error) {
+            console.error("Error loading monthly attendance:", error);
+            const container = document.getElementById('calendarDaysContainer');
+            if (container) {
+                container.innerHTML = '<div class="calendar-loading">Gagal memuatkan data kehadiran</div>';
+            }
+        }
+    }
+    
+    function renderCalendar() {
+        const container = document.getElementById('calendarDaysContainer');
+        if (!container) return;
+        
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        
+        // 更新月份标题
+        const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", 
+                            "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+        document.getElementById('calendarMonthTitle').innerText = `${monthNames[month]} ${year}`;
+        
+        // 获取月份的第一天和最后一天
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = Ahad, 1 = Isnin...
+        
+        // 调整：使周一为第一天 (0->6, 1->0, 2->1, 3->2, 4->3, 5->4, 6->5)
+        let adjustedStart = (startDayOfWeek + 6) % 7;
+        
+        const daysInMonth = lastDayOfMonth.getDate();
+        
+        // 构建日历格子
+        let calendarHTML = '';
+        
+        // 填充空白格子
+        for (let i = 0; i < adjustedStart; i++) {
+            calendarHTML += `<div class="calendar-day empty"></div>`;
+        }
+        
+        // 填充日期格子
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month, day);
+            const dayOfWeek = dateObj.getDay(); // 0=Ahad, 6=Sabtu
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const attendance = currentAttendanceRecords[dateStr];
+            
+            let statusIcon = '';
+            let statusClass = '';
+            
+            if (isWeekend) {
+                // 周末不需要显示叉，只显示周末样式
+                statusIcon = '';
+                statusClass = '';
+            } else if (attendance) {
+                if (attendance.status === "Hadir") {
+                    statusIcon = '✅';
+                    statusClass = 'hadir';
+                } else if (attendance.status === "Lewat") {
+                    statusIcon = '✅';
+                    statusClass = 'lewat';
+                }
+            } else {
+                // 非周末且没有记录 =  tidak hadir
+                statusIcon = '❌';
+                statusClass = 'tidakhadir';
+            }
+            
+            const weekendClass = isWeekend ? 'weekend' : '';
+            
+            calendarHTML += `
+                <div class="calendar-day ${weekendClass}">
+                    <span>${day}</span>
+                    ${statusIcon ? `<div class="calendar-status ${statusClass}">${statusIcon}</div>` : '<div class="calendar-status" style="height: 24px;"></div>'}
+                </div>
+            `;
+        }
+        
+        container.innerHTML = calendarHTML;
+    }
+    
+    window.changeMonth = (delta) => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+        if (window.currentUserData && window.currentUserData.ic) {
+            loadMonthlyAttendanceData(window.currentUserData.ic);
+        } else {
+            renderCalendar();
+        }
+    };
+    
+    // 导出 renderCalendar 以便在数据更新后调用
+    window.renderCalendar = renderCalendar;
+    
 </script>
 </body>
 </html>
