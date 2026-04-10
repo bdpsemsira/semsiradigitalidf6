@@ -15,9 +15,29 @@
 
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- ========== OneSignal SDK 添加在此处 ========== -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(function(OneSignal) {
+            OneSignal.init({
+                appId: "80b74c34-0fe4-4a23-bcbf-a3709281d405",
+                safari_web_id: "",
+                allowLocalhostAsSecureOrigin: true,
+            });
+        });
+        
+        // 存储 OneSignal 是否已初始化完成
+        window.oneSignalReady = false;
+        window.OneSignalDeferred.push(function() {
+            window.oneSignalReady = true;
+        });
+    </script>
+    <!-- ========== OneSignal SDK 添加结束 ========== -->
+    
     <style>
-        /* 所有 CSS 保持不变，省略以节省空间... */
-        /* 请使用之前的完整 CSS */
+        /* 所有 CSS 保持不变 */
         :root {
             --primary: #007AFF;
             --bg: #F2F2F7;
@@ -1289,6 +1309,151 @@
         }, 500);
     }, 1500);
     
+    // ========== 增强版 sendNotification 函数（同时支持普通 Notification 和 OneSignal）==========
+    // 保存原始函数引用，然后覆盖增强它
+    const originalSendNotification = window.sendNotification;
+    window.sendNotification = function(title, body, postId) {
+        // 检查通知是否启用
+        if (!notificationEnabled) return;
+        
+        // ===== 1. 普通浏览器 Notification（保留原有功能）=====
+        if (Notification.permission === "granted") {
+            try {
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: "/semsira.png",
+                    badge: "/semsira.png",
+                    vibrate: [200, 100, 200],
+                    tag: postId,
+                    requireInteraction: true
+                });
+                
+                notification.onclick = function() {
+                    window.focus();
+                    const homeNav = document.querySelector('.nav-item[onclick*="tab-home"]');
+                    if (homeNav) window.switchTab('tab-home', homeNav);
+                    notification.close();
+                };
+            } catch(e) {
+                console.log("普通通知失败:", e);
+            }
+        }
+        
+        // ===== 2. OneSignal 推送（用于 APK 打包后的原生推送）=====
+        if (window.OneSignal && window.oneSignalReady) {
+            try {
+                // 通过 OneSignal 发送通知
+                window.OneSignal.Deferred?.push(async function(OneSignal) {
+                    // 先确保用户已订阅
+                    const isSubscribed = await OneSignal.User.PushSubscription.getOptedIn();
+                    if (!isSubscribed) {
+                        // 如果未订阅，尝试弹出订阅请求
+                        await OneSignal.Slidedown.promptPush();
+                    }
+                    
+                    // 发送通知（OneSignal 会自动处理原生推送）
+                    await OneSignal.Notifications.addNotification({
+                        title: title,
+                        message: body,
+                        icon: "https://bdpsemsira.github.io/semsiradigitalidf6/semsira.png",
+                        data: { postId: postId, url: "semsira://home" }
+                    });
+                    
+                    // 同时发送标签用于后续精准推送
+                    await OneSignal.User.addTags({
+                        "last_notification_title": title,
+                        "last_notification_time": new Date().toISOString()
+                    });
+                });
+            } catch(e) {
+                console.log("OneSignal 通知失败:", e);
+            }
+        }
+        
+        // ===== 3. 显示角标（原有功能）=====
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            badge.style.display = 'flex';
+            setTimeout(() => {
+                badge.style.display = 'none';
+            }, 5000);
+        }
+    };
+    
+    // 确保原函数没有被覆盖时也能正常工作
+    if (typeof originalSendNotification === 'undefined') {
+        console.log("原始 sendNotification 未定义，使用增强版");
+    }
+    // ========== sendNotification 增强结束 ==========
+    
+    // ========== 增强版 requestNotificationPermission（同时请求浏览器和 OneSignal 权限）==========
+    const originalRequestPermission = window.requestNotificationPermission;
+    async function enhancedRequestNotificationPermission() {
+        // 1. 请求浏览器通知权限
+        if ("Notification" in window) {
+            if (Notification.permission === "granted") {
+                notificationPermissionGranted = true;
+            } else if (Notification.permission !== "denied") {
+                const permission = await Notification.requestPermission();
+                notificationPermissionGranted = (permission === "granted");
+            }
+        }
+        
+        // 2. 请求 OneSignal 推送权限（仅当 OneSignal 可用时）
+        if (window.OneSignal && window.oneSignalReady) {
+            try {
+                window.OneSignal.Deferred?.push(async function(OneSignal) {
+                    const isSubscribed = await OneSignal.User.PushSubscription.getOptedIn();
+                    if (!isSubscribed) {
+                        await OneSignal.Slidedown.promptPush();
+                    }
+                });
+            } catch(e) {
+                console.log("OneSignal 权限请求失败:", e);
+            }
+        }
+        
+        // 3. 移除提示区域
+        const promptArea = document.getElementById('notification-prompt-area');
+        if (promptArea) {
+            promptArea.innerHTML = '';
+        }
+        
+        if (notificationPermissionGranted) {
+            toast("✅ Notifikasi diaktifkan! Anda akan terima notifikasi untuk pengumuman baru.");
+        }
+    }
+    window.requestNotificationPermission = enhancedRequestNotificationPermission;
+    
+    // 覆盖 enableNotifications 函数
+    window.enableNotifications = async function() {
+        await enhancedRequestNotificationPermission();
+    };
+    // ========== 权限请求增强结束 ==========
+    
+    // ========== 用户登录后设置 OneSignal 外部用户 ID ==========
+    async function setupOneSignalForUser(user, userData) {
+        if (window.OneSignal && window.oneSignalReady && user && userData) {
+            try {
+                window.OneSignal.Deferred?.push(async function(OneSignal) {
+                    // 设置外部用户 ID（用于关联 Firebase 用户）
+                    await OneSignal.login(user.uid);
+                    // 添加用户标签，方便后续精准推送
+                    await OneSignal.User.addTags({
+                        "student_name": userData.name || "",
+                        "student_class": userData.className || "",
+                        "student_ic": userData.ic || "",
+                        "student_semester": userData.semester || "1"
+                    });
+                    console.log("OneSignal 用户已设置:", user.uid);
+                });
+            } catch(e) {
+                console.log("OneSignal 设置用户失败:", e);
+            }
+        }
+    }
+    // ========== OneSignal 用户设置结束 ==========
+    
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
         const splash = document.getElementById('splash-screen');
@@ -1301,6 +1466,10 @@
                 const userData = snap.data();
                 if (!(await verifyDevice(user, userData))) { loadingOverlay.style.display = 'none'; return; }
                 window.currentUserData = userData;
+                
+                // 设置 OneSignal 用户信息
+                await setupOneSignalForUser(user, userData);
+                
                 setTimeout(() => {
                     document.getElementById('page-login').classList.remove('active');
                     document.getElementById('page-register').classList.remove('active');
@@ -1308,7 +1477,8 @@
                     loadingOverlay.style.display = 'none';
                     applyWatermark(`${userData.name} (${userData.ic})`);
                     
-                    requestNotificationPermission();
+                    // 使用增强版权限请求
+                    enhancedRequestNotificationPermission();
                     startNotificationChecker();
                     loadHomeData(); 
                     setupAccountPage(); 
@@ -1330,6 +1500,15 @@
             document.getElementById('page-login').classList.add('active');
             document.getElementById('page-register').classList.remove('active');
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
+            
+            // 用户登出时清除 OneSignal 用户 ID
+            if (window.OneSignal && window.oneSignalReady) {
+                try {
+                    window.OneSignal.Deferred?.push(async function(OneSignal) {
+                        await OneSignal.logout();
+                    });
+                } catch(e) {}
+            }
         }
     });
 
@@ -1346,74 +1525,8 @@
         setTimeout(() => div.remove(), 2500);
     }
     
-    async function requestNotificationPermission() {
-        if (!("Notification" in window)) {
-            console.log("Browser tidak support notification");
-            return;
-        }
-        
-        if (Notification.permission === "granted") {
-            notificationPermissionGranted = true;
-            return;
-        }
-        
-        if (Notification.permission !== "denied") {
-            const promptArea = document.getElementById('notification-prompt-area');
-            if (promptArea) {
-                promptArea.innerHTML = `
-                    <div class="notification-prompt">
-                        <span>🔔 Aktifkan notifikasi untuk pengumuman baru?</span>
-                        <button onclick="enableNotifications()">Ya, Aktifkan</button>
-                    </div>
-                `;
-            }
-        }
-    }
-    
-    window.enableNotifications = async function() {
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                notificationPermissionGranted = true;
-                toast("✅ Notifikasi diaktifkan! Anda akan terima notifikasi untuk pengumuman baru.");
-                document.getElementById('notification-prompt-area').innerHTML = '';
-            } else {
-                toast("❌ Notifikasi tidak diaktifkan. Anda boleh aktifkan dalam tetapan pelayar.");
-            }
-        } catch (error) {
-            console.error("Notification permission error:", error);
-        }
-    };
-    
-    function sendNotification(title, body, postId) {
-        if (!notificationEnabled || !notificationPermissionGranted) return;
-        
-        if (Notification.permission === "granted") {
-            const notification = new Notification(title, {
-                body: body,
-                icon: "/semsira.png",
-                badge: "/semsira.png",
-                vibrate: [200, 100, 200],
-                tag: postId,
-                requireInteraction: true
-            });
-            
-            notification.onclick = function() {
-                window.focus();
-                const homeNav = document.querySelector('.nav-item[onclick*="tab-home"]');
-                if (homeNav) window.switchTab('tab-home', homeNav);
-                notification.close();
-            };
-            
-            const badge = document.getElementById('notificationBadge');
-            if (badge) {
-                badge.style.display = 'flex';
-                setTimeout(() => {
-                    badge.style.display = 'none';
-                }, 5000);
-            }
-        }
-    }
+    // 注意：requestNotificationPermission 和 enableNotifications 已被上面的增强版覆盖
+    // 但为了兼容性，保留原函数名，实际调用的是增强版
     
     function startNotificationChecker() {
         if (notificationCheckInterval) clearInterval(notificationCheckInterval);
@@ -1438,7 +1551,8 @@
                     if (storedLastId && latestPostId > parseInt(storedLastId)) {
                         const title = `📢 Pengumuman Baru: ${latestPost.title.substring(0, 50)}`;
                         const body = latestPost.body.replace(/[#*`]/g, '').substring(0, 100);
-                        sendNotification(title, body, latestPostId);
+                        // 调用增强版 sendNotification（同时支持普通和 OneSignal）
+                        window.sendNotification(title, body, latestPostId);
                         highlightNewPost(latestPostId);
                     }
                     
