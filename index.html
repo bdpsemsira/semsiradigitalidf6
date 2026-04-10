@@ -1291,7 +1291,12 @@
                     // Load monthly calendar data
                     loadMonthlyAttendanceData(userData.ic);
                     
-                    lucide.createIcons();
+                    try {
+                        lucide.createIcons();
+                    } catch(e) {
+                        console.log("Lucide icons offline - using fallback");
+                    }
+                    
                     window.history.pushState({ tab: 'tab-home' }, '');
                 }, 1200);
             }
@@ -1588,7 +1593,7 @@
             applyWatermark(`${newName} (${window.currentUserData.ic})`); 
             alert("Berjaya!");
         } catch(e) { alert(e.message); }
-    }
+    };
 
     // ========== Enhanced Image Modal with Pinch Zoom and Download ==========
     
@@ -1615,7 +1620,9 @@
         }
         
         modal.classList.add('active-modal');
-        lucide.createIcons();
+        try {
+            lucide.createIcons();
+        } catch(e) {}
         
         // Setup touch events for pinch zoom
         setupPinchZoom(modalImg);
@@ -1746,21 +1753,47 @@
         document.getElementById(id).classList.add('active'); 
     };
 
+    // ========== 修复离线模式页面切换问题 ==========
+    // 保持原有的 switchTab 逻辑，只添加 try-catch 保护
     window.switchTab = (id, el) => {
-        unlockAudio();
-        currentTabId = id;
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
-        el.classList.add('active-nav');
-        const watermarkLayer = document.getElementById('watermark-layer');
-        if (id === 'tab-scan') watermarkLayer.style.display = 'flex';
-        else watermarkLayer.style.display = 'none';
-        window.history.pushState({ tab: id }, '');
-        
-        // Refresh calendar when switching to account tab
-        if (id === 'tab-account' && window.currentUserData) {
-            renderCalendar();
+        try {
+            unlockAudio();
+            currentTabId = id;
+            
+            // 切换页面
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            // 切换导航栏
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+            el.classList.add('active-nav');
+            
+            // 水印
+            const watermarkLayer = document.getElementById('watermark-layer');
+            if (watermarkLayer) {
+                if (id === 'tab-scan') watermarkLayer.style.display = 'flex';
+                else watermarkLayer.style.display = 'none';
+            }
+            
+            // 历史记录
+            window.history.pushState({ tab: id }, '');
+            
+            // 刷新日历（只在有数据时，离线时跳过）
+            if (id === 'tab-account' && window.currentUserData) {
+                try {
+                    if (typeof renderCalendar === 'function') {
+                        renderCalendar();
+                    }
+                } catch(e) {
+                    console.log("Calendar render offline skipped");
+                }
+            }
+        } catch(error) {
+            console.error("Tab switch error:", error);
+            // 降级处理：强制显示页面
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if (el) el.classList.add('active-nav');
         }
     };
 
