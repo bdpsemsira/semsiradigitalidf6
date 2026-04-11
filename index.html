@@ -895,6 +895,7 @@
     let isAttendedToday = false; 
     let attendanceListenerUnsubscribe = null;
     let isAudioUnlocked = false; 
+    let cachedIC = null; // 缓存IC用于离线QR生成
 
     let currentCalendarDate = new Date();
     let currentAttendanceRecords = {};
@@ -917,12 +918,9 @@
     window.addEventListener('popstate', handleBackButton);
 
     // ========== 核心修复：离线可用的页面切换函数 ==========
-    // 这个函数不依赖任何外部资源，只做纯 DOM 操作
     window.switchTab = function(id, el) {
-        // 直接执行，不用 try-catch 阻塞
         console.log("Switching to tab:", id);
         
-        // 1. 切换页面 (纯 DOM 操作)
         const pages = ['tab-home', 'tab-scan', 'tab-account'];
         for (let i = 0; i < pages.length; i++) {
             const page = document.getElementById(pages[i]);
@@ -935,7 +933,6 @@
             }
         }
         
-        // 2. 切换导航栏激活状态
         const navItems = document.querySelectorAll('.nav-item');
         for (let i = 0; i < navItems.length; i++) {
             navItems[i].classList.remove('active-nav');
@@ -944,16 +941,13 @@
             el.classList.add('active-nav');
         }
         
-        // 3. 水印处理
         const watermarkLayer = document.getElementById('watermark-layer');
         if (watermarkLayer) {
             watermarkLayer.style.display = id === 'tab-scan' ? 'flex' : 'none';
         }
         
-        // 4. 更新当前标签 ID
         currentTabId = id;
         
-        // 5. 历史记录（不影响切换）
         try {
             window.history.pushState({ tab: id }, '');
         } catch(e) {}
@@ -978,7 +972,6 @@
         } else {
             const homeNav = document.querySelector('.nav-item[onclick*="tab-home"]');
             if (homeNav) {
-                // 直接调用 switchTab，不用 onclick 触发
                 window.switchTab('tab-home', homeNav);
             }
             window.history.pushState({ tab: 'tab-home' }, '');
@@ -1147,13 +1140,18 @@
     const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'sumayyah', 'ummukalthom', 'zainab'];
 
     async function getSemesterForClass(className) {
-        const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
-        const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
-        let semK1 = k1Snap.exists() ? k1Snap.data().semester : "1";
-        let semK2 = k2Snap.exists() ? k2Snap.data().semester : "1";
-        let classNameLower = className.toLowerCase();
-        let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
-        return isK1 ? semK1 : semK2;
+        try {
+            const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
+            const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
+            let semK1 = k1Snap.exists() ? k1Snap.data().semester : "1";
+            let semK2 = k2Snap.exists() ? k2Snap.data().semester : "1";
+            let classNameLower = className.toLowerCase();
+            let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
+            return isK1 ? semK1 : semK2;
+        } catch(e) {
+            console.warn("Offline: using default semester");
+            return "1";
+        }
     }
 
     function applyWatermark(info) {
@@ -1309,14 +1307,10 @@
         }, 500);
     }, 1500);
     
-    // ========== 增强版 sendNotification 函数（同时支持普通 Notification 和 OneSignal）==========
-    // 保存原始函数引用，然后覆盖增强它
-    const originalSendNotification = window.sendNotification;
+    // ========== 增强版 sendNotification 函数 ==========
     window.sendNotification = function(title, body, postId) {
-        // 检查通知是否启用
         if (!notificationEnabled) return;
         
-        // ===== 1. 普通浏览器 Notification（保留原有功能）=====
         if (Notification.permission === "granted") {
             try {
                 const notification = new Notification(title, {
@@ -1339,19 +1333,14 @@
             }
         }
         
-        // ===== 2. OneSignal 推送（用于 APK 打包后的原生推送）=====
         if (window.OneSignal && window.oneSignalReady) {
             try {
-                // 通过 OneSignal 发送通知
                 window.OneSignal.Deferred?.push(async function(OneSignal) {
-                    // 先确保用户已订阅
                     const isSubscribed = await OneSignal.User.PushSubscription.getOptedIn();
                     if (!isSubscribed) {
-                        // 如果未订阅，尝试弹出订阅请求
                         await OneSignal.Slidedown.promptPush();
                     }
                     
-                    // 发送通知（OneSignal 会自动处理原生推送）
                     await OneSignal.Notifications.addNotification({
                         title: title,
                         message: body,
@@ -1359,7 +1348,6 @@
                         data: { postId: postId, url: "semsira://home" }
                     });
                     
-                    // 同时发送标签用于后续精准推送
                     await OneSignal.User.addTags({
                         "last_notification_title": title,
                         "last_notification_time": new Date().toISOString()
@@ -1370,7 +1358,6 @@
             }
         }
         
-        // ===== 3. 显示角标（原有功能）=====
         const badge = document.getElementById('notificationBadge');
         if (badge) {
             badge.style.display = 'flex';
@@ -1380,16 +1367,8 @@
         }
     };
     
-    // 确保原函数没有被覆盖时也能正常工作
-    if (typeof originalSendNotification === 'undefined') {
-        console.log("原始 sendNotification 未定义，使用增强版");
-    }
-    // ========== sendNotification 增强结束 ==========
-    
-    // ========== 增强版 requestNotificationPermission（同时请求浏览器和 OneSignal 权限）==========
-    const originalRequestPermission = window.requestNotificationPermission;
+    // ========== 增强版 requestNotificationPermission ==========
     async function enhancedRequestNotificationPermission() {
-        // 1. 请求浏览器通知权限
         if ("Notification" in window) {
             if (Notification.permission === "granted") {
                 notificationPermissionGranted = true;
@@ -1399,7 +1378,6 @@
             }
         }
         
-        // 2. 请求 OneSignal 推送权限（仅当 OneSignal 可用时）
         if (window.OneSignal && window.oneSignalReady) {
             try {
                 window.OneSignal.Deferred?.push(async function(OneSignal) {
@@ -1413,7 +1391,6 @@
             }
         }
         
-        // 3. 移除提示区域
         const promptArea = document.getElementById('notification-prompt-area');
         if (promptArea) {
             promptArea.innerHTML = '';
@@ -1425,20 +1402,15 @@
     }
     window.requestNotificationPermission = enhancedRequestNotificationPermission;
     
-    // 覆盖 enableNotifications 函数
     window.enableNotifications = async function() {
         await enhancedRequestNotificationPermission();
     };
-    // ========== 权限请求增强结束 ==========
     
-    // ========== 用户登录后设置 OneSignal 外部用户 ID ==========
     async function setupOneSignalForUser(user, userData) {
         if (window.OneSignal && window.oneSignalReady && user && userData) {
             try {
                 window.OneSignal.Deferred?.push(async function(OneSignal) {
-                    // 设置外部用户 ID（用于关联 Firebase 用户）
                     await OneSignal.login(user.uid);
-                    // 添加用户标签，方便后续精准推送
                     await OneSignal.User.addTags({
                         "student_name": userData.name || "",
                         "student_class": userData.className || "",
@@ -1452,8 +1424,8 @@
             }
         }
     }
-    // ========== OneSignal 用户设置结束 ==========
     
+    // ========== 离线优先的登录状态处理 ==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
         const splash = document.getElementById('splash-screen');
@@ -1461,39 +1433,83 @@
         
         if (user) {
             loadingOverlay.style.display = 'flex';
-            const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
-            if (snap.exists()) {
-                const userData = snap.data();
-                if (!(await verifyDevice(user, userData))) { loadingOverlay.style.display = 'none'; return; }
-                window.currentUserData = userData;
-                
-                // 设置 OneSignal 用户信息
-                await setupOneSignalForUser(user, userData);
-                
-                setTimeout(() => {
-                    document.getElementById('page-login').classList.remove('active');
-                    document.getElementById('page-register').classList.remove('active');
-                    document.getElementById('main-app').style.display = 'block';
+            
+            // 先尝试从本地缓存加载用户数据
+            const cachedUserData = localStorage.getItem('semsira_cached_user_' + user.uid);
+            let userData = null;
+            let isOffline = false;
+            
+            try {
+                const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
+                if (snap.exists()) {
+                    userData = snap.data();
+                    // 缓存用户数据用于离线
+                    localStorage.setItem('semsira_cached_user_' + user.uid, JSON.stringify(userData));
+                    // 缓存IC用于离线QR生成
+                    cachedIC = userData.ic;
+                    localStorage.setItem('semsira_cached_ic', userData.ic);
+                } else {
+                    throw new Error("User data not found");
+                }
+            } catch (e) {
+                console.warn("Offline or error, using cached data:", e);
+                isOffline = true;
+                if (cachedUserData) {
+                    userData = JSON.parse(cachedUserData);
+                    cachedIC = userData.ic;
+                } else {
                     loadingOverlay.style.display = 'none';
-                    applyWatermark(`${userData.name} (${userData.ic})`);
-                    
-                    // 使用增强版权限请求
-                    enhancedRequestNotificationPermission();
-                    startNotificationChecker();
-                    loadHomeData(); 
-                    setupAccountPage(); 
-                    listenToAttendance(userData.ic);
-                    loadMonthlyAttendanceData(userData.ic);
-                    
-                    try {
-                        lucide.createIcons();
-                    } catch(e) {
-                        console.log("Lucide icons offline");
-                    }
-                    
-                    window.history.pushState({ tab: 'tab-home' }, '');
-                }, 1200);
+                    alert("Gagal memuatkan data. Sila pastikan sambungan internet dan cuba lagi.");
+                    handleLogout();
+                    return;
+                }
             }
+            
+            if (!(await verifyDevice(user, userData))) { 
+                loadingOverlay.style.display = 'none'; 
+                return; 
+            }
+            window.currentUserData = userData;
+            
+            await setupOneSignalForUser(user, userData);
+            
+            setTimeout(() => {
+                document.getElementById('page-login').classList.remove('active');
+                document.getElementById('page-register').classList.remove('active');
+                document.getElementById('main-app').style.display = 'block';
+                loadingOverlay.style.display = 'none';
+                applyWatermark(`${userData.name} (${userData.ic})`);
+                
+                enhancedRequestNotificationPermission();
+                
+                // 只有在在线时才启动通知检查器和加载网络数据
+                if (!isOffline) {
+                    startNotificationChecker();
+                    loadHomeData();
+                } else {
+                    // 离线模式：显示缓存内容或提示
+                    const announcementsList = document.getElementById('announcements-list');
+                    if (announcementsList) {
+                        announcementsList.innerHTML = '<div class="glass" style="padding:15px; text-align:center;">📱 Mod Offline - Pengumuman tidak tersedia</div>';
+                    }
+                    const posterSlider = document.getElementById('poster-slider');
+                    if (posterSlider) {
+                        posterSlider.innerHTML = '<div class="glass" style="display:flex; align-items:center; justify-content:center; height:100%;">📱 Mod Offline</div>';
+                    }
+                }
+                
+                setupAccountPage();
+                listenToAttendance(userData.ic);
+                loadMonthlyAttendanceData(userData.ic);
+                
+                try {
+                    lucide.createIcons();
+                } catch(e) {
+                    console.log("Lucide icons offline");
+                }
+                
+                window.history.pushState({ tab: 'tab-home' }, '');
+            }, 500);
         } else {
             loadingOverlay.style.display = 'none';
             document.getElementById('main-app').style.display = 'none';
@@ -1501,7 +1517,6 @@
             document.getElementById('page-register').classList.remove('active');
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
             
-            // 用户登出时清除 OneSignal 用户 ID
             if (window.OneSignal && window.oneSignalReady) {
                 try {
                     window.OneSignal.Deferred?.push(async function(OneSignal) {
@@ -1525,9 +1540,6 @@
         setTimeout(() => div.remove(), 2500);
     }
     
-    // 注意：requestNotificationPermission 和 enableNotifications 已被上面的增强版覆盖
-    // 但为了兼容性，保留原函数名，实际调用的是增强版
-    
     function startNotificationChecker() {
         if (notificationCheckInterval) clearInterval(notificationCheckInterval);
         
@@ -1537,6 +1549,7 @@
             try {
                 const repo = "bdpsemsira/bdpsemsira.github.io";
                 const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&labels=post&t=${new Date().getTime()}`);
+                if (!res.ok) return;
                 const issues = await res.json();
                 
                 const posts = issues.filter(issue => 
@@ -1551,7 +1564,6 @@
                     if (storedLastId && latestPostId > parseInt(storedLastId)) {
                         const title = `📢 Pengumuman Baru: ${latestPost.title.substring(0, 50)}`;
                         const body = latestPost.body.replace(/[#*`]/g, '').substring(0, 100);
-                        // 调用增强版 sendNotification（同时支持普通和 OneSignal）
                         window.sendNotification(title, body, latestPostId);
                         highlightNewPost(latestPostId);
                     }
@@ -1615,6 +1627,9 @@
                 qrcEl.style.opacity = "1";
                 instEl.innerText = "Sila tunjukkan kod QR ini kepada guru bertugas.";
             }
+        }, (error) => {
+            // 离线时忽略Firestore错误，继续使用本地状态
+            console.warn("Attendance listener offline, keeping local state");
         });
     }
 
@@ -1622,6 +1637,7 @@
         const repo = "bdpsemsira/bdpsemsira.github.io";
         try {
             const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&t=${new Date().getTime()}`);
+            if (!res.ok) throw new Error("Network error");
             const issues = await res.json();
             const slider = document.getElementById('poster-slider');
             const list = document.getElementById('announcements-list');
@@ -1659,18 +1675,54 @@
             bindImageClickEvents();
             const observer = new MutationObserver(() => bindImageClickEvents());
             observer.observe(list, { childList: true, subtree: true });
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error(e);
+            const list = document.getElementById('announcements-list');
+            if (list && list.innerHTML === "Memuatkan...") {
+                list.innerHTML = '<div class="glass" style="padding:15px; text-align:center;">⚠️ Gagal memuatkan pengumuman. Sila semak sambungan internet.</div>';
+            }
+        }
     }
 
     let qr;
+    // ========== 修复：离线QR生成，完全使用本地缓存IC和当前时间戳 ==========
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
-        if (!qr) { qr = new QRCode(qrContainer, { width: 200, height: 200 }); }
+        if (!qr) { 
+            qr = new QRCode(qrContainer, { width: 200, height: 200 }); 
+        }
         const updateQR = () => {
-            if (isAttendedToday) { if(qrUpdateInterval) clearInterval(qrUpdateInterval); return; }
+            if (isAttendedToday) { 
+                if(qrUpdateInterval) clearInterval(qrUpdateInterval); 
+                return; 
+            }
+            
+            // 获取IC：优先使用缓存，然后从userData获取，最后从localStorage获取
+            let ic = cachedIC;
+            if (!ic && window.currentUserData && window.currentUserData.ic) {
+                ic = window.currentUserData.ic;
+                cachedIC = ic;
+                localStorage.setItem('semsira_cached_ic', ic);
+            }
+            if (!ic) {
+                ic = localStorage.getItem('semsira_cached_ic');
+            }
+            if (!ic) {
+                console.warn("No IC available for QR generation");
+                return;
+            }
+            
+            // 生成时间戳（完全本地，不依赖网络）
             const now = new Date();
-            const ts = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
-            qr.makeCode(`${window.currentUserData.ic}|${ts}`);
+            const ts = now.getFullYear() + 
+                       String(now.getMonth() + 1).padStart(2, '0') + 
+                       String(now.getDate()).padStart(2, '0') + 
+                       String(now.getHours()).padStart(2, '0') + 
+                       String(now.getMinutes()).padStart(2, '0') + 
+                       String(now.getSeconds()).padStart(2, '0');
+            
+            const qrData = `${ic}|${ts}`;
+            qr.makeCode(qrData);
             document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
         };
         updateQR(); 
@@ -1680,9 +1732,9 @@
 
     function setupAccountPage() {
         const d = window.currentUserData;
-        document.getElementById('prof-id').innerText = d.studentId;
-        document.getElementById('prof-name').innerText = d.name;
-        document.getElementById('prof-ic').innerText = d.ic;
+        document.getElementById('prof-id').innerText = d.studentId || "-";
+        document.getElementById('prof-name').innerText = d.name || "-";
+        document.getElementById('prof-ic').innerText = d.ic || "-";
         document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
         document.getElementById('prof-vehicle').innerText = d.vehicleNo || "Tiada";
         document.getElementById('upd-name').value = d.name || "";
@@ -1690,7 +1742,7 @@
         document.getElementById('upd-phone').value = d.phone || "";
         document.getElementById('upd-address').value = d.address || "";
         document.getElementById('upd-vehicle').value = d.vehicleNo || "";
-        document.getElementById('upd-class').value = d.className;
+        document.getElementById('upd-class').value = d.className || "";
     }
 
     window.updateProfile = async () => {
@@ -1719,6 +1771,12 @@
             window.currentUserData.semester = newSemester; 
             window.currentUserData.address = newAddress;
             window.currentUserData.vehicleNo = newVehicle;
+            // 更新缓存
+            localStorage.setItem('semsira_cached_user_' + auth.currentUser.uid, JSON.stringify(window.currentUserData));
+            if (window.currentUserData.ic) {
+                cachedIC = window.currentUserData.ic;
+                localStorage.setItem('semsira_cached_ic', cachedIC);
+            }
             setupAccountPage(); 
             applyWatermark(`${newName} (${window.currentUserData.ic})`); 
             alert("Berjaya!");
@@ -1896,10 +1954,7 @@
             
         } catch (error) {
             console.error("Error loading monthly attendance:", error);
-            const container = document.getElementById('calendarDaysContainer');
-            if (container) {
-                container.innerHTML = '<div class="calendar-loading">Gagal memuatkan data kehadiran</div>';
-            }
+            renderCalendar(); // 即使失败也渲染日历（离线模式）
         }
     }
     
@@ -1990,6 +2045,12 @@
     };
     
     window.renderCalendar = renderCalendar;
+    
+    // 预加载缓存的IC
+    const cachedIcFromStorage = localStorage.getItem('semsira_cached_ic');
+    if (cachedIcFromStorage) {
+        cachedIC = cachedIcFromStorage;
+    }
     
 </script>
 </body>
