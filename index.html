@@ -1416,9 +1416,12 @@
     }
 
     window.handleLogout = () => { 
-        if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe(); 
-        if(notificationCheckInterval) clearInterval(notificationCheckInterval);
-        signOut(auth).then(() => location.reload()); 
+        // 添加确认对话框
+        if (confirm("Anda pasti mahu log keluar?")) {
+            if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe(); 
+            if(notificationCheckInterval) clearInterval(notificationCheckInterval);
+            signOut(auth).then(() => location.reload());
+        }
     }
     
     window.toggleNotificationSetting = () => {
