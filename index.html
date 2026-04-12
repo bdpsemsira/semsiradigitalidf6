@@ -641,6 +641,104 @@
                 font-size: 9px;
             }
         }
+
+        /* ========== 新增请假按钮和模态框样式 ========== */
+        .leave-btn {
+            background-color: #FF9500;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .leave-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .leave-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 30000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .leave-modal-content {
+            width: 90%;
+            max-width: 350px;
+            background: var(--card);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .leave-modal-content h4 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            font-size: 18px;
+        }
+        
+        .leave-modal-content select,
+        .leave-modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .leave-modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            box-sizing: border-box;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .leave-modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .leave-modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            margin: 0;
+        }
+        
+        .leave-modal-buttons .cancel-btn {
+            background: #8E8E93;
+        }
+        
+        .toast-message {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 40000;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -724,6 +822,32 @@
     </div>
 </div>
 
+<!-- ========== 新增请假模态框 ========== -->
+<div id="leaveModal" class="leave-modal">
+    <div class="leave-modal-content">
+        <h4>📋 Permohonan Cuti / Keizinan Tidak Hadir</h4>
+        <label style="font-size:13px; color:#888;">Tarikh Cuti:</label>
+        <input type="date" id="leave-date">
+        <label style="font-size:13px; color:#888;">Sebab / Alasan:</label>
+        <select id="leave-reason">
+            <option value="URUSAN KELUARGA">URUSAN KELUARGA</option>
+            <option value="URUSAN DIRI">URUSAN DIRI</option>
+            <option value="TIDAK SIHAT">TIDAK SIHAT (Sakit)</option>
+            <option value="DEMAM">DEMAM</option>
+            <option value="SELESEMA">SELESEMA / BATUK</option>
+            <option value="KEMERGIAN KELUARGA">KEMERGIAN KELUARGA</option>
+            <option value="URUSAN PENTING">URUSAN PENTING</option>
+            <option value="LAIN-LAIN">LAIN-LAIN</option>
+        </select>
+        <label style="font-size:13px; color:#888;">Keterangan Tambahan (Optional):</label>
+        <textarea id="leave-details" rows="2" placeholder="Contoh: Ada temujanji doktor, urusan keluarga, dll..."></textarea>
+        <div class="leave-modal-buttons">
+            <button class="cancel-btn" onclick="closeLeaveModal()">Batal</button>
+            <button onclick="submitLeaveRequest()">Hantar</button>
+        </div>
+    </div>
+</div>
+
 <div id="main-app" style="display:none">
     <div id="tab-home" class="page active">
         <div class="header-container">
@@ -771,6 +895,12 @@
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
             <div class="profile-label"><span>Semester:</span> <b id="prof-sem">-</b></div>
             <div class="profile-label"><span>No. Kenderaan:</span> <b id="prof-vehicle">-</b></div>
+            
+            <!-- ========== 新增请假按钮 ========== -->
+            <button class="leave-btn" onclick="openLeaveModal()">
+                <i data-lucide="calendar-x" style="width: 18px; height: 18px;"></i> 📋 Mohon Cuti / Tidak Hadir
+            </button>
+            
             <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
             <div class="setting-item">
                 <span style="font-size: 14px; font-weight: 600;">Dark Mode</span>
@@ -889,6 +1019,7 @@
     const COLLECTION_NAME = "studentInform";
     const SETTINGS_COLLECTION = "systemSettings";
     const ATTENDANCE_LOGS = "attendanceLogs";
+    const TEACHER_COL = "classSettings";
 
     window.currentUserData = null;
     let qrUpdateInterval = null;
@@ -1425,6 +1556,160 @@
         }
     }
     
+    // ========== 新增：发送请假信息到老师 Telegram ==========
+    async function sendLeaveNotificationToTeacher(leaveDate, reason, details) {
+        const user = auth.currentUser;
+        if (!user || !window.currentUserData) {
+            toast("❌ Ralat: Data pengguna tidak ditemui");
+            return false;
+        }
+        
+        const studentData = window.currentUserData;
+        const className = studentData.className || "";
+        
+        // 班级名称映射（匹配 teacher 集合中的班级名称）
+        const classMapping = {
+            '6 AISHAH': 'Aishah', '6 FATIMAH': 'Fatimah', '6 KHADIJAH': 'Khadijah',
+            '6 RUQAYYAH': 'Ruqayyah', '6 SARAH': 'Sarah', '6 SUMAYYAH': 'Sumayyah',
+            '6 UMMU KALTHOM': 'Ummukalthom', '6 ZAINAB': 'Zainab',
+            '6 AL FARABI': 'Al Farabi', '6 AL GHAZALI': 'Al Ghazali',
+            '6 AL KHWARIZMI': 'Al Khawarizmi', '6 AL KHINDI': 'Al Khindi',
+            '6 AL MAWARDI': 'Al Mawardi', '6 AL RAZI': 'Al Razi',
+            '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd'
+        };
+        
+        const teacherClassName = classMapping[className] || className;
+        
+        try {
+            // 获取老师的 Telegram Chat ID
+            const teacherRef = doc(db, TEACHER_COL, teacherClassName);
+            const teacherSnap = await getDoc(teacherRef);
+            
+            if (!teacherSnap.exists()) {
+                toast("❌ Ralat: Chat ID guru tidak ditemui untuk kelas ini");
+                return false;
+            }
+            
+            const chatId = teacherSnap.data().chatId;
+            if (!chatId) {
+                toast("❌ Ralat: Chat ID guru belum dikonfigurasi");
+                return false;
+            }
+            
+            const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
+            const now = new Date();
+            const currentDate = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+            const currentTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            
+            const detailsText = details ? `\n📝 *Keterangan:* ${details}` : "";
+            
+            const message = `📋 *PERMOHONAN CUTI / TIDAK HADIR*\n\n` +
+                `👤 *Nama:* ${studentData.name || '-'}\n` +
+                `🆔 *No. IC:* ${studentData.ic || '-'}\n` +
+                `🏫 *Kelas:* ${className}\n` +
+                `📅 *Tarikh Permohonan:* ${currentDate} (${currentTime})\n` +
+                `🗓️ *Tarikh Cuti:* ${leaveDate}\n` +
+                `📌 *Sebab:* ${reason}\n` +
+                `${detailsText}\n\n` +
+                `---\n_Nota: Pelajar ini memohon keizinan untuk tidak hadir pada tarikh tersebut._`;
+            
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: "Markdown"
+                })
+            });
+            
+            const result = await response.json();
+            if (result.ok) {
+                return true;
+            } else {
+                console.error("Telegram error:", result);
+                return false;
+            }
+        } catch (error) {
+            console.error("Send leave notification error:", error);
+            return false;
+        }
+    }
+    
+    // ========== 请假模态框函数 ==========
+    window.openLeaveModal = () => {
+        const modal = document.getElementById('leaveModal');
+        if (!modal) return;
+        
+        // 设置默认日期为今天
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        
+        document.getElementById('leave-date').value = todayStr;
+        document.getElementById('leave-reason').value = "URUSAN KELUARGA";
+        document.getElementById('leave-details').value = "";
+        
+        modal.style.display = 'flex';
+    };
+    
+    window.closeLeaveModal = () => {
+        const modal = document.getElementById('leaveModal');
+        if (modal) modal.style.display = 'none';
+    };
+    
+    window.submitLeaveRequest = async () => {
+        const leaveDate = document.getElementById('leave-date').value;
+        const reason = document.getElementById('leave-reason').value;
+        const details = document.getElementById('leave-details').value;
+        
+        if (!leaveDate) {
+            toast("❌ Sila pilih tarikh cuti");
+            return;
+        }
+        
+        // 格式化日期显示
+        const dateParts = leaveDate.split('-');
+        const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+        
+        const btn = document.querySelector('#leaveModal button:last-child');
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "Menghantar...";
+        
+        try {
+            const success = await sendLeaveNotificationToTeacher(formattedDate, reason, details);
+            
+            if (success) {
+                toast("✅ Permohonan cuti telah dihantar kepada guru!");
+                closeLeaveModal();
+            } else {
+                toast("❌ Gagal menghantar permohonan. Sila cuba lagi.");
+            }
+        } catch (error) {
+            console.error("Submit leave error:", error);
+            toast("❌ Ralat: " + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    };
+    
+    function toast(msg) {
+        // 移除已有的toast
+        const existingToast = document.querySelector('.toast-message');
+        if (existingToast) existingToast.remove();
+        
+        const div = document.createElement('div');
+        div.textContent = msg;
+        div.className = 'toast-message';
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 2500);
+    }
+    
     // ========== 离线优先的登录状态处理 ==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -1527,19 +1812,6 @@
         }
     });
 
-    function toast(msg) {
-        const div = document.createElement('div');
-        div.textContent = msg;
-        div.style.cssText = `
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: black; color: white; padding: 10px 20px; border-radius: 8px;
-            z-index: 99999; font-size: 14px; font-family: system-ui;
-            white-space: nowrap;
-        `;
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 2500);
-    }
-    
     function startNotificationChecker() {
         if (notificationCheckInterval) clearInterval(notificationCheckInterval);
         
