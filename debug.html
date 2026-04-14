@@ -2000,54 +2000,205 @@
         document.getElementById('prof-id').innerText = d.studentId || "-";
         document.getElementById('prof-name').innerText = d.name || "-";
         document.getElementById('prof-ic').innerText = d.ic || "-";
-        document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
+        document.getElementById('prof-class').innerText = d.className || "-";
+        document.getElementById('prof-phone').innerText = d.phone || "-";
         document.getElementById('prof-vehicle').innerText = d.vehicleNo || "Tiada";
-        document.getElementById('upd-name').value = d.name || "";
-        document.getElementById('upd-id').value = d.studentId || "";
-        document.getElementById('upd-phone').value = d.phone || "";
-        document.getElementById('upd-address').value = d.address || "";
-        document.getElementById('upd-vehicle').value = d.vehicleNo || "";
-        document.getElementById('upd-class').value = d.className || "";
-    }
-
-    window.updateProfile = async () => {
-        const newName = document.getElementById('upd-name').value;
-        const newId = document.getElementById('upd-id').value;
-        const newPhone = document.getElementById('upd-phone').value;
-        const newClass = document.getElementById('upd-class').value;
-        const newAddress = document.getElementById('upd-address').value;
-        const newVehicle = document.getElementById('upd-vehicle').value;
-        if(!newName || !newId || !newPhone) return alert("Isi maklumat!");
-        try {
-            const newSemester = await getSemesterForClass(newClass);
-            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), { 
-                name: newName, 
-                studentId: newId, 
-                phone: newPhone, 
-                address: newAddress, 
-                className: newClass, 
-                semester: newSemester,
-                vehicleNo: newVehicle || ""
+        
+        // 加载头像
+        const savedAvatar = localStorage.getItem('semsira_avatar_' + auth.currentUser.uid);
+        if (savedAvatar) {
+            document.getElementById('profile-avatar').src = savedAvatar;
+        } else {
+            // 尝试加载默认头像
+            getDefaultAvatar().then(avatarUrl => {
+                if (avatarUrl) {
+                    document.getElementById('profile-avatar').src = avatarUrl;
+                    localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, avatarUrl);
+                } else {
+                    // 使用默认占位图
+                    document.getElementById('profile-avatar').src = "/semsira.png";
+                }
             });
-            window.currentUserData.name = newName; 
-            window.currentUserData.studentId = newId; 
-            window.currentUserData.phone = newPhone; 
-            window.currentUserData.className = newClass; 
-            window.currentUserData.semester = newSemester; 
-            window.currentUserData.address = newAddress;
-            window.currentUserData.vehicleNo = newVehicle;
+        }
+    }
+    
+    // 旧的 updateProfile 已不再需要，但保留一个提示版本
+    window.updateProfile = async () => {
+        toast("⚠️ Sila gunakan butang ⚙️ di penjuru kanan untuk kemaskini profil");
+    };
+    
+    // 保存个人资料设置（从设置模态框调用）
+    window.saveProfileSettings = async function() {
+        const selectedAvatar = document.querySelector('input[name="avatar-select"]:checked');
+        const avatarUrl = selectedAvatar ? selectedAvatar.value : null;
+        
+        const updates = {
+            name: document.getElementById('settings-name').value,
+            phone: document.getElementById('settings-phone').value,
+            address: document.getElementById('settings-address').value,
+            vehicleNo: document.getElementById('settings-vehicle').value,
+            className: document.getElementById('settings-class').value
+        };
+        
+        if (!updates.name || !updates.phone) {
+            toast("❌ Sila isi nama dan nombor telefon!");
+            return;
+        }
+        
+        try {
+            const newSemester = await getSemesterForClass(updates.className);
+            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), {
+                name: updates.name,
+                phone: updates.phone,
+                address: updates.address || "",
+                className: updates.className,
+                semester: newSemester,
+                vehicleNo: updates.vehicleNo || ""
+            });
+            
+            // 保存头像
+            if (avatarUrl) {
+                localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, avatarUrl);
+                document.getElementById('profile-avatar').src = avatarUrl;
+            } else {
+                // 如果没有选择头像，使用默认 SEMSIRA 头像
+                const defaultAvatar = await getDefaultAvatar();
+                if (defaultAvatar) {
+                    localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, defaultAvatar);
+                    document.getElementById('profile-avatar').src = defaultAvatar;
+                }
+            }
+            
+            // 更新本地数据
+            Object.assign(window.currentUserData, updates);
+            window.currentUserData.semester = newSemester;
+            
             // 更新缓存
             localStorage.setItem('semsira_cached_user_' + auth.currentUser.uid, JSON.stringify(window.currentUserData));
             if (window.currentUserData.ic) {
                 cachedIC = window.currentUserData.ic;
                 localStorage.setItem('semsira_cached_ic', cachedIC);
             }
-            setupAccountPage(); 
-            applyWatermark(`${newName} (${window.currentUserData.ic})`); 
-            alert("Berjaya!");
-        } catch(e) { alert(e.message); }
+            
+            setupAccountPage();
+            applyWatermark(`${updates.name} (${window.currentUserData.ic})`);
+            toast("✅ Profil berjaya dikemaskini!");
+            closeProfileSettings();
+        } catch(e) {
+            toast("❌ Gagal: " + e.message);
+        }
     };
-
+    
+    // 获取默认头像 (AVATAR - SEMSIRA)
+    async function getDefaultAvatar() {
+        const repo = "bdpsemsira/bdpsemsira.github.io";
+        try {
+            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&t=${Date.now()}`);
+            const issues = await res.json();
+            const semsiraAvatar = issues.find(issue => issue.title === "AVATAR - SEMSIRA");
+            if (semsiraAvatar) {
+                const imgMatch = semsiraAvatar.body.match(/!\[.*?\]\((.*?)\)/);
+                return imgMatch ? imgMatch[1] : null;
+            }
+            return null;
+        } catch(e) {
+            console.error("Error loading default avatar:", e);
+            return null;
+        }
+    }
+    
+    // 从 GitHub Issues 加载所有头像
+    async function loadAvatarsFromIssues() {
+        const repo = "bdpsemsira/bdpsemsira.github.io";
+        try {
+            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&t=${Date.now()}`);
+            const issues = await res.json();
+            
+            const avatars = issues.filter(issue => 
+                issue.title && issue.title.startsWith("AVATAR - ")
+            );
+            
+            const avatarContainer = document.getElementById('avatar-options');
+            if (avatarContainer && avatars.length > 0) {
+                avatarContainer.innerHTML = '';
+                
+                for (const avatar of avatars) {
+                    const titleParts = avatar.title.split(" - ");
+                    const avatarName = titleParts[1] || "Unknown";
+                    
+                    // 提取图片URL
+                    const imgMatch = avatar.body.match(/!\[.*?\]\((.*?)\)/);
+                    if (imgMatch) {
+                        const imgUrl = imgMatch[1];
+                        const div = document.createElement('div');
+                        div.style.cssText = 'cursor: pointer; text-align: center;';
+                        div.innerHTML = `
+                            <img src="${imgUrl}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                            <div style="font-size: 10px; margin-top: 4px;">${avatarName}</div>
+                            <input type="radio" name="avatar-select" value="${imgUrl}" data-name="${avatarName}" style="margin-top: 4px;">
+                        `;
+                        avatarContainer.appendChild(div);
+                        
+                        // 添加点击事件选择 radio
+                        div.addEventListener('click', () => {
+                            const radio = div.querySelector('input');
+                            radio.checked = true;
+                        });
+                    }
+                }
+            } else if (avatarContainer) {
+                avatarContainer.innerHTML = '<div style="text-align: center; width: 100%; color: #888;">Tiada avatar tersedia</div>';
+            }
+            
+            return avatars;
+        } catch(e) {
+            console.error("Error loading avatars:", e);
+            const avatarContainer = document.getElementById('avatar-options');
+            if (avatarContainer) {
+                avatarContainer.innerHTML = '<div style="text-align: center; width: 100%; color: #888;">Gagal memuatkan avatar</div>';
+            }
+            return [];
+        }
+    }
+    
+    // 打开设置个人资料模态框
+    window.openProfileSettings = async function() {
+        const user = window.currentUserData;
+        if (!user) {
+            toast("❌ Data pengguna tidak ditemui");
+            return;
+        }
+        
+        // 填充表单
+        document.getElementById('settings-name').value = user.name || '';
+        document.getElementById('settings-phone').value = user.phone || '';
+        document.getElementById('settings-address').value = user.address || '';
+        document.getElementById('settings-vehicle').value = user.vehicleNo || '';
+        document.getElementById('settings-class').value = user.className || '';
+        
+        // 加载头像列表
+        await loadAvatarsFromIssues();
+        
+        // 设置当前头像为选中
+        const currentAvatar = localStorage.getItem('semsira_avatar_' + auth.currentUser.uid);
+        if (currentAvatar) {
+            const radios = document.querySelectorAll('input[name="avatar-select"]');
+            for (let radio of radios) {
+                if (radio.value === currentAvatar) {
+                    radio.checked = true;
+                    break;
+                }
+            }
+        }
+        
+        document.getElementById('profileSettingsModal').style.display = 'flex';
+    };
+    
+    // 关闭设置个人资料模态框
+    window.closeProfileSettings = function() {
+        document.getElementById('profileSettingsModal').style.display = 'none';
+    };
+    
     window.showFullImage = function(imgSrc) {
         const modal = document.getElementById('imageModal');
         const modalImg = document.getElementById('modalImage');
