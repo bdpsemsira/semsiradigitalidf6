@@ -739,14 +739,31 @@
     window.saveSemSettings = async () => {
         const s1 = document.getElementById('sem-k1').value;
         const s2 = document.getElementById('sem-k2').value;
-        const k1_keywords = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'sumayyah', 'ummukalthom', 'zainab'];
-        const ps = allStudents.map(s => {
-            let isK1 = k1_keywords.some(k => (s.className||'').toLowerCase().includes(k));
-            return updateDoc(doc(db, STUDENT_COL, s.id), { semester: isK1 ? s1 : s2 });
+        
+        // ✅ Simpan ke kedua-dua lokasi
+        // Lokasi 1: Untuk student side baca (k1_settings / k2_settings)
+        await setDoc(doc(db, SETTINGS_COL, "k1_settings"), { semester: s1 });
+        await setDoc(doc(db, SETTINGS_COL, "k2_settings"), { semester: s2 });
+        
+        // Lokasi 2: Untuk setiap student individual (backup)
+        const KUMPULAN_1_CLASSES = [
+            '6 AISHAH', '6 FATIMAH', '6 KHADIJAH', '6 RUQAYYAH',
+            '6 SARAH', '6 SUMAYYAH', '6 UMMU KALTHOM', '6 ZAINAB'
+        ];
+        
+        const updatePromises = allStudents.map(student => {
+            const className = (student.className || '').toUpperCase();
+            const isKumpulan1 = KUMPULAN_1_CLASSES.includes(className);
+            const newSemester = isKumpulan1 ? s1 : s2;
+            
+            return updateDoc(doc(db, STUDENT_COL, student.id), { 
+                semester: newSemester 
+            });
         });
-        await Promise.all(ps);
-        alert("Semester semua pelajar dikemaskini!");
-        loadStudents();
+        
+        await Promise.all(updatePromises);
+        alert(`Semester dikemaskini!\nKumpulan 1 → Sem ${s1}\nKumpulan 2 → Sem ${s2}`);
+        await loadStudents();
     };
 
     window.triggerManualAlert = async () => {
