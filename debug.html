@@ -887,16 +887,25 @@
     <div id="tab-account" class="page">
         <div class="header-container">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
-            <h3>Profil Pelajar</h3>
+            <h3>PROFI PELAJAR</h3>
+            <div style="margin-left: auto; cursor: pointer;" onclick="openProfileSettings()">
+                <i data-lucide="more-vertical"></i>
+            </div>
         </div>
+        
+        <!-- 头像区域 -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img id="profile-avatar" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
+            <div style="margin-top: 8px; font-size: 12px; color: var(--primary);" onclick="openProfileSettings()">📸 Tukar Avatar</div>
+        </div>
+        
         <div class="glass" style="padding:20px">
             <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
             <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
-            <div class="profile-label"><span>Semester:</span> <b id="prof-sem">-</b></div>
+            <div class="profile-label"><span>Kelas:</span> <b id="prof-class">-</b></div>
+            <div class="profile-label"><span>No. Telefon:</span> <b id="prof-phone">-</b></div>
             <div class="profile-label"><span>No. Kenderaan:</span> <b id="prof-vehicle">-</b></div>
-            
-            
             
             <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
             <div class="setting-item">
@@ -943,8 +952,8 @@
                     <div class="legend-item"><span class="legend-icon future" style="background:#E5E5EA;"></span><span>Hari Akan Datang</span></div>
                 </div>
             </div>
-
-            <!-- ========== 新增请假按钮 ========== -->
+    
+            <!-- 请假按钮 -->
             <button class="leave-btn" onclick="openLeaveModal()">
                 <i data-lucide="calendar-x" style="width: 18px; height: 18px;"></i> 📋 Mohon Cuti / Tidak Hadir
             </button>
@@ -958,28 +967,7 @@
                 </label>
             </div>
             
-            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
-            <p style="font-weight: bold; font-size: 14px;">Kemaskini maklumat:</p>
-            <label style="font-size: 12px; color: #888;">Nama Penuh:</label>
-            <input type="text" id="upd-name">
-            <label style="font-size: 12px; color: #888;">No. Matrik:</label>
-            <input type="text" id="upd-id">
-            <label style="font-size: 12px; color: #888;">No. Telefon:</label>
-            <input type="tel" id="upd-phone">
-            <label style="font-size: 12px; color: #888;">Alamat Rumah:</label>
-            <input type="text" id="upd-address">
-            <label style="font-size: 12px; color: #888;">No. Kenderaan:</label>
-            <input type="text" id="upd-vehicle" placeholder="Jika ada, isikan nombor kenderaan">
-            <label style="font-size: 12px; color: #888;">Kelas:</label>
-            <select id="upd-class">
-                <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
-                <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
-                <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
-                <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
-                <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
-            </select>
-            <button onclick="updateProfile()">Simpan Perubahan</button>
-            <button style="background:#FF3B30; margin-top:20px" onclick="handleLogout()">Log Keluar</button>
+            <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
         </div>
     </div>
 
