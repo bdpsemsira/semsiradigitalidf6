@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Semsira Mobile</title>
+
+    <link rel="icon" type="image/png" href="/semsira.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/semsira.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SEMSIRA DigitalID">
+    
+    <link rel="manifest" href="/manifest.json">
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- ========== OneSignal SDK 添加在此处 ========== -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(function(OneSignal) {
+            OneSignal.init({
+                appId: "80b74c34-0fe4-4a23-bcbf-a3709281d405",
+                safari_web_id: "",
+                allowLocalhostAsSecureOrigin: true,
+            });
+        });
+        
+        // 存储 OneSignal 是否已初始化完成
+        window.oneSignalReady = false;
+        window.OneSignalDeferred.push(function() {
+            window.oneSignalReady = true;
+        });
+    </script>
+    <!-- ========== OneSignal SDK 添加结束 ========== -->
+    
+    <style>
+        /* 所有 CSS 保持不变 */
+        :root {
+            --primary: #007AFF;
+            --bg: #F2F2F7;
+            --card: rgba(255, 255, 255, 0.8);
+            --border: rgba(200, 200, 200, 0.3);
+            --text: #000000;
+            --nav-bg: rgba(255, 255, 255, 0.9);
+            --calendar-weekend: #E5E5EA;
+            --calendar-hadir: #34C759;
+            --calendar-lewat: #FF9500;
+            --calendar-tidakhadir: #FF3B30;
+            --notification-bg: #007AFF;
+        }
+
+        [data-theme="dark"] {
+            --bg: #1C1C1E;
+            --card: rgba(44, 44, 46, 0.8);
+            --border: rgba(84, 84, 88, 0.5);
+            --text: #FFFFFF;
+            --nav-bg: rgba(28, 28, 30, 0.9);
+            --calendar-weekend: #2C2C2E;
+            --notification-bg: #0A84FF;
+        }
+
+        #tab-scan {
+            --bg: #F2F2F7 !important;
+            --card: rgba(255, 255, 255, 0.8) !important;
+            --text: #000000 !important;
+            --border: rgba(200, 200, 200, 0.3) !important;
+            background-color: var(--bg) !important;
+            color: var(--text) !important;
+        }
+        
+        #tab-scan .glass {
+            background: var(--card) !important;
+            border: 1px solid var(--border) !important;
+        }
+
+        #tab-scan h3, #tab-scan p {
+            color: #000000 !important;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: var(--text);
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background-color 0.3s ease;
+        }
+
+        #watermark-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 9999;
+            opacity: 0.15; display: none; 
+            flex-wrap: wrap; justify-content: space-around; align-content: space-around;
+            overflow: hidden;
+        }
+
+        .watermark-item {
+            transform: rotate(-30deg);
+            font-size: 14px; white-space: nowrap; padding: 40px;
+            color: var(--text); font-weight: bold;
+        }
+
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 10001;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 20000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        #splash-screen img {
+            width: 100px;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            animation: splashFadeIn 0.8s ease;
+        }
+        @keyframes splashFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .splash-text {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .login-logo {
+            display: block; margin: 20px auto 10px;
+            max-width: 80px; height: auto; border-radius: 15px;
+        }
+
+        .header-container {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 20px; padding-top: 10px;
+        }
+
+        .app-header-logo {
+            display: block; max-width: 45px; height: auto; border-radius: 10px; margin: 0; 
+        }
+
+        .header-container h3 { margin: 0; font-size: 22px; font-weight: 700; }
+
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border); border-radius: 15px;
+        }
+
+        .page { display: none; padding: 20px; padding-bottom: 100px; min-height: 100vh; box-sizing: border-box; }
+        .active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        input, select {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border-radius: 10px; border: 1px solid var(--border);
+            box-sizing: border-box; font-size: 16px;
+            background: var(--card); color: var(--text);
+        }
+
+        button {
+            width: 100%; padding: 14px; background-color: var(--primary);
+            color: white; border: none; border-radius: 12px;
+            font-weight: 600; font-size: 16px; margin-top: 10px;
+        }
+
+        .nav-bar {
+            position: fixed; bottom: 0; width: 100%; height: 70px;
+            display: flex; justify-content: space-around; align-items: center;
+            background: var(--nav-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border); z-index: 1000;
+        }
+
+        .nav-item { text-align: center; color: #8E8E93; font-size: 12px; cursor: pointer; }
+        .nav-item.active-nav { color: var(--primary); }
+
+        #poster-slider {
+            width: 100%; aspect-ratio: 16/9; border-radius: 15px;
+            overflow: hidden; position: relative; background: #000;
+        }
+
+        #poster-slider img { width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0; transition: 0.8s; cursor: pointer; }
+        #poster-slider img.show { opacity: 1; }
+
+        .post-card {
+            margin-top: 15px; margin-bottom: 15px; padding: 15px;
+            border-radius: 12px; word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .post-card.new-post {
+            animation: highlight 0.5s ease;
+            border-left: 4px solid var(--primary);
+        }
+        
+        @keyframes highlight {
+            0% { background-color: rgba(0, 122, 255, 0.2); }
+            100% { background-color: transparent; }
+        }
+
+        .post-card img {
+            max-width: 100% !important; height: auto !important;
+            border-radius: 10px; margin-top: 8px; display: block;
+            cursor: pointer;
+        }
+
+        .setting-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0;
+        }
+        .switch {
+            position: relative; display: inline-block; width: 50px; height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 22px; width: 22px;
+            left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        #qrcode {
+            background: white; padding: 20px; border-radius: 20px;
+            margin: 20px auto; display: inline-block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative; min-width: 200px; min-height: 200px;
+        }
+
+        #qr-unlock-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); border-radius: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 10; cursor: pointer; border: 2px dashed var(--primary);
+            box-sizing: border-box;
+        }
+
+        .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .profile-label b { color: var(--primary); text-align: right; }
+
+        .attendance-panel { margin: 20px auto; padding: 15px; max-width: 280px; text-align: center; }
+        .status-text { font-size: 20px; font-weight: 800; margin: 5px 0; }
+        .status-tidak-hadir { color: #FF3B30; }
+        .status-hadir { color: #34C759; }
+        .status-lewat { color: #FF9500; }
+        .status-time { font-size: 13px; color: #888; font-family: monospace; }
+        
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 20000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .image-modal.active-modal {
+            display: flex;
+        }
+        
+        .image-modal-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: pan-x pan-y;
+        }
+        
+        .image-modal-img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease;
+            cursor: grab;
+            touch-action: pinch-zoom;
+        }
+        
+        .image-modal-img:active {
+            cursor: grabbing;
+        }
+        
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(0,0,0,0.6);
+            width: 50px;
+            height: 50px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20001;
+            transition: all 0.2s;
+        }
+        
+        .image-modal-close:hover {
+            background: rgba(255,0,0,0.7);
+        }
+        
+        .image-modal-download {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            background: var(--primary);
+            width: 50px;
+            height: 50px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20001;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .image-modal-download:active {
+            transform: scale(0.95);
+        }
+        
+        .image-modal-info {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 20001;
+            pointer-events: none;
+        }
+        
+        .zoom-instruction {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            z-index: 20001;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        
+        .post-card div {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .calendar-panel {
+            margin-top: 25px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .calendar-nav button {
+            width: auto;
+            padding: 8px 16px;
+            margin: 0;
+            background: var(--primary);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .calendar-nav button:active {
+            transform: scale(0.96);
+        }
+        
+        .calendar-month-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+            min-width: 140px;
+            text-align: center;
+        }
+        
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--primary);
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--card);
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 2px;
+            border: 1px solid var(--border);
+            transition: all 0.1s ease;
+            min-width: 0;
+        }
+        
+        .calendar-day.weekend {
+            background: var(--calendar-weekend);
+            opacity: 0.7;
+        }
+        
+        .calendar-day.empty {
+            background: transparent;
+            border: 1px dashed var(--border);
+            opacity: 0.4;
+        }
+        
+        .calendar-status {
+            font-size: 14px;
+            margin-top: 2px;
+        }
+        
+        .calendar-status.hadir {
+            color: var(--calendar-hadir);
+        }
+        
+        .calendar-status.lewat {
+            color: var(--calendar-lewat);
+        }
+        
+        .calendar-status.tidakhadir {
+            color: var(--calendar-tidakhadir);
+        }
+        
+        .calendar-legend {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 11px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        
+        .legend-icon.hadir { background: var(--calendar-hadir); }
+        .legend-icon.lewat { background: var(--calendar-lewat); }
+        .legend-icon.tidakhadir { background: var(--calendar-tidakhadir); }
+        .legend-icon.weekend { background: var(--calendar-weekend); border: 1px solid var(--border); }
+        .legend-icon.future { background: #E5E5EA; border: 1px dashed #999; }
+        
+        .calendar-loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+        
+        .notification-prompt {
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .notification-prompt button {
+            width: auto;
+            padding: 8px 16px;
+            margin: 0;
+            background: white;
+            color: var(--primary);
+            font-size: 13px;
+        }
+        
+        .notification-badge {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .badge-new {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            background: #FF3B30;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            min-width: 18px;
+            text-align: center;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @media (max-width: 500px) {
+            .calendar-day {
+                font-size: 10px;
+                padding: 3px 1px;
+            }
+            .calendar-status {
+                font-size: 12px;
+            }
+            .calendar-weekdays {
+                font-size: 10px;
+            }
+            .calendar-nav button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .calendar-month-title {
+                font-size: 15px;
+                min-width: 120px;
+            }
+            .legend-item {
+                font-size: 10px;
+            }
+            .legend-icon {
+                width: 14px;
+                height: 14px;
+            }
+            .image-modal-download {
+                bottom: 20px;
+                right: 20px;
+                width: 45px;
+                height: 45px;
+            }
+            .image-modal-info {
+                bottom: 20px;
+                left: 20px;
+                font-size: 10px;
+            }
+            .zoom-instruction {
+                font-size: 9px;
+                top: 15px;
+            }
+            .notification-prompt {
+                font-size: 12px;
+                padding: 10px 12px;
+            }
+        }
+        
+        @media (max-width: 380px) {
+            .calendar-day {
+                font-size: 9px;
+            }
+            .calendar-status {
+                font-size: 10px;
+            }
+            .calendar-weekdays {
+                font-size: 9px;
+            }
+        }
+
+        /* ========== 新增请假按钮和模态框样式 ========== */
+        .leave-btn {
+            background-color: #FF9500;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .leave-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .leave-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            z-index: 30000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .leave-modal-content {
+            width: 90%;
+            max-width: 350px;
+            background: var(--card);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .leave-modal-content h4 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            font-size: 18px;
+        }
+        
+        .leave-modal-content select,
+        .leave-modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .leave-modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            box-sizing: border-box;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .leave-modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .leave-modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            margin: 0;
+        }
+        
+        .leave-modal-buttons .cancel-btn {
+            background: #8E8E93;
+        }
+        
+        .toast-message {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 40000;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<audio id="beep-sound" src="https://bdpsemsira.github.io/semsiradigitalidf6/beep.mp3" preload="auto" playsinline></audio>
+
+<div id="splash-screen">
+    <img src="/semsira.png" alt="Semsira">
+    <div class="splash-text">SEMSIRA Digital ID</div>
+</div>
+
+<div id="loading-overlay">
+    <div class="glass" style="padding: 30px; text-align: center; border-radius: 20px;">
+        <img src="/semsira.png" style="width: 60px; border-radius: 12px; margin-bottom: 15px;">
+        <div style="font-weight: 600; font-size: 18px;">Memuatkan...</div>
+        <div style="font-size: 12px; color: #888; margin-top: 5px;">Semsira Digital ID</div>
+    </div>
+</div>
+
+<div id="watermark-layer"></div>
+
+<div id="page-login" class="page">
+    <img src="/semsira.png" alt="Logo" class="login-logo">
+    <h2 style="text-align:center">Log Masuk</h2>
+    <div class="glass" style="padding:20px">
+        <input type="email" id="login-email" placeholder="Gmail">
+        <input type="password" id="login-pw" placeholder="Kata Laluan">
+        <button onclick="handleLogin()">Log Masuk</button>
+        <p style="text-align:center; font-size:14px; color: var(--primary); cursor: pointer;" onclick="showPage('page-register')">Tiada akaun? Daftar sekarang</p>
+        <p style="text-align:center; font-size:14px; color: var(--primary); cursor: pointer; margin-top: 5px;" onclick="showForgotPassword()">Lupa kata laluan?</p>
+    </div>
+</div>
+
+<div id="forgotPasswordModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:30000; align-items:center; justify-content:center;">
+    <div class="glass" style="width:85%; max-width:300px; padding:24px; margin:auto; text-align:center;">
+        <h3 style="margin-bottom:15px;">Reset Kata Laluan</h3>
+        <p style="font-size:13px; color:#666; margin-bottom:15px;">Masukkan emel Gmail anda. Kami akan hantar pautan reset.</p>
+        <p style="font-size:11px; color:#FF9500; margin-bottom:15px;">📧 Sila periksa kotak masuk dan folder SPAM/JUNK selepas hantar.</p>
+        <input type="email" id="reset-email" placeholder="Gmail" style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); margin-bottom:15px;">
+        <button onclick="sendPasswordReset()" style="margin-top:0;">Hantar Email</button>
+        <button onclick="closeForgotPassword()" style="background:#8E8E93; margin-top:10px;">Tutup</button>
+    </div>
+</div>
+
+<div id="imageModal" class="image-modal" onclick="closeImageModal()">
+    <div class="image-modal-container" id="imageModalContainer">
+        <span class="image-modal-close" onclick="event.stopPropagation(); closeImageModal()">&times;</span>
+        <button class="image-modal-download" onclick="event.stopPropagation(); downloadCurrentImage()">
+            <i data-lucide="download"></i>
+        </button>
+        <div class="image-modal-info" id="imageModalInfo">📷 Klik untuk tutup | ✌️ Dua jari untuk zoom</div>
+        <div class="zoom-instruction">🔍 Gunakan dua jari untuk zoom in/out</div>
+        <img id="modalImage" class="image-modal-img" src="" alt="Full Size" style="transform: scale(1);">
+    </div>
+</div>
+
+<div id="page-register" class="page">
+    <h2>Pendaftaran Pelajar</h2>
+    <div class="glass" style="padding:20px">
+        <input type="text" id="reg-id" placeholder="No. Matrik (Student ID)*">
+        <input type="number" id="reg-ic" placeholder="No. Kad Pengenalan (IC)*" oninput="autoFillIC(this.value)">
+        <input type="text" id="reg-name" placeholder="Nama Penuh">
+        <input type="tel" id="reg-phone" placeholder="No. Telefon (601xxxxxxxxx)*">
+        <input type="text" id="reg-vehicle" placeholder="No. Kenderaan (Jika ada)">
+        <select id="reg-class">
+            <option value="">Pilih Kelas</option>
+            <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+            <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
+            <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
+            <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
+            <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
+        </select>
+        <input type="text" id="reg-dob" placeholder="Tarikh Lahir" readonly>
+        <input type="text" id="reg-gender" placeholder="Jantina" readonly>
+        <input type="text" id="reg-address" placeholder="Alamat Rumah">
+        <input type="email" id="reg-email" placeholder="Gmail">
+        <input type="password" id="reg-pw1" placeholder="Kata Laluan">
+        <input type="password" id="reg-pw2" placeholder="Sahkan Kata Laluan">
+        <button onclick="handleRegister()">Daftar</button>
+        <button style="background:#8E8E93" onclick="showPage('page-login')">Kembali</button>
+    </div>
+</div>
+
+<!-- ========== 新增请假模态框 ========== -->
+<div id="leaveModal" class="leave-modal">
+    <div class="leave-modal-content">
+        <h4>📋 Permohonan Cuti / Keizinan Tidak Hadir</h4>
+        <label style="font-size:13px; color:#888;">Tarikh Cuti:</label>
+        <input type="date" id="leave-date">
+        <label style="font-size:13px; color:#888;">Sebab / Alasan:</label>
+        <select id="leave-reason">
+            <option value="URUSAN KELUARGA">URUSAN KELUARGA</option>
+            <option value="URUSAN DIRI">URUSAN DIRI</option>
+            <option value="TIDAK SIHAT">TIDAK SIHAT (Sakit)</option>
+            <option value="DEMAM">DEMAM</option>
+            <option value="SELESEMA">SELESEMA / BATUK</option>
+            <option value="KEMERGIAN KELUARGA">KEMERGIAN KELUARGA</option>
+            <option value="URUSAN PENTING">URUSAN PENTING</option>
+            <option value="LAIN-LAIN">LAIN-LAIN</option>
+        </select>
+        <label style="font-size:13px; color:#888;">Keterangan Tambahan (Optional):</label>
+        <textarea id="leave-details" rows="2" placeholder="Contoh: Ada temujanji doktor, urusan keluarga, dll..."></textarea>
+        <div class="leave-modal-buttons">
+            <button class="cancel-btn" onclick="closeLeaveModal()">Batal</button>
+            <button onclick="submitLeaveRequest()">Hantar</button>
+        </div>
+    </div>
+</div>
+
+<div id="main-app" style="display:none">
+    <div id="tab-home" class="page active">
+        <div class="header-container">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>Utama</h3>
+        </div>
+        <div id="poster-slider" class="glass"></div>
+        <div id="notification-prompt-area"></div>
+        <h4>Pengumuman</h4>
+        <div id="announcements-list">Memuatkan...</div>
+    </div>
+
+    <div id="tab-scan" class="page" style="text-align:center">
+        <div class="header-container" style="justify-content: flex-start; text-align: left;">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>Kehadiran Digital</h3>
+        </div>
+        <p id="scan-instruction">Sila tunjukkan kod QR ini kepada guru bertugas.</p>
+        
+        <div id="qrcode">
+            <div id="qr-unlock-overlay" onclick="startSystem()">
+                <i data-lucide="touch-app" style="color:var(--primary); width: 40px; height:40px; margin-bottom:10px;"></i>
+                <div style="font-weight:bold; font-size:14px; color:var(--primary)">KETUK UNTUK IMBAS</div>
+                <div style="font-size:10px; color:#888; margin-top:5px;">Klik untuk aktifkan kod QR & bunyi</div>
+            </div>
+        </div>
+
+        <p id="qr-timer" style="font-size:12px; color:#888"></p>
+
+        <div class="attendance-panel glass">
+            <div style="font-size: 12px; color: #888;">STATUS KEHADIRAN HARI INI</div>
+            <div id="attendance-status" class="status-text status-tidak-hadir">TIDAK HADIR</div>
+            <div id="attendance-time" class="status-time">-- : -- : --</div>
+        </div>
+    </div>
+
+    <div id="tab-account" class="page">
+        <div class="header-container">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>Profil Pelajar</h3>
+        </div>
+        <div class="glass" style="padding:20px">
+            <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
+            <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
+            <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
+            <div class="profile-label"><span>Semester:</span> <b id="prof-sem">-</b></div>
+            <div class="profile-label"><span>No. Kenderaan:</span> <b id="prof-vehicle">-</b></div>
+            
+            
+            
+            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
+            <div class="setting-item">
+                <span style="font-size: 14px; font-weight: 600;">Dark Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-toggle" onclick="toggleDarkMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
+            <div class="calendar-panel">
+                <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">
+                    📅 Laporan Kehadiran Bulanan
+                </div>
+                
+                <div class="calendar-header">
+                    <div class="calendar-nav">
+                        <button onclick="changeMonth(-1)">◀</button>
+                        <span class="calendar-month-title" id="calendarMonthTitle">--</span>
+                        <button onclick="changeMonth(1)">▶</button>
+                    </div>
+                </div>
+                
+                <div class="calendar-weekdays">
+                    <span>Isn</span>
+                    <span>Sel</span>
+                    <span>Rab</span>
+                    <span>Kha</span>
+                    <span>Jum</span>
+                    <span style="color:#888;">Sab</span>
+                    <span style="color:#888;">Ahd</span>
+                </div>
+                
+                <div id="calendarDaysContainer" class="calendar-days">
+                    <div class="calendar-loading">Memuatkan kalendar...</div>
+                </div>
+                
+                <div class="calendar-legend">
+                    <div class="legend-item"><span class="legend-icon hadir"></span><span>Hadir</span></div>
+                    <div class="legend-item"><span class="legend-icon lewat"></span><span>Lewat</span></div>
+                    <div class="legend-item"><span class="legend-icon tidakhadir"></span><span>Tidak Hadir (Hari Lalu)</span></div>
+                    <div class="legend-item"><span class="legend-icon weekend"></span><span>Sabtu/Ahad</span></div>
+                    <div class="legend-item"><span class="legend-icon future" style="background:#E5E5EA;"></span><span>Hari Akan Datang</span></div>
+                </div>
+            </div>
+
+            <!-- ========== 新增请假按钮 ========== -->
+            <button class="leave-btn" onclick="openLeaveModal()">
+                <i data-lucide="calendar-x" style="width: 18px; height: 18px;"></i> 📋 Mohon Cuti / Tidak Hadir
+            </button>
+            
+            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
+            <div class="setting-item">
+                <span style="font-size: 14px; font-weight: 600;">🔔 Terima Notifikasi</span>
+                <label class="switch">
+                    <input type="checkbox" id="notification-toggle" onchange="toggleNotificationSetting()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <hr style="border: 0.5px solid var(--border); margin: 15px 0;">
+            <p style="font-weight: bold; font-size: 14px;">Kemaskini maklumat:</p>
+            <label style="font-size: 12px; color: #888;">Nama Penuh:</label>
+            <input type="text" id="upd-name">
+            <label style="font-size: 12px; color: #888;">No. Matrik:</label>
+            <input type="text" id="upd-id">
+            <label style="font-size: 12px; color: #888;">No. Telefon:</label>
+            <input type="tel" id="upd-phone">
+            <label style="font-size: 12px; color: #888;">Alamat Rumah:</label>
+            <input type="text" id="upd-address">
+            <label style="font-size: 12px; color: #888;">No. Kenderaan:</label>
+            <input type="text" id="upd-vehicle" placeholder="Jika ada, isikan nombor kenderaan">
+            <label style="font-size: 12px; color: #888;">Kelas:</label>
+            <select id="upd-class">
+                <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+                <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
+                <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
+                <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
+                <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
+            </select>
+            <button onclick="updateProfile()">Simpan Perubahan</button>
+            <button style="background:#FF3B30; margin-top:20px" onclick="handleLogout()">Log Keluar</button>
+        </div>
+    </div>
+
+    <nav class="nav-bar">
+        <div class="nav-item active-nav" onclick="switchTab('tab-home', this)">
+            <i data-lucide="home"></i>
+            <div>Utama</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('tab-scan', this)">
+            <i data-lucide="qr-code"></i>
+            <div>Imbas</div>
+        </div>
+        <div class="nav-item notification-badge" onclick="switchTab('tab-account', this)">
+            <i data-lucide="user"></i>
+            <div>Akaun</div>
+            <span id="notificationBadge" class="badge-new" style="display: none;">!</span>
+        </div>
+    </nav>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
+        authDomain: "bdpsemsira-5c274.firebaseapp.com",
+        projectId: "bdpsemsira-5c274",
+        storageBucket: "bdpsemsira-5c274.firebasestorage.app",
+        messagingSenderId: "176946808975",
+        appId: "1:176946808975:web:ef7447a11bb57fe71b88fa"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const COLLECTION_NAME = "studentInform";
+    const SETTINGS_COLLECTION = "systemSettings";
+    const ATTENDANCE_LOGS = "attendanceLogs";
+    const TEACHER_COL = "classSettings";
+
+    window.currentUserData = null;
+    let qrUpdateInterval = null;
+    let isAttendedToday = false; 
+    let attendanceListenerUnsubscribe = null;
+    let isAudioUnlocked = false; 
+    let cachedIC = null; // 缓存IC用于离线QR生成
+
+    let currentCalendarDate = new Date();
+    let currentAttendanceRecords = {};
+
+    let lastCheckedPostId = null;
+    let notificationCheckInterval = null;
+    let notificationPermissionGranted = false;
+    let notificationEnabled = true;
+    let currentAnnouncements = [];
+
+    let currentImageScale = 1;
+    let currentImageSrc = '';
+    let currentImageTransform = { x: 0, y: 0 };
+    let initialPinchDistance = 0;
+    let initialScale = 1;
+    let isZooming = false;
+
+    let currentTabId = 'tab-home';
+    window.history.pushState({ tab: 'tab-home' }, '');
+    window.addEventListener('popstate', handleBackButton);
+
+    // ========== 核心修复：离线可用的页面切换函数 ==========
+    window.switchTab = function(id, el) {
+        console.log("Switching to tab:", id);
+        
+        const pages = ['tab-home', 'tab-scan', 'tab-account'];
+        for (let i = 0; i < pages.length; i++) {
+            const page = document.getElementById(pages[i]);
+            if (page) {
+                if (pages[i] === id) {
+                    page.classList.add('active');
+                } else {
+                    page.classList.remove('active');
+                }
+            }
+        }
+        
+        const navItems = document.querySelectorAll('.nav-item');
+        for (let i = 0; i < navItems.length; i++) {
+            navItems[i].classList.remove('active-nav');
+        }
+        if (el) {
+            el.classList.add('active-nav');
+        }
+        
+        const watermarkLayer = document.getElementById('watermark-layer');
+        if (watermarkLayer) {
+            watermarkLayer.style.display = id === 'tab-scan' ? 'flex' : 'none';
+        }
+        
+        currentTabId = id;
+        
+        try {
+            window.history.pushState({ tab: id }, '');
+        } catch(e) {}
+    };
+
+    function handleBackButton(event) {
+        const mainApp = document.getElementById('main-app');
+        const isLoggedIn = mainApp && mainApp.style.display === 'block';
+        
+        if (!isLoggedIn) {
+            showExitConfirm();
+            return;
+        }
+        
+        let activePageId = 'tab-home';
+        if (document.getElementById('tab-home').classList.contains('active')) activePageId = 'tab-home';
+        else if (document.getElementById('tab-scan').classList.contains('active')) activePageId = 'tab-scan';
+        else if (document.getElementById('tab-account').classList.contains('active')) activePageId = 'tab-account';
+        
+        if (activePageId === 'tab-home') {
+            showExitConfirm();
+        } else {
+            const homeNav = document.querySelector('.nav-item[onclick*="tab-home"]');
+            if (homeNav) {
+                window.switchTab('tab-home', homeNav);
+            }
+            window.history.pushState({ tab: 'tab-home' }, '');
+        }
+    }
+    
+    function showExitConfirm() {
+        if (confirm("Anda pasti mahu keluar dari aplikasi?")) {
+            window.history.back();
+            setTimeout(() => {
+                window.close();
+                if (window.history.length > 1) window.history.go(-1);
+                else document.body.innerHTML = '<div style="text-align:center;padding:50px">Aplikasi ditutup. Sila tutup tab ini.</div>';
+            }, 100);
+        } else {
+            window.history.pushState({ tab: currentTabId }, '');
+        }
+    }
+
+    async function sendTelegramAlert(userData, currentUid) {
+        const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
+        const chatId = "@semsirasecurity29482910472"; 
+    
+        let currentDeviceId = localStorage.getItem('semsira_device_id');
+        let intruderData = { name: "Tidak Dikenali" };
+    
+        try {
+            const qIntruder = query(collection(db, COLLECTION_NAME), where("registeredDeviceId", "==", currentDeviceId));
+            const intruderSnap = await getDocs(qIntruder);
+            if (!intruderSnap.empty) { 
+                intruderData = intruderSnap.docs[0].data(); 
+            }
+        } catch (e) { console.error(e); }
+    
+        const message = `⚠️ *AMARAN KESELAMATAN*\n🚨 *${intruderData.name}* mencuba menceroboh akaun *${userData.name}*!`;
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    
+        try {
+            await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: "Markdown"
+                })
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function verifyDevice(user, userData) {
+        let deviceId = localStorage.getItem('semsira_device_id');
+    
+        if (!deviceId) {
+            deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now();
+            localStorage.setItem('semsira_device_id', deviceId);
+        }
+    
+        let isVerifyOn = false;
+        try {
+            const settingSnap = await getDoc(doc(db, SETTINGS_COLLECTION, "device_verify"));
+            if (settingSnap.exists()) {
+                const dv = settingSnap.data().dv_verify;
+                isVerifyOn = (dv === "on");
+            }
+        } catch (e) {
+            console.error("Device verify setting error:", e);
+        }
+    
+        if (!isVerifyOn) return true;
+    
+        const studentRef = doc(db, COLLECTION_NAME, user.uid);
+    
+        if (!userData.registeredDeviceId) {
+            await updateDoc(studentRef, { registeredDeviceId: deviceId });
+            return true;
+        }
+    
+        if (userData.registeredDeviceId !== deviceId) {
+            await sendTelegramAlert(userData, user.uid);
+            alert("⚠️ Akaun ini terikat pada peranti lain. Akses disekat.");
+            handleLogout();
+            return false;
+        }
+    
+        return true;
+    }
+
+    window.startSystem = () => {
+        const sound = document.getElementById('beep-sound');
+        sound.play().then(() => {
+            sound.pause(); 
+            sound.currentTime = 0;
+            isAudioUnlocked = true;
+            console.log("Audio Unlocked!");
+        }).catch(e => console.error("Audio failed:", e));
+
+        const overlay = document.getElementById('qr-unlock-overlay');
+        if(overlay) overlay.style.display = 'none';
+
+        startQRGenerator();
+    };
+
+    function unlockAudio() {
+        if (!isAudioUnlocked) {
+            const sound = document.getElementById('beep-sound');
+            sound.play().then(() => {
+                sound.pause(); 
+                sound.currentTime = 0;
+                isAudioUnlocked = true;
+            }).catch(e => {});
+        }
+    }
+    
+    window.showForgotPassword = () => {
+        document.getElementById('forgotPasswordModal').style.display = 'flex';
+    };
+    
+    window.closeForgotPassword = () => {
+        document.getElementById('forgotPasswordModal').style.display = 'none';
+        document.getElementById('reset-email').value = '';
+    };
+    
+    window.sendPasswordReset = async () => {
+        const email = document.getElementById('reset-email').value.trim();
+        
+        if (!email) {
+            toast("Sila masukkan emel Gmail anda");
+            return;
+        }
+        
+        try {
+            await sendPasswordResetEmail(auth, email);
+            toast("✅ Email reset telah dihantar! Sila periksa inbox/spam anda.");
+            closeForgotPassword();
+        } catch (error) {
+            console.error("Reset error:", error);
+            if (error.code === 'auth/user-not-found') {
+                toast("❌ Emel ini tidak didaftarkan");
+            } else if (error.code === 'auth/invalid-email') {
+                toast("❌ Emel tidak sah");
+            } else {
+                toast("❌ Gagal: " + error.message);
+            }
+        }
+    };
+    
+    window.toggleDarkMode = () => {
+        const isDark = document.getElementById('dark-mode-toggle').checked;
+        document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        localStorage.setItem('semsira_theme', isDark ? 'dark' : 'light');
+    };
+
+    const savedTheme = localStorage.getItem('semsira_theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    const toggleInput = document.getElementById('dark-mode-toggle');
+    if(toggleInput) toggleInput.checked = (savedTheme === 'dark');
+    
+    const savedNotification = localStorage.getItem('semsira_notification_enabled');
+    if (savedNotification !== null) {
+        notificationEnabled = savedNotification === 'true';
+        const notificationToggle = document.getElementById('notification-toggle');
+        if (notificationToggle) notificationToggle.checked = notificationEnabled;
+    }
+
+    const K1_CLASSES = ['aishah', 'fatimah', 'khadijah', 'ruqayyah', 'sarah', 'sumayyah', 'ummukalthom', 'zainab'];
+
+    async function getSemesterForClass(className) {
+        try {
+            const k1Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k1_settings"));
+            const k2Snap = await getDoc(doc(db, SETTINGS_COLLECTION, "k2_settings"));
+            let semK1 = k1Snap.exists() ? k1Snap.data().semester : "1";
+            let semK2 = k2Snap.exists() ? k2Snap.data().semester : "1";
+            let classNameLower = className.toLowerCase();
+            let isK1 = K1_CLASSES.some(k => classNameLower.includes(k));
+            return isK1 ? semK1 : semK2;
+        } catch(e) {
+            console.warn("Offline: using default semester");
+            return "1";
+        }
+    }
+
+    function applyWatermark(info) {
+        const layer = document.getElementById('watermark-layer');
+        if(!layer) return; 
+        layer.innerHTML = "";
+        for (let i = 0; i < 40; i++) {
+            const item = document.createElement('div');
+            item.className = 'watermark-item'; item.innerText = info;
+            layer.appendChild(item);
+        }
+    }
+
+    window.autoFillIC = (ic) => {
+        if(ic.length >= 12) {
+            const yy = ic.substring(0,2); const mm = ic.substring(2,4); const dd = ic.substring(4,6);
+            const year = parseInt(yy) > 26 ? "19"+yy : "20"+yy;
+            document.getElementById('reg-dob').value = `${year}/${mm}/${dd}`;
+            const lastDigit = parseInt(ic.charAt(11));
+            document.getElementById('reg-gender').value = (lastDigit % 2 === 0) ? "PEREMPUAN" : "LELAKI";
+        }
+    }
+
+    let isRegistering = false;
+    
+    window.handleRegister = async () => {
+        if (isRegistering) return;
+        isRegistering = true;
+    
+        const btn = document.querySelector('#page-register button');
+        btn.disabled = true;
+        btn.innerText = "Sedang daftar...";
+    
+        const email = document.getElementById('reg-email').value;
+        const pw1 = document.getElementById('reg-pw1').value;
+        const pw2 = document.getElementById('reg-pw2').value;
+        const ic = document.getElementById('reg-ic').value;
+        const phone = document.getElementById('reg-phone').value;
+        const className = document.getElementById('reg-class').value;
+        const vehicleNo = document.getElementById('reg-vehicle').value;
+    
+        if (!email || !pw1 || !ic || !phone || !className) {
+            resetButton(btn);
+            return alert("Sila isi maklumat!");
+        }
+    
+        if (pw1 !== pw2) {
+            resetButton(btn);
+            return alert("Kata laluan tidak sepadan!");
+        }
+    
+        try {
+            const q = query(collection(db, COLLECTION_NAME), where("ic", "==", ic));
+            const querySnapshot = await getDocs(q);
+    
+            if (!querySnapshot.empty) {
+                resetButton(btn);
+                return alert("IC didaftarkan!");
+            }
+    
+            const assignedSemester = await getSemesterForClass(className);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
+    
+            await setDoc(doc(db, COLLECTION_NAME, userCredential.user.uid), {
+                studentId: document.getElementById('reg-id').value,
+                ic: ic,
+                name: document.getElementById('reg-name').value,
+                phone: phone,
+                className: className,
+                semester: assignedSemester,
+                dob: document.getElementById('reg-dob').value,
+                gender: document.getElementById('reg-gender').value,
+                address: document.getElementById('reg-address').value,
+                email: email,
+                vehicleNo: vehicleNo || "",
+                createdAt: new Date()
+            });
+    
+            alert("Berjaya!");
+            location.reload();
+    
+        } catch (e) {
+            alert(e.message);
+            resetButton(btn);
+        }
+    };
+    
+    function resetButton(btn) {
+        isRegistering = false;
+        btn.disabled = false;
+        btn.innerText = "Daftar";
+    }
+   
+    window.handleLogin = async () => {
+        const email = document.getElementById('login-email').value;
+        const pw = document.getElementById('login-pw').value;
+        
+        if (!email || !pw) {
+            toast("❌ Sila masukkan emel dan kata laluan");
+            return;
+        }
+        
+        const loginBtn = document.querySelector('#page-login button');
+        const originalText = loginBtn.innerText;
+        loginBtn.disabled = true;
+        loginBtn.innerText = "Sedang log masuk...";
+        
+        try { 
+            await signInWithEmailAndPassword(auth, email, pw);
+            toast("✅ Log masuk berjaya! Sedang beralih...");
+        } catch (e) { 
+            if (e.code === 'auth/user-not-found') {
+                toast("❌ Akaun tidak wujud. Sila daftar terlebih dahulu.");
+            } else if (e.code === 'auth/wrong-password') {
+                toast("❌ Kata laluan salah. Sila cuba lagi.");
+            } else if (e.code === 'auth/invalid-credential') {
+                toast("❌ Akaun atau kata laluan yang salah.");
+            } else if (e.code === 'auth/invalid-email') {
+                toast("❌ Format emel tidak sah.");
+            } else if (e.code === 'auth/too-many-requests') {
+                toast("❌ Terlalu banyak percubaan. Sila cuba sebentar lagi.");
+            } else {
+                toast("❌ Gagal log masuk: " + e.message);
+            }
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.innerText = originalText;
+        }
+    }
+
+    window.handleLogout = () => { 
+        // 添加确认对话框
+        if (confirm("Anda pasti mahu log keluar?")) {
+            if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe(); 
+            if(notificationCheckInterval) clearInterval(notificationCheckInterval);
+            signOut(auth).then(() => location.reload());
+        }
+    }
+    
+    window.toggleNotificationSetting = () => {
+        const toggle = document.getElementById('notification-toggle');
+        notificationEnabled = toggle.checked;
+        localStorage.setItem('semsira_notification_enabled', notificationEnabled);
+        if (notificationEnabled && notificationPermissionGranted) {
+            toast("🔔 Notifikasi diaktifkan");
+        } else if (!notificationEnabled) {
+            toast("🔕 Notifikasi dimatikan");
+        }
+    };
+
+    setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.opacity = '0';
+        setTimeout(() => {
+            if (splash) splash.style.display = 'none';
+        }, 500);
+    }, 1500);
+    
+    // ========== 增强版 sendNotification 函数 ==========
+    window.sendNotification = function(title, body, postId) {
+        if (!notificationEnabled) return;
+        
+        if (Notification.permission === "granted") {
+            try {
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: "/semsira.png",
+                    badge: "/semsira.png",
+                    vibrate: [200, 100, 200],
+                    tag: postId,
+                    requireInteraction: true
+                });
+                
+                notification.onclick = function() {
+                    window.focus();
+                    const homeNav = document.querySelector('.nav-item[onclick*="tab-home"]');
+                    if (homeNav) window.switchTab('tab-home', homeNav);
+                    notification.close();
+                };
+            } catch(e) {
+                console.log("普通通知失败:", e);
+            }
+        }
+        
+        if (window.OneSignal && window.oneSignalReady) {
+            try {
+                window.OneSignal.Deferred?.push(async function(OneSignal) {
+                    const isSubscribed = await OneSignal.User.PushSubscription.getOptedIn();
+                    if (!isSubscribed) {
+                        await OneSignal.Slidedown.promptPush();
+                    }
+                    
+                    await OneSignal.Notifications.addNotification({
+                        title: title,
+                        message: body,
+                        icon: "https://bdpsemsira.github.io/semsiradigitalidf6/semsira.png",
+                        data: { postId: postId, url: "semsira://home" }
+                    });
+                    
+                    await OneSignal.User.addTags({
+                        "last_notification_title": title,
+                        "last_notification_time": new Date().toISOString()
+                    });
+                });
+            } catch(e) {
+                console.log("OneSignal 通知失败:", e);
+            }
+        }
+        
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            badge.style.display = 'flex';
+            setTimeout(() => {
+                badge.style.display = 'none';
+            }, 5000);
+        }
+    };
+    
+    // ========== 增强版 requestNotificationPermission ==========
+    async function enhancedRequestNotificationPermission() {
+        if ("Notification" in window) {
+            if (Notification.permission === "granted") {
+                notificationPermissionGranted = true;
+            } else if (Notification.permission !== "denied") {
+                const permission = await Notification.requestPermission();
+                notificationPermissionGranted = (permission === "granted");
+            }
+        }
+        
+        if (window.OneSignal && window.oneSignalReady) {
+            try {
+                window.OneSignal.Deferred?.push(async function(OneSignal) {
+                    const isSubscribed = await OneSignal.User.PushSubscription.getOptedIn();
+                    if (!isSubscribed) {
+                        await OneSignal.Slidedown.promptPush();
+                    }
+                });
+            } catch(e) {
+                console.log("OneSignal 权限请求失败:", e);
+            }
+        }
+        
+        const promptArea = document.getElementById('notification-prompt-area');
+        if (promptArea) {
+            promptArea.innerHTML = '';
+        }
+        
+        if (notificationPermissionGranted) {
+            toast("✅ Notifikasi diaktifkan! Anda akan terima notifikasi untuk pengumuman baru.");
+        }
+    }
+    window.requestNotificationPermission = enhancedRequestNotificationPermission;
+    
+    window.enableNotifications = async function() {
+        await enhancedRequestNotificationPermission();
+    };
+    
+    async function setupOneSignalForUser(user, userData) {
+        if (window.OneSignal && window.oneSignalReady && user && userData) {
+            try {
+                window.OneSignal.Deferred?.push(async function(OneSignal) {
+                    await OneSignal.login(user.uid);
+                    await OneSignal.User.addTags({
+                        "student_name": userData.name || "",
+                        "student_class": userData.className || "",
+                        "student_ic": userData.ic || "",
+                        "student_semester": userData.semester || "1"
+                    });
+                    console.log("OneSignal 用户已设置:", user.uid);
+                });
+            } catch(e) {
+                console.log("OneSignal 设置用户失败:", e);
+            }
+        }
+    }
+    
+    // ========== 新增：发送请假信息到老师 Telegram ==========
+    async function sendLeaveNotificationToTeacher(leaveDate, reason, details) {
+        const user = auth.currentUser;
+        if (!user || !window.currentUserData) {
+            toast("❌ Ralat: Data pengguna tidak ditemui");
+            return false;
+        }
+        
+        const studentData = window.currentUserData;
+        const className = studentData.className || "";
+        
+        // 班级名称映射（匹配 teacher 集合中的班级名称）
+        const classMapping = {
+            '6 AISHAH': 'Aishah', '6 FATIMAH': 'Fatimah', '6 KHADIJAH': 'Khadijah',
+            '6 RUQAYYAH': 'Ruqayyah', '6 SARAH': 'Sarah', '6 SUMAYYAH': 'Sumayyah',
+            '6 UMMU KALTHOM': 'Ummukalthom', '6 ZAINAB': 'Zainab',
+            '6 AL FARABI': 'Al Farabi', '6 AL GHAZALI': 'Al Ghazali',
+            '6 AL KHWARIZMI': 'Al Khawarizmi', '6 AL KHINDI': 'Al Khindi',
+            '6 AL MAWARDI': 'Al Mawardi', '6 AL RAZI': 'Al Razi',
+            '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd'
+        };
+        
+        const teacherClassName = classMapping[className] || className;
+        
+        try {
+            // 获取老师的 Telegram Chat ID
+            const teacherRef = doc(db, TEACHER_COL, teacherClassName);
+            const teacherSnap = await getDoc(teacherRef);
+            
+            if (!teacherSnap.exists()) {
+                toast("❌ Ralat: Chat ID guru tidak ditemui untuk kelas ini");
+                return false;
+            }
+            
+            const chatId = teacherSnap.data().chatId;
+            if (!chatId) {
+                toast("❌ Ralat: Chat ID guru belum dikonfigurasi");
+                return false;
+            }
+            
+            const botToken = "8639588054:AAG8gu9xWL2IoacH_N3mBS7U2dpqnXZtfNI";
+            const now = new Date();
+            const currentDate = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+            const currentTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            
+            const detailsText = details ? `\n📝 *Keterangan:* ${details}` : "";
+            
+            const message = `📋 *PERMOHONAN CUTI / TIDAK HADIR*\n\n` +
+                `👤 *Nama:* ${studentData.name || '-'}\n` +
+                `🆔 *No. IC:* ${studentData.ic || '-'}\n` +
+                `🏫 *Kelas:* ${className}\n` +
+                `📅 *Tarikh Permohonan:* ${currentDate} (${currentTime})\n` +
+                `🗓️ *Tarikh Cuti:* ${leaveDate}\n` +
+                `📌 *Sebab:* ${reason}\n` +
+                `${detailsText}\n\n` +
+                `---\n_Nota: Pelajar ini memohon keizinan untuk tidak hadir pada tarikh tersebut._`;
+            
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: "Markdown"
+                })
+            });
+            
+            const result = await response.json();
+            if (result.ok) {
+                return true;
+            } else {
+                console.error("Telegram error:", result);
+                return false;
+            }
+        } catch (error) {
+            console.error("Send leave notification error:", error);
+            return false;
+        }
+    }
+    
+    // ========== 请假模态框函数 ==========
+    window.openLeaveModal = () => {
+        const modal = document.getElementById('leaveModal');
+        if (!modal) return;
+        
+        // 设置默认日期为今天
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        
+        document.getElementById('leave-date').value = todayStr;
+        document.getElementById('leave-reason').value = "URUSAN KELUARGA";
+        document.getElementById('leave-details').value = "";
+        
+        modal.style.display = 'flex';
+    };
+    
+    window.closeLeaveModal = () => {
+        const modal = document.getElementById('leaveModal');
+        if (modal) modal.style.display = 'none';
+    };
+    
+    window.submitLeaveRequest = async () => {
+        const leaveDate = document.getElementById('leave-date').value;
+        const reason = document.getElementById('leave-reason').value;
+        const details = document.getElementById('leave-details').value;
+        
+        if (!leaveDate) {
+            toast("❌ Sila pilih tarikh cuti");
+            return;
+        }
+        
+        // 格式化日期显示
+        const dateParts = leaveDate.split('-');
+        const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+        
+        const btn = document.querySelector('#leaveModal button:last-child');
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "Menghantar...";
+        
+        try {
+            const success = await sendLeaveNotificationToTeacher(formattedDate, reason, details);
+            
+            if (success) {
+                toast("✅ Permohonan cuti telah dihantar kepada guru!");
+                closeLeaveModal();
+            } else {
+                toast("❌ Gagal menghantar permohonan. Sila cuba lagi.");
+            }
+        } catch (error) {
+            console.error("Submit leave error:", error);
+            toast("❌ Ralat: " + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    };
+    
+    function toast(msg) {
+        // 移除已有的toast
+        const existingToast = document.querySelector('.toast-message');
+        if (existingToast) existingToast.remove();
+        
+        const div = document.createElement('div');
+        div.textContent = msg;
+        div.className = 'toast-message';
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 2500);
+    }
+    
+    // ========== 离线优先的登录状态处理 ==========
+    onAuthStateChanged(auth, async (user) => {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.display = 'none';
+        
+        if (user) {
+            loadingOverlay.style.display = 'flex';
+            
+            // 先尝试从本地缓存加载用户数据
+            const cachedUserData = localStorage.getItem('semsira_cached_user_' + user.uid);
+            let userData = null;
+            let isOffline = false;
+            
+            try {
+                const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
+                if (snap.exists()) {
+                    userData = snap.data();
+                    // 缓存用户数据用于离线
+                    localStorage.setItem('semsira_cached_user_' + user.uid, JSON.stringify(userData));
+                    // 缓存IC用于离线QR生成
+                    cachedIC = userData.ic;
+                    localStorage.setItem('semsira_cached_ic', userData.ic);
+                } else {
+                    throw new Error("User data not found");
+                }
+            } catch (e) {
+                console.warn("Offline or error, using cached data:", e);
+                isOffline = true;
+                if (cachedUserData) {
+                    userData = JSON.parse(cachedUserData);
+                    cachedIC = userData.ic;
+                } else {
+                    loadingOverlay.style.display = 'none';
+                    alert("Gagal memuatkan data. Sila pastikan sambungan internet dan cuba lagi.");
+                    handleLogout();
+                    return;
+                }
+            }
+            
+            if (!(await verifyDevice(user, userData))) { 
+                loadingOverlay.style.display = 'none'; 
+                return; 
+            }
+            window.currentUserData = userData;
+            
+            await setupOneSignalForUser(user, userData);
+            
+            setTimeout(() => {
+                document.getElementById('page-login').classList.remove('active');
+                document.getElementById('page-register').classList.remove('active');
+                document.getElementById('main-app').style.display = 'block';
+                loadingOverlay.style.display = 'none';
+                applyWatermark(`${userData.name} (${userData.ic})`);
+                
+                enhancedRequestNotificationPermission();
+                
+                // 只有在在线时才启动通知检查器和加载网络数据
+                if (!isOffline) {
+                    startNotificationChecker();
+                    loadHomeData();
+                } else {
+                    // 离线模式：显示缓存内容或提示
+                    const announcementsList = document.getElementById('announcements-list');
+                    if (announcementsList) {
+                        announcementsList.innerHTML = '<div class="glass" style="padding:15px; text-align:center;">📱 Mod Offline - Pengumuman tidak tersedia</div>';
+                    }
+                    const posterSlider = document.getElementById('poster-slider');
+                    if (posterSlider) {
+                        posterSlider.innerHTML = '<div class="glass" style="display:flex; align-items:center; justify-content:center; height:100%;">📱 Mod Offline</div>';
+                    }
+                }
+                
+                setupAccountPage();
+                listenToAttendance(userData.ic);
+                loadMonthlyAttendanceData(userData.ic);
+                
+                try {
+                    lucide.createIcons();
+                } catch(e) {
+                    console.log("Lucide icons offline");
+                }
+                
+                window.history.pushState({ tab: 'tab-home' }, '');
+            }, 500);
+        } else {
+            loadingOverlay.style.display = 'none';
+            document.getElementById('main-app').style.display = 'none';
+            document.getElementById('page-login').classList.add('active');
+            document.getElementById('page-register').classList.remove('active');
+            if(notificationCheckInterval) clearInterval(notificationCheckInterval);
+            
+            if (window.OneSignal && window.oneSignalReady) {
+                try {
+                    window.OneSignal.Deferred?.push(async function(OneSignal) {
+                        await OneSignal.logout();
+                    });
+                } catch(e) {}
+            }
+        }
+    });
+
+    function startNotificationChecker() {
+        if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+        
+        notificationCheckInterval = setInterval(async () => {
+            if (!window.currentUserData) return;
+            
+            try {
+                const repo = "bdpsemsira/bdpsemsira.github.io";
+                const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&labels=post&t=${new Date().getTime()}`);
+                if (!res.ok) return;
+                const issues = await res.json();
+                
+                const posts = issues.filter(issue => 
+                    issue.labels.some(label => label.name === 'post')
+                );
+                
+                if (posts.length > 0) {
+                    const latestPost = posts[0];
+                    const latestPostId = latestPost.id;
+                    const storedLastId = localStorage.getItem('semsira_last_post_id');
+                    
+                    if (storedLastId && latestPostId > parseInt(storedLastId)) {
+                        const title = `📢 Pengumuman Baru: ${latestPost.title.substring(0, 50)}`;
+                        const body = latestPost.body.replace(/[#*`]/g, '').substring(0, 100);
+                        window.sendNotification(title, body, latestPostId);
+                        highlightNewPost(latestPostId);
+                    }
+                    
+                    localStorage.setItem('semsira_last_post_id', latestPostId);
+                }
+            } catch (error) {
+                console.error("Error checking notifications:", error);
+            }
+        }, 30000);
+    }
+    
+    function highlightNewPost(postId) {
+        const posts = document.querySelectorAll('.post-card');
+        if (posts.length > 0) {
+            posts[0].classList.add('new-post');
+            setTimeout(() => {
+                posts[0].classList.remove('new-post');
+            }, 2000);
+        }
+    }
+    
+    function listenToAttendance(studentIc) {
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        const statusEl = document.getElementById('attendance-status');
+        const timeEl = document.getElementById('attendance-time');
+        const qrcEl = document.getElementById('qrcode');
+        const instEl = document.getElementById('scan-instruction');
+        const timerEl = document.getElementById('qr-timer');
+
+        const q = query(collection(db, ATTENDANCE_LOGS), where("ic", "==", studentIc), where("date", "==", todayStr));
+        if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
+
+        attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                if (!isAttendedToday && isAudioUnlocked) {
+                    const sound = document.getElementById('beep-sound');
+                    sound.play().catch(err => console.log("Play failed: ", err));
+                }
+                const data = snapshot.docs[0].data();
+                isAttendedToday = true;
+                if(qrUpdateInterval) { clearInterval(qrUpdateInterval); qrUpdateInterval = null; }
+                const overlay = document.getElementById('qr-unlock-overlay');
+                if(overlay) overlay.style.display = 'none';
+                const status = data.status;
+                statusEl.innerText = status.toUpperCase();
+                statusEl.className = "status-text " + (status.toLowerCase() === "hadir" ? "status-hadir" : "status-lewat");
+                qrcEl.style.opacity = "0.3";
+                instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
+                timerEl.innerText = "SIGNED IN";
+                const timestamp = data.timestamp;
+                if (timestamp) {
+                    const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                    timeEl.innerText = d.toLocaleString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false });
+                }
+            } else {
+                isAttendedToday = false;
+                statusEl.innerText = "TIDAK HADIR";
+                statusEl.className = "status-text status-tidak-hadir";
+                timeEl.innerText = "-- : -- : --";
+                qrcEl.style.opacity = "1";
+                instEl.innerText = "Sila tunjukkan kod QR ini kepada guru bertugas.";
+            }
+        }, (error) => {
+            // 离线时忽略Firestore错误，继续使用本地状态
+            console.warn("Attendance listener offline, keeping local state");
+        });
+    }
+
+    async function loadHomeData() {
+        const repo = "bdpsemsira/bdpsemsira.github.io";
+        try {
+            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&t=${new Date().getTime()}`);
+            if (!res.ok) throw new Error("Network error");
+            const issues = await res.json();
+            const slider = document.getElementById('poster-slider');
+            const list = document.getElementById('announcements-list');
+            slider.innerHTML = ""; list.innerHTML = "";
+            
+            let latestPostId = null;
+            
+            issues.forEach(issue => {
+                const labels = issue.labels.map(l => l.name);
+                const imgMatch = issue.body.match(/!\[.*?\]\((.*?)\)/) || issue.body.match(/src="(.*?)"/);
+                if(labels.includes('poster') && imgMatch) {
+                    const img = document.createElement('img'); img.src = imgMatch[1]; slider.appendChild(img);
+                }
+                if(labels.includes('post')) {
+                    if (!latestPostId) latestPostId = issue.id;
+                    let contentHtml = issue.body
+                        .replace(/!\[.*?\]\((.*?)\)/g, '<img src="$1">')
+                        .replace(/\n/g, '<br>');
+                    list.innerHTML += `<div class="post-card glass" data-post-id="${issue.id}"><b>${issue.title}</b><div style="font-size:13px; margin-top:5px;">${contentHtml}</div></div>`;
+                }
+            });
+            
+            if (latestPostId) {
+                const storedId = localStorage.getItem('semsira_last_post_id');
+                if (!storedId) {
+                    localStorage.setItem('semsira_last_post_id', latestPostId);
+                }
+            }
+            
+            let current = 0; const imgs = slider.querySelectorAll('img');
+            if(imgs.length > 0) {
+                imgs[0].classList.add('show');
+                setInterval(() => { imgs[current].classList.remove('show'); current = (current + 1) % imgs.length; imgs[current].classList.add('show'); }, 5000);
+            }
+            bindImageClickEvents();
+            const observer = new MutationObserver(() => bindImageClickEvents());
+            observer.observe(list, { childList: true, subtree: true });
+        } catch (e) { 
+            console.error(e);
+            const list = document.getElementById('announcements-list');
+            if (list && list.innerHTML === "Memuatkan...") {
+                list.innerHTML = '<div class="glass" style="padding:15px; text-align:center;">⚠️ Gagal memuatkan pengumuman. Sila semak sambungan internet.</div>';
+            }
+        }
+    }
+
+    let qr;
+    // ========== 修复：离线QR生成，完全使用本地缓存IC和当前时间戳 ==========
+    function startQRGenerator() {
+        const qrContainer = document.getElementById('qrcode');
+        if (!qr) { 
+            qr = new QRCode(qrContainer, { width: 200, height: 200 }); 
+        }
+        const updateQR = () => {
+            if (isAttendedToday) { 
+                if(qrUpdateInterval) clearInterval(qrUpdateInterval); 
+                return; 
+            }
+            
+            // 获取IC：优先使用缓存，然后从userData获取，最后从localStorage获取
+            let ic = cachedIC;
+            if (!ic && window.currentUserData && window.currentUserData.ic) {
+                ic = window.currentUserData.ic;
+                cachedIC = ic;
+                localStorage.setItem('semsira_cached_ic', ic);
+            }
+            if (!ic) {
+                ic = localStorage.getItem('semsira_cached_ic');
+            }
+            if (!ic) {
+                console.warn("No IC available for QR generation");
+                return;
+            }
+            
+            // 生成时间戳（完全本地，不依赖网络）
+            const now = new Date();
+            const ts = now.getFullYear() + 
+                       String(now.getMonth() + 1).padStart(2, '0') + 
+                       String(now.getDate()).padStart(2, '0') + 
+                       String(now.getHours()).padStart(2, '0') + 
+                       String(now.getMinutes()).padStart(2, '0') + 
+                       String(now.getSeconds()).padStart(2, '0');
+            
+            const qrData = `${ic}|${ts}`;
+            qr.makeCode(qrData);
+            document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
+        };
+        updateQR(); 
+        if(qrUpdateInterval) clearInterval(qrUpdateInterval); 
+        qrUpdateInterval = setInterval(updateQR, 5000);
+    }
+
+    function setupAccountPage() {
+        const d = window.currentUserData;
+        document.getElementById('prof-id').innerText = d.studentId || "-";
+        document.getElementById('prof-name').innerText = d.name || "-";
+        document.getElementById('prof-ic').innerText = d.ic || "-";
+        document.getElementById('prof-sem').innerText = "Semester " + (d.semester || "1");
+        document.getElementById('prof-vehicle').innerText = d.vehicleNo || "Tiada";
+        document.getElementById('upd-name').value = d.name || "";
+        document.getElementById('upd-id').value = d.studentId || "";
+        document.getElementById('upd-phone').value = d.phone || "";
+        document.getElementById('upd-address').value = d.address || "";
+        document.getElementById('upd-vehicle').value = d.vehicleNo || "";
+        document.getElementById('upd-class').value = d.className || "";
+    }
+
+    window.updateProfile = async () => {
+        const newName = document.getElementById('upd-name').value;
+        const newId = document.getElementById('upd-id').value;
+        const newPhone = document.getElementById('upd-phone').value;
+        const newClass = document.getElementById('upd-class').value;
+        const newAddress = document.getElementById('upd-address').value;
+        const newVehicle = document.getElementById('upd-vehicle').value;
+        if(!newName || !newId || !newPhone) return alert("Isi maklumat!");
+        try {
+            const newSemester = await getSemesterForClass(newClass);
+            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), { 
+                name: newName, 
+                studentId: newId, 
+                phone: newPhone, 
+                address: newAddress, 
+                className: newClass, 
+                semester: newSemester,
+                vehicleNo: newVehicle || ""
+            });
+            window.currentUserData.name = newName; 
+            window.currentUserData.studentId = newId; 
+            window.currentUserData.phone = newPhone; 
+            window.currentUserData.className = newClass; 
+            window.currentUserData.semester = newSemester; 
+            window.currentUserData.address = newAddress;
+            window.currentUserData.vehicleNo = newVehicle;
+            // 更新缓存
+            localStorage.setItem('semsira_cached_user_' + auth.currentUser.uid, JSON.stringify(window.currentUserData));
+            if (window.currentUserData.ic) {
+                cachedIC = window.currentUserData.ic;
+                localStorage.setItem('semsira_cached_ic', cachedIC);
+            }
+            setupAccountPage(); 
+            applyWatermark(`${newName} (${window.currentUserData.ic})`); 
+            alert("Berjaya!");
+        } catch(e) { alert(e.message); }
+    };
+
+    window.showFullImage = function(imgSrc) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        const infoDiv = document.getElementById('imageModalInfo');
+        
+        if (!modal || !modalImg) return;
+        
+        currentImageScale = 1;
+        currentImageTransform = { x: 0, y: 0 };
+        currentImageSrc = imgSrc;
+        
+        modalImg.src = imgSrc;
+        modalImg.style.transform = `scale(1) translate(0px, 0px)`;
+        modalImg.style.transition = 'transform 0.1s ease';
+        
+        if (infoDiv) {
+            infoDiv.innerHTML = `📷 Klik untuk tutup | ✌️ Dua jari untuk zoom | 💾 Klik butang simpan`;
+        }
+        
+        modal.classList.add('active-modal');
+        try {
+            lucide.createIcons();
+        } catch(e) {}
+        
+        setupPinchZoom(modalImg);
+    };
+    
+    function setupPinchZoom(element) {
+        let initialDistance = 0;
+        
+        const handleTouchStart = (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                initialDistance = Math.sqrt(dx * dx + dy * dy);
+                initialScale = currentImageScale;
+                element.style.transition = 'none';
+            }
+        };
+        
+        const handleTouchMove = (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (initialDistance > 0) {
+                    let newScale = initialScale * (distance / initialDistance);
+                    newScale = Math.min(Math.max(newScale, 1), 3);
+                    currentImageScale = newScale;
+                    element.style.transform = `scale(${newScale}) translate(${currentImageTransform.x}px, ${currentImageTransform.y}px)`;
+                }
+            }
+        };
+        
+        const handleTouchEnd = (e) => {
+            initialDistance = 0;
+            element.style.transition = 'transform 0.1s ease';
+        };
+        
+        element.removeEventListener('touchstart', handleTouchStart);
+        element.removeEventListener('touchmove', handleTouchMove);
+        element.removeEventListener('touchend', handleTouchEnd);
+        
+        element.addEventListener('touchstart', handleTouchStart, { passive: false });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd);
+    }
+    
+    window.downloadCurrentImage = async function() {
+        if (!currentImageSrc) {
+            toast("❌ Tiada gambar untuk dimuat turun");
+            return;
+        }
+        
+        try {
+            toast("📥 Sedang memuat turun gambar...");
+            const response = await fetch(currentImageSrc);
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            const now = new Date();
+            const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+            const timestamp = `${malaysiaTime.getUTCFullYear()}${String(malaysiaTime.getUTCMonth()+1).padStart(2,'0')}${String(malaysiaTime.getUTCDate()).padStart(2,'0')}_${String(malaysiaTime.getUTCHours()).padStart(2,'0')}${String(malaysiaTime.getUTCMinutes()).padStart(2,'0')}`;
+            link.download = `semsira_gambar_${timestamp}.jpg`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast("✅ Gambar berjaya dimuat turun!");
+        } catch (error) {
+            console.error("Download error:", error);
+            toast("❌ Gagal memuat turun gambar. Sila cuba lagi.");
+        }
+    };
+    
+    window.closeImageModal = function() {
+        const modal = document.getElementById('imageModal');
+        if (modal) {
+            modal.classList.remove('active-modal');
+            const modalImg = document.getElementById('modalImage');
+            if (modalImg) {
+                modalImg.style.transform = 'scale(1)';
+                currentImageScale = 1;
+                currentImageTransform = { x: 0, y: 0 };
+            }
+        }
+    };
+    
+    function bindImageClickEvents() {
+        const annList = document.getElementById('announcements-list');
+        if (annList) {
+            const images = annList.querySelectorAll('img');
+            images.forEach(img => {
+                if (!img.hasAttribute('data-click-bound')) {
+                    img.setAttribute('data-click-bound', 'true');
+                    img.style.cursor = 'pointer';
+                    img.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        window.showFullImage(img.src);
+                    });
+                }
+            });
+        }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') window.closeImageModal();
+    });
+
+    window.showPage = (id) => { 
+        unlockAudio(); 
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+        document.getElementById(id).classList.add('active'); 
+    };
+
+    async function loadMonthlyAttendanceData(studentIc) {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
+        
+        try {
+            const q = query(
+                collection(db, ATTENDANCE_LOGS),
+                where("ic", "==", studentIc),
+                where("date", ">=", startDate),
+                where("date", "<=", endDate)
+            );
+            const snapshot = await getDocs(q);
+            
+            currentAttendanceRecords = {};
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                currentAttendanceRecords[data.date] = {
+                    status: data.status,
+                    time: data.time || data.timeFull || "--:--"
+                };
+            });
+            
+            renderCalendar();
+            
+        } catch (error) {
+            console.error("Error loading monthly attendance:", error);
+            renderCalendar(); // 即使失败也渲染日历（离线模式）
+        }
+    }
+    
+    function renderCalendar() {
+        const container = document.getElementById('calendarDaysContainer');
+        if (!container) return;
+        
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        
+        const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", 
+                            "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+        const titleEl = document.getElementById('calendarMonthTitle');
+        if (titleEl) titleEl.innerText = `${monthNames[month]} ${year}`;
+        
+        const firstDayOfMonth = new Date(year, month, 1);
+        const startDayOfWeek = firstDayOfMonth.getDay();
+        let adjustedStart = (startDayOfWeek + 6) % 7;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        const now = new Date();
+        const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+        const todayDate = malaysiaTime.getUTCDate();
+        const todayMonth = malaysiaTime.getUTCMonth();
+        const todayYear = malaysiaTime.getUTCFullYear();
+        
+        let calendarHTML = '';
+        
+        for (let i = 0; i < adjustedStart; i++) {
+            calendarHTML += `<div class="calendar-day empty"></div>`;
+        }
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month, day);
+            const dayOfWeek = dateObj.getDay();
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const attendance = currentAttendanceRecords[dateStr];
+            
+            let isFutureDate = false;
+            if (year > todayYear) {
+                isFutureDate = true;
+            } else if (year === todayYear && month > todayMonth) {
+                isFutureDate = true;
+            } else if (year === todayYear && month === todayMonth && day > todayDate) {
+                isFutureDate = true;
+            }
+            
+            let statusIcon = '';
+            let statusClass = '';
+            
+            if (isWeekend) {
+                statusIcon = '';
+                statusClass = '';
+            } else if (attendance) {
+                if (attendance.status === "Hadir") {
+                    statusIcon = '✅';
+                    statusClass = 'hadir';
+                } else if (attendance.status === "Lewat") {
+                    statusIcon = '✅';
+                    statusClass = 'lewat';
+                }
+            } else if (!isFutureDate) {
+                statusIcon = '❌';
+                statusClass = 'tidakhadir';
+            }
+            
+            const weekendClass = isWeekend ? 'weekend' : '';
+            
+            calendarHTML += `
+                <div class="calendar-day ${weekendClass}">
+                    <span>${day}</span>
+                    ${statusIcon ? `<div class="calendar-status ${statusClass}">${statusIcon}</div>` : '<div class="calendar-status" style="height: 22px;"></div>'}
+                </div>
+            `;
+        }
+        
+        container.innerHTML = calendarHTML;
+    }
+    
+    window.changeMonth = (delta) => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+        if (window.currentUserData && window.currentUserData.ic) {
+            loadMonthlyAttendanceData(window.currentUserData.ic);
+        } else {
+            renderCalendar();
+        }
+    };
+    
+    window.renderCalendar = renderCalendar;
+    
+    // 预加载缓存的IC
+    const cachedIcFromStorage = localStorage.getItem('semsira_cached_ic');
+    if (cachedIcFromStorage) {
+        cachedIC = cachedIcFromStorage;
+    }
+    
+</script>
+</body>
+</html>
