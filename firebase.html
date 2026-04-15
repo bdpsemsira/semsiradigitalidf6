@@ -395,13 +395,16 @@
 
     let allStudents = [];
 
-    // 加载所有学生
     async function loadStudentsFromFirestore() {
         const students = [];
         try {
             const querySnapshot = await getDocs(collection(db, "studentInform"));
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
+                
+                // 跳过已删除的学生（不显示在列表中）
+                if (data.isDeleted === true) return;
+                
                 const rawClass = data.className || '';
                 const displayClass = getDisplayClass(rawClass);
                 const semester = data.semester ? String(data.semester) : "1";
@@ -425,7 +428,7 @@
         }
     }
 
-    // ========== 新增：删除学生相关的聊天记录 ==========
+    // 删除学生相关的所有聊天记录
     async function deleteStudentChatData(studentUid) {
         if (!studentUid) {
             console.log("No studentUid provided for chat deletion");
@@ -468,9 +471,6 @@
                 console.log(`Deleted chat ${chat.id}`);
             }
             
-            // 4. 同时删除该学生作为接收者的未读消息记录（如果有其他方式存储）
-            // 注意：消息已通过 chatId 删除，无需额外操作
-            
             return true;
             
         } catch (error) {
@@ -504,32 +504,41 @@
         }
     }
 
-    // 删除单个学生 (同时删除 Authentication + 聊天记录)
+    // 删除单个学生 (不删除文档，只添加 isDeleted 标记)
     window.deleteSingleStudent = async (docId, name, studentEmail) => {
-        if (confirm(`Padam pelajar "${name}"? Tindakan ini tidak dapat dibatalkan.\n\n⚠️ SEMUA CHAT RECORD pelajar ini juga akan dipadam!`)) {
+        if (confirm(`Padam pelajar "${name}"? Tindakan ini tidak dapat dibatalkan.\n\n⚠️ SEMUA CHAT RECORD pelajar ini juga akan dipadam!\n\nPelajar tidak akan dapat log masuk selepas ini.`)) {
             try {
                 // 1. 删除聊天记录
                 showToast(`🗑️ Memadam chat record untuk ${name}...`);
                 await deleteStudentChatData(docId);
                 
-                // 2. 删除 Authentication 账号
-                await deleteAuthAccountByStudentDocId(docId, studentEmail);
+                // 2. 添加 isDeleted 标记（阻止登录）
+                await updateDoc(doc(db, "studentInform", docId), {
+                    isDeleted: true,
+                    deletedAt: new Date(),
+                    deletedByName: auth.currentUser?.email || 'Admin'
+                });
                 
-                // 3. 删除 Firestore 文档
-                await deleteDoc(doc(db, "studentInform", docId));
+                // 3. 可选：清除敏感信息（保留基本数据用于记录）
+                await updateDoc(doc(db, "studentInform", docId), {
+                    name: "[DELETED] " + name,
+                    phone: "",
+                    address: "",
+                    vehicleNo: ""
+                });
                 
                 await refreshAllData();
-                showToast(`✅ ${name} dan semua chat record telah dipadam.`);
+                showToast(`✅ ${name} telah dipadam. Pelajar tidak boleh log masuk lagi.`);
             } catch (err) {
                 console.error(err);
                 alert("Ralat semasa memadam pelajar: " + err.message);
             }
         }
     };
-    
-    // 删除整个学期所有学生 (同时删除聊天记录)
+
+    // 删除整个学期所有学生
     window.deleteWholeSemester = async (semesterNum) => {
-        if (confirm(`⚠️ PADAM SEMUA PELAJAR SEMESTER ${semesterNum}?\n\n⚠️ SEMUA CHAT RECORD mereka juga akan dipadam!`)) {
+        if (confirm(`⚠️ PADAM SEMUA PELAJAR SEMESTER ${semesterNum}?\n\n⚠️ SEMUA CHAT RECORD mereka juga akan dipadam!\n\nMereka tidak akan dapat log masuk selepas ini.`)) {
             try {
                 const studentsToDelete = allStudents.filter(s => s.semester === semesterNum);
                 if (studentsToDelete.length === 0) {
@@ -544,15 +553,21 @@
                     await deleteStudentChatData(student.id);
                 }
                 
-                // 2. 删除 Authentication 账号
-                for (const student of studentsToDelete) {
-                    await deleteAuthAccountByStudentDocId(student.id, student.email);
-                }
-                
-                // 3. 批量删除 Firestore 文档
+                // 2. 批量添加 isDeleted 标记
                 const batch = writeBatch(db);
                 for (let student of studentsToDelete) {
-                    batch.delete(doc(db, "studentInform", student.id));
+                    const studentRef = doc(db, "studentInform", student.id);
+                    batch.update(studentRef, {
+                        isDeleted: true,
+                        deletedAt: new Date(),
+                        deletedByName: auth.currentUser?.email || 'Admin'
+                    });
+                    batch.update(studentRef, {
+                        name: "[DELETED] " + student.name,
+                        phone: "",
+                        address: "",
+                        vehicleNo: ""
+                    });
                 }
                 await batch.commit();
                 
