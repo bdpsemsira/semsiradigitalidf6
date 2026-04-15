@@ -749,6 +749,38 @@
             white-space: nowrap;
         }
 
+        /* ========== 强制 IMBAS 页面始终亮色模式 ========== */
+        #tab-imbas,
+        #tab-imbas * {
+            --bg: #F2F2F7;
+            --card: rgba(255, 255, 255, 0.95);
+            --border: rgba(200, 200, 200, 0.3);
+            --text: #000000;
+        }
+        
+        #tab-imbas {
+            background-color: #F2F2F7 !important;
+            color: #000000 !important;
+        }
+        
+        #tab-imbas .glass,
+        #tab-imbas .attendance-panel,
+        #tab-imbas #qrcode {
+            background: white !important;
+            color: #000000 !important;
+        }
+        
+        #tab-imbas #qr-unlock-overlay {
+            background: rgba(255, 255, 255, 0.98) !important;
+        }
+        
+        #tab-imbas p,
+        #tab-imbas h3,
+        #tab-imbas .status-text,
+        #tab-imbas .status-time {
+            color: #000000 !important;
+        }
+        
         /* Chat 页面样式 */
         .chat-message {
             display: flex;
