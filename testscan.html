@@ -23,7 +23,6 @@
             color: #fff;
         }
 
-        /* 主容器 - 类似lotus商城三段式布局 */
         .app-container {
             display: flex;
             flex-direction: column;
@@ -31,12 +30,12 @@
             background: radial-gradient(circle at 20% 30%, #141B2B, #0A0D14);
         }
 
-        /* 顶部区域：视频播放 + 时钟/设置等 (融合原有header内容但重排) */
+        /* 顶部视频区域 - 高度增加一倍 (从32%增加到64%) */
         .top-video-area {
             position: relative;
             background: #000;
-            height: 32%;
-            min-height: 220px;
+            height: 64%;
+            min-height: 400px;
             overflow: hidden;
             border-bottom-left-radius: 28px;
             border-bottom-right-radius: 28px;
@@ -44,7 +43,6 @@
             z-index: 5;
         }
 
-        /* 视频容器 */
         .video-player-container {
             width: 100%;
             height: 100%;
@@ -77,18 +75,17 @@
             width: 16px;
         }
 
-        /* 右侧扫码小格子区域 + 左侧出席状况区域 (中间区域分割) */
+        /* 中间区域 - 因为视频变大了，这个区域会相应缩小 */
         .middle-split {
             flex: 1;
             display: flex;
             flex-direction: row;
-            padding: 16px 18px;
+            padding: 12px 18px;
             gap: 16px;
             min-height: 0;
             overflow: hidden;
         }
 
-        /* 左侧出席状况面板 - 卡片式名单 */
         .attendance-panel {
             flex: 1.2;
             background: rgba(18, 22, 32, 0.75);
@@ -102,14 +99,14 @@
         }
 
         .attendance-header {
-            padding: 18px 16px 12px;
+            padding: 14px 16px 10px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
             align-items: baseline;
         }
         .attendance-header h3 {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -128,12 +125,12 @@
             padding: 8px 12px 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         .attendance-item {
             background: rgba(255,255,255,0.05);
             border-radius: 20px;
-            padding: 12px 14px;
+            padding: 10px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -149,20 +146,20 @@
         .student-info {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
         }
         .student-name {
             font-weight: 600;
-            font-size: 15px;
+            font-size: 14px;
         }
         .student-class {
-            font-size: 11px;
+            font-size: 10px;
             color: #aaa;
         }
         .status-chip {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 30px;
             background: rgba(52,199,89,0.2);
             color: #34C759;
@@ -172,7 +169,6 @@
             color: #FF9F0A;
         }
 
-        /* 右侧小格子显示扫码镜头 */
         .scanner-grill {
             flex: 1;
             background: rgba(0,0,0,0.5);
@@ -185,7 +181,7 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
         .scanner-header {
-            padding: 16px;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -193,7 +189,7 @@
         }
         .scanner-header span {
             font-weight: 500;
-            font-size: 14px;
+            font-size: 13px;
             background: rgba(0,122,255,0.2);
             padding: 4px 12px;
             border-radius: 20px;
@@ -205,10 +201,10 @@
             border-radius: 0;
             overflow: hidden;
             background: #000;
-            min-height: 220px;
+            min-height: 180px;
         }
         .scanner-footer {
-            padding: 12px;
+            padding: 10px;
             display: flex;
             justify-content: center;
             gap: 12px;
@@ -217,17 +213,16 @@
         .cam-control {
             background: rgba(255,255,255,0.1);
             border: none;
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 30px;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
             display: flex;
             align-items: center;
             gap: 6px;
             cursor: pointer;
         }
 
-        /* 底部结果卡片极简 */
         .result-card {
             position: fixed;
             bottom: 20px;
@@ -238,19 +233,18 @@
             background: rgba(28,28,32,0.9);
             backdrop-filter: blur(20px);
             border-radius: 60px;
-            padding: 12px 20px;
+            padding: 10px 18px;
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
             z-index: 200;
             border: 1px solid rgba(255,255,255,0.15);
             box-shadow: 0 12px 30px rgba(0,0,0,0.5);
-            transition: all 0.2s;
         }
         .status-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 44px;
+            width: 40px;
+            height: 40px;
+            border-radius: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -260,15 +254,14 @@
             flex: 1;
         }
         .result-text h3 {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
         }
         .result-text p {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.7;
         }
 
-        /* 原有设置弹窗样式升级保持功能 */
         .settings-modal {
             display: none;
             position: fixed;
@@ -367,24 +360,7 @@
             animation: blink 1s infinite;
         }
         @keyframes blink { 0%{opacity:1;} 50%{opacity:0.3;} }
-        .wakelock-btn {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 30px;
-            padding: 6px 14px;
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-        }
-        /* 隐藏原有头部, 我们用新的布局替代 */
-        .header, .controls-container, .start-overlay-old {
-            display: none;
-        }
-        #start-overlay {
-            display: none !important;
-        }
+        
         .live-clock {
             position: absolute;
             top: 16px;
@@ -455,15 +431,24 @@
             border-radius: 16px;
             margin-top: 8px;
         }
+        .error-text {
+            font-size: 11px;
+            background: #FF3B3020;
+            padding: 8px;
+            border-radius: 16px;
+            margin-top: 8px;
+            color: #FF6B5E;
+        }
     </style>
 </head>
 <body>
 <div class="app-container">
-    <!-- 顶部视频区域 -->
     <div class="top-video-area">
         <div class="video-player-container" id="videoPlayerContainer">
-            <!-- 视频会动态插入 GitHub issues 带 videos 标签的第一个视频 -->
-            <video id="topVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: cover;"></video>
+            <video id="topVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: cover;">
+                <!-- 备用视频：使用一个公开的测试视频 -->
+                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+            </video>
             <div class="video-overlay-text">
                 <i data-lucide="tv"></i> <span>Promosi Semsira</span>
             </div>
@@ -477,9 +462,7 @@
         </button>
     </div>
 
-    <!-- 中部分割: 左侧出席状况 + 右侧扫码格子 -->
     <div class="middle-split">
-        <!-- 左侧出席状况面板 -->
         <div class="attendance-panel">
             <div class="attendance-header">
                 <h3><i data-lucide="users"></i> Kehadiran Hari Ini</h3>
@@ -489,7 +472,6 @@
                 <div style="text-align:center; padding:20px; opacity:0.6;">Memuatkan...</div>
             </div>
         </div>
-        <!-- 右侧扫码格子区域 -->
         <div class="scanner-grill">
             <div class="scanner-header">
                 <span><i data-lucide="scan-line"></i> Pengimbas Pro</span>
@@ -504,7 +486,6 @@
         </div>
     </div>
     
-    <!-- 结果浮动卡片 -->
     <div id="result-card" class="result-card">
         <div id="status-icon" class="status-icon waiting">
             <i data-lucide="qr-code"></i>
@@ -528,7 +509,6 @@
 
 <audio id="beep-sound" src="beep.mp3" preload="auto"></audio>
 
-<!-- 设置弹窗（保留原有完整功能）-->
 <div id="settings-modal" class="settings-modal">
     <div class="settings-card">
         <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
@@ -543,12 +523,13 @@
         <div class="setting-item"><div class="setting-label">🪞 Imej Cermin</div><label class="toggle-switch"><input type="checkbox" id="mirror-toggle"><span class="toggle-slider"></span></label></div>
         <div class="setting-item"><div class="setting-label">📱 Getaran</div><label class="toggle-switch"><input type="checkbox" id="vibration-toggle" checked><span class="toggle-slider"></span></label></div>
         <div class="warning-text"><i data-lucide="info"></i> Rakaman: klik butang kamera video di atas</div>
+        <div class="error-text" id="videoErrorMsg" style="display:none;"><i data-lucide="alert-circle"></i> <span id="videoErrorText"></span></div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4", authDomain: "bdpsemsira-5c274.firebaseapp.com", projectId: "bdpsemsira-5c274", storageBucket: "bdpsemsira-5c274.firebasestorage.app", messagingSenderId: "176946808975", appId: "1:176946808975:web:ef7447a11bb57fe71b88fa" };
     const app = initializeApp(firebaseConfig);
@@ -559,7 +540,6 @@
     let wakeLock = null;
     let mediaRecorder = null, recordedChunks = [], isRecording = false, recordingStartTime = null, recordingTimerInterval = null, isTimelapseMode = false, speedFactor = 20;
     
-    // DOM 元素绑定新UI
     const cameraSelect = document.getElementById('camera-select');
     const beepSound = document.getElementById('beep-sound');
     const wakelockBtn = document.getElementById('wakelock-toggle');
@@ -581,70 +561,157 @@
     const totalBadge = document.getElementById('totalCountBadge');
     const readerDiv = document.getElementById('reader');
     
-    // --------------------- 1. 加载 Github Issues 带 videos 标签的第一个视频 ---------------------
+    // 修复: 尝试获取真实的视频文件URL (GitHub attachment需要转换)
+    async function getGitHubAttachmentVideoUrl(attachmentUrl) {
+        // 如果是 github.com/user-attachments/assets/ 格式，需要获取实际文件
+        if (attachmentUrl.includes('github.com/user-attachments/assets/')) {
+            // 直接使用 raw 方式获取? GitHub attachments 不能直接 raw
+            // 返回原链接，浏览器可能无法播放
+            console.warn('GitHub attachment URL may not be directly playable:', attachmentUrl);
+            return null;
+        }
+        return attachmentUrl;
+    }
+    
     async function loadGithubVideo() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
+        const videoEl = document.getElementById('topVideo');
+        
+        // 尝试从GitHub Issues获取视频
         try {
             const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&labels=videos&t=${Date.now()}`);
             const issues = await res.json();
             if (issues && issues.length > 0) {
                 const firstIssue = issues[0];
                 const body = firstIssue.body || "";
-                const markdownLinkRegex = /!\[.*?\]\((.*?)\)/;
-                const match = body.match(markdownLinkRegex);
+                
+                // 尝试多种格式
                 let videoUrl = null;
-                if (match && match[1]) videoUrl = match[1];
+                
+                // 格式1: 直接MP4链接
+                const urlRegex = /(https?:\/\/[^\s]+\.(mp4|mov|webm|MP4|MOV|WEBM))/i;
+                const urlMatch = body.match(urlRegex);
+                if (urlMatch) videoUrl = urlMatch[0];
+                
+                // 格式2: Markdown图片语法
                 if (!videoUrl) {
-                    const urlRegex = /(https?:\/\/[^\s]+\.(mp4|mov|webm))/i;
-                    const urlMatch = body.match(urlRegex);
-                    if (urlMatch) videoUrl = urlMatch[0];
+                    const markdownLinkRegex = /!\[.*?\]\((https?:\/\/[^\s]+)\)/;
+                    const match = body.match(markdownLinkRegex);
+                    if (match && match[1]) videoUrl = match[1];
                 }
+                
+                // 格式3: 纯URL链接
+                if (!videoUrl) {
+                    const plainUrlRegex = /(https?:\/\/[^\s<>\"]+)/g;
+                    const matches = body.match(plainUrlRegex);
+                    if (matches) {
+                        for (const url of matches) {
+                            if (url.includes('.mp4') || url.includes('.mov') || url.includes('.webm')) {
+                                videoUrl = url;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
                 if (videoUrl) {
-                    const videoEl = document.getElementById('topVideo');
-                    videoEl.src = videoUrl;
-                    videoEl.load();
-                    videoEl.play().catch(e => console.log("autoplay blocked"));
-                } else console.log("No video link in issue");
-            } else console.log("No issues with videos label");
-        } catch(e) { console.warn("github fetch error", e); }
+                    // 检查是否是GitHub attachment
+                    const realUrl = await getGitHubAttachmentVideoUrl(videoUrl);
+                    if (realUrl) {
+                        videoEl.src = realUrl;
+                        videoEl.load();
+                        videoEl.play().catch(e => console.log("autoplay blocked:", e));
+                        console.log("Video loaded from GitHub issue");
+                        return;
+                    }
+                }
+                console.log("No valid video link in issue");
+            }
+        } catch(e) { 
+            console.warn("github fetch error", e);
+        }
+        
+        // 如果GitHub没有视频或失败，使用备用视频（已经通过source设置了）
+        console.log("Using fallback video");
+        // 确保视频有源
+        if (!videoEl.src || videoEl.src === '') {
+            videoEl.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+            videoEl.load();
+            videoEl.play().catch(e => console.log("fallback autoplay blocked"));
+        }
     }
+    
     loadGithubVideo();
     
-    // --------------------- 2. 出席状况动态显示 (实时从firestore拉取今日记录) ---------------------
+    // 修复Firebase索引问题 - 移除 orderBy，只使用 where 查询
     async function loadAttendanceList() {
         const today = new Date().toLocaleDateString('en-CA');
-        const logsQuery = query(collection(db, "attendanceLogs"), where("date", "==", today), orderBy("timestamp", "desc"));
-        const snapshot = await getDocs(logsQuery);
-        const list = [];
-        snapshot.forEach(docSnap => { list.push(docSnap.data()); });
-        totalBadge.innerText = list.length;
-        if (list.length === 0) {
-            attendanceListDiv.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.6;">Tiada rekod hari ini</div>';
-            return;
-        }
-        attendanceListDiv.innerHTML = list.map(item => `
-            <div class="attendance-item ${item.status === 'Hadir' ? 'hadir' : 'lewat'}">
-                <div class="student-info">
-                    <div class="student-name">${item.name || 'Nama'}</div>
-                    <div class="student-class">${item.className || ''}</div>
+        try {
+            // 不使用 orderBy 避免需要索引
+            const logsQuery = query(collection(db, "attendanceLogs"), where("date", "==", today));
+            const snapshot = await getDocs(logsQuery);
+            const list = [];
+            snapshot.forEach(docSnap => { list.push(docSnap.data()); });
+            // 手动排序（按时间戳倒序）
+            list.sort((a, b) => {
+                const timeA = a.timestamp?.seconds || 0;
+                const timeB = b.timestamp?.seconds || 0;
+                return timeB - timeA;
+            });
+            
+            totalBadge.innerText = list.length;
+            if (list.length === 0) {
+                attendanceListDiv.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.6;">Tiada rekod hari ini</div>';
+                return;
+            }
+            attendanceListDiv.innerHTML = list.map(item => `
+                <div class="attendance-item ${item.status === 'Hadir' ? 'hadir' : 'lewat'}">
+                    <div class="student-info">
+                        <div class="student-name">${escapeHtml(item.name || 'Nama')}</div>
+                        <div class="student-class">${escapeHtml(item.className || '')}</div>
+                    </div>
+                    <div class="status-chip ${item.status === 'Lewat' ? 'lewat' : ''}">${item.status || 'Hadir'}</div>
                 </div>
-                <div class="status-chip ${item.status === 'Lewat' ? 'lewat' : ''}">${item.status || 'Hadir'}</div>
-            </div>
-        `).join('');
+            `).join('');
+        } catch (error) {
+            console.error("Firestore error:", error);
+            if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+                attendanceListDiv.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.6; color:#FF9F0A;">⚠️ Perlu index. Sila klik butang seting untuk maklumat.</div>';
+                // 在设置弹窗中显示索引创建链接
+                const errorMsgDiv = document.getElementById('videoErrorMsg');
+                const errorTextSpan = document.getElementById('videoErrorText');
+                if (errorMsgDiv) {
+                    errorTextSpan.innerHTML = 'Firestore index needed. <a href="https://console.firebase.google.com/v1/r/project/bdpsemsira-5c274/firestore/indexes?create_composite=Cldwcm9qZWN0cy9iZHBzZW1zaXJhLTVjMjc0L2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9hdHRlbmRhbmNlTG9ncy9pbmRleGVzL18QARoICgRkYXRlEAEaDQoJdGltZXN0YW1wEAIaDAoIX19uYW1lX18QAg" target="_blank" style="color:#007AFF;">Klik sini untuk buat index</a>';
+                    errorMsgDiv.style.display = 'block';
+                }
+            }
+        }
     }
     
-    // 定时刷新出席情况
-    setInterval(() => { loadAttendanceList(); }, 8000);
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    setInterval(() => { loadAttendanceList(); }, 10000);
     loadAttendanceList();
     
-    // --------------------- 原有扫码核心功能 (移植保留逻辑) ---------------------
     function triggerVibration() { if (vibrationToggle.checked && 'vibrate' in navigator) navigator.vibrate(200); }
     function showResult(name, msg, type, time = "") {
         const iconDiv = document.getElementById('status-icon');
         document.getElementById('res-name').innerText = name;
         document.getElementById('res-msg').innerText = msg;
         iconDiv.className = 'status-icon ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'waiting'));
-        iconDiv.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2')}"></i>`;
+        let iconName = 'qr-code';
+        if (type === 'success') iconName = 'check-circle';
+        else if (type === 'error') iconName = 'alert-circle';
+        else if (type === 'waiting') iconName = 'loader-2';
+        iconDiv.innerHTML = `<i data-lucide="${iconName}"></i>`;
         lucide.createIcons();
         if (type !== 'waiting') setTimeout(() => resetResult(), 2500);
     }
@@ -690,16 +757,17 @@
     }
     
     async function initCameraList() {
-        const cameras = await Html5Qrcode.getCameras();
-        if (cameras.length) {
-            cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label || `Kamera ${cam.id}`}</option>`).join('');
-            cameraSelect.onchange = () => { if(cameraSelect.value) startScanning(cameraSelect.value); };
-            startScanning(cameras[0].id);
-        }
+        try {
+            const cameras = await Html5Qrcode.getCameras();
+            if (cameras.length) {
+                cameraSelect.innerHTML = cameras.map(cam => `<option value="${cam.id}">${cam.label || `Kamera ${cam.id}`}</option>`).join('');
+                cameraSelect.onchange = () => { if(cameraSelect.value) startScanning(cameraSelect.value); };
+                startScanning(cameras[0].id);
+            }
+        } catch(e) { console.error("Camera init error", e); }
     }
     
-    // 屏幕录制完整逻辑 (保留原有)
-    async function startScreenRecording() { /* 核心未改，沿用原有逻辑，只是UI适应 */
+    async function startScreenRecording() {
         if (isRecording) { showResult("Info", "Rakaman sedang berjalan", "wait"); return; }
         isTimelapseMode = timelapseToggle.checked;
         speedFactor = parseInt(speedFactorSelect.value);
@@ -712,9 +780,6 @@
             mediaRecorder.ondataavailable = (e) => { if(e.data.size) recordedChunks.push(e.data); };
             mediaRecorder.onstop = async () => {
                 let webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                if (isTimelapseMode && speedFactor > 1) { /* 简化加速提示，完整加速可用原版但保持简洁 */
-                    recordingIndicator.querySelector('span').innerHTML = "Mempercepat...";
-                }
                 const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, '-');
                 const fileName = `semsira_${isTimelapseMode?'timelapse':'recording'}_${timestamp}.webm`;
                 const url = URL.createObjectURL(webmBlob);
@@ -729,18 +794,15 @@
             isRecording=true; recordingStartTime=Date.now(); recordingIndicator.classList.add('active'); recordBtn.classList.add('recording-active');
             recordingTimerInterval = setInterval(()=>{ if(recordingStartTime){ let s=Math.floor((Date.now()-recordingStartTime)/1000); recordingTimerSpan.innerText=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; } },1000);
             displayStream.getVideoTracks()[0].onended = () => { if(mediaRecorder && mediaRecorder.state==='recording') mediaRecorder.stop(); };
-        } catch(err) { alert("Rakaman gagal"); }
+        } catch(err) { alert("Rakaman gagal: " + err.message); }
     }
     function stopScreenRecording() { if(mediaRecorder && mediaRecorder.state==='recording') mediaRecorder.stop(); }
     recordBtn.addEventListener('click', () => { if(isRecording) stopScreenRecording(); else startScreenRecording(); });
     
-    // 其他设置加载保存
     function loadSettingsUI() {
         const mirror = localStorage.getItem('scanner_mirror') === 'true';
         mirrorToggle.checked = mirror;
         if(mirror) readerDiv.classList.add('mirror-video'); else readerDiv.classList.remove('mirror-video');
-        const wakelockSet = localStorage.getItem('scanner_wakelock') === 'true';
-        if(wakelockSet && !wakeLock) navigator.wakeLock.request('screen').then(lock => wakeLock=lock);
         vibrationToggle.checked = localStorage.getItem('scanner_vibration') !== 'false';
         qualitySelect.value = localStorage.getItem('recording_quality') || '720';
         timelapseToggle.checked = localStorage.getItem('recording_timelapse') === 'true';
@@ -750,7 +812,6 @@
     }
     function saveAllSettings() {
         localStorage.setItem('scanner_mirror', mirrorToggle.checked);
-        localStorage.setItem('scanner_wakelock', (wakeLock!==null).toString());
         localStorage.setItem('scanner_vibration', vibrationToggle.checked);
         localStorage.setItem('recording_quality', qualitySelect.value);
         localStorage.setItem('recording_timelapse', timelapseToggle.checked);
@@ -768,7 +829,7 @@
     cameraOffTimeInput.addEventListener('change', saveAllSettings);
     openSettingsBtn.onclick = () => { settingsModal.style.display = 'flex'; lucide.createIcons(); };
     closeSettingsBtn.onclick = () => { settingsModal.style.display = 'none'; saveAllSettings(); };
-    wakelockBtn.onclick = async () => { if(wakeLock) { wakeLock.release(); wakeLock=null; } else { wakeLock = await navigator.wakeLock.request('screen'); } saveAllSettings(); };
+    wakelockBtn.onclick = async () => { if(wakeLock) { wakeLock.release(); wakeLock=null; } else { wakeLock = await navigator.wakeLock.request('screen'); } };
     function updateClock() { const now=new Date(); liveClockSpan.innerText=now.toLocaleTimeString('en-GB'); }
     setInterval(updateClock,1000); updateClock();
     
