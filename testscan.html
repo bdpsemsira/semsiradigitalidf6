@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Semsira Scanner - 左右布局专业版</title>
+    <title>Semsira Scanner - 智能扫码系统</title>
+    <!-- Favicon - 使用 /semsira.png -->
+    <link rel="icon" type="image/png" href="/semsira.png">
+    <link rel="apple-touch-icon" href="/semsira.png">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -105,7 +108,6 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
 
-        /* 正方形扫码容器 */
         .scanner-square-wrapper {
             position: relative;
             width: 100%;
@@ -115,7 +117,7 @@
         .scanner-square-wrapper::before {
             content: "";
             display: block;
-            padding-bottom: 100%; /* 1:1 正方形比例 */
+            padding-bottom: 100%;
         }
         
         .scanner-inner {
@@ -158,7 +160,6 @@
             overflow: hidden;
         }
         
-        /* 确保二维码扫描区域填满正方形 */
         #reader video {
             width: 100% !important;
             height: 100% !important;
@@ -196,7 +197,7 @@
             background: rgba(255,255,255,0.2);
         }
 
-        /* 右侧下方 - 出席状况面板 (缩小高度) */
+        /* 右侧下方 - 出席状况面板 */
         .attendance-section {
             flex: 1;
             min-height: 0;
@@ -526,6 +527,29 @@
             background: #007AFF;
         }
 
+        /* Logo 图标 */
+        .logo-icon {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            overflow: hidden;
+        }
+        
+        .logo-icon img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+
         ::-webkit-scrollbar {
             width: 4px;
         }
@@ -649,12 +673,39 @@
             padding: 4px 8px;
             font-size: 11px;
         }
+        
+        .camera-status-badge {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 20;
+        }
+        
+        .camera-status-badge.on {
+            color: #34C759;
+        }
+        
+        .camera-status-badge.off {
+            color: #FF3B30;
+        }
     </style>
 </head>
 <body>
 <div class="app-container">
     <!-- 左侧视频区域 70% -->
     <div class="left-video-area">
+        <!-- Logo 图标 -->
+        <div class="logo-icon">
+            <img src="/semsira.png" alt="Semsira Logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27%23007AFF%27%3E%3Cpath d=%27M3 4h18v16H3V4zm2 2v12h14V6H5zm2 2h10v2H7V8zm0 4h10v2H7v-2zm0 4h7v2H7v-2z%27/%3E%3C/svg%3E'">
+        </div>
         <div class="video-player-container" id="videoPlayerContainer">
             <video id="localVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: contain; display: none;"></video>
             <iframe id="youtubeIframe" class="youtube-iframe" style="display: none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
@@ -667,6 +718,10 @@
             <i data-lucide="clock"></i>
             <span id="currentTime">--:--:--</span>
         </div>
+        <div class="camera-status-badge" id="cameraStatusBadge">
+            <i data-lucide="camera"></i>
+            <span id="cameraStatusText">Memuatkan...</span>
+        </div>
         <button class="settings-btn" id="open-settings-btn">
             <i data-lucide="settings"></i>
         </button>
@@ -674,7 +729,7 @@
 
     <!-- 右侧区域 30% -->
     <div class="right-area">
-        <!-- 上方扫码框 - 固定正方形 -->
+        <!-- 上方扫码框 -->
         <div class="scanner-section">
             <div class="scanner-header">
                 <span><i data-lucide="scan-line"></i> Pengimbas Pro</span>
@@ -692,7 +747,7 @@
             </div>
         </div>
 
-        <!-- 下方出席状况 - 缩小后的面板 -->
+        <!-- 下方出席状况 -->
         <div class="attendance-section">
             <div class="attendance-header">
                 <h3><i data-lucide="users"></i> Kehadiran Hari Ini</h3>
@@ -730,14 +785,29 @@
             <button class="close-settings" id="close-settings-btn">✕</button>
         </div>
         
+        <!-- 相机定时控制 -->
+        <div class="setting-item">
+            <div class="setting-label">⏰ Masa Hidup Kamera</div>
+            <input type="time" id="cameraOnTime" class="time-input" value="08:00">
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">⏰ Masa Mati Kamera</div>
+            <input type="time" id="cameraOffTime" class="time-input" value="18:00">
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">🤖 Auto Kawalan Kamera</div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="autoCameraToggle" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
         <!-- 视频播放列表管理 -->
         <div class="setting-item" style="flex-direction: column; align-items: stretch;">
             <div class="setting-label">🎬 Senarai Video (YouTube)</div>
-            <div id="videoListContainer" style="max-height: 180px; overflow-y: auto; margin-top: 8px;">
-                <!-- 动态加载视频列表 -->
-            </div>
+            <div id="videoListContainer" style="max-height: 180px; overflow-y: auto; margin-top: 8px;"></div>
             <div class="add-video-form">
-                <input type="text" id="newVideoUrl" placeholder="https://youtu.be/... atau https://youtube.com/watch?v=...">
+                <input type="text" id="newVideoUrl" placeholder="https://youtu.be/...">
                 <button id="addVideoBtn">+ Tambah</button>
             </div>
             <div class="playlist-control">
@@ -749,15 +819,19 @@
                     <span class="toggle-slider" style="position: relative; display: inline-block; width: 38px;"></span>
                 </label>
             </div>
-            <div class="warning-text" style="margin-top: 8px; font-size: 10px;">
-                <i data-lucide="info"></i> Masukkan URL YouTube. Video akan dimainkan secara automatik.
-            </div>
         </div>
         
-        <div class="setting-item"><div class="setting-label">⏰ Masa Hidup Kamera</div><input type="time" id="cameraOnTime" class="time-input" value="08:00"></div>
-        <div class="setting-item"><div class="setting-label">⏰ Masa Mati Kamera</div><input type="time" id="cameraOffTime" class="time-input" value="18:00"></div>
-        <div class="setting-item"><div class="setting-label">🪞 Imej Cermin</div><label class="toggle-switch"><input type="checkbox" id="mirror-toggle"><span class="toggle-slider"></span></label></div>
-        <div class="setting-item"><div class="setting-label">📱 Getaran</div><label class="toggle-switch"><input type="checkbox" id="vibration-toggle" checked><span class="toggle-slider"></span></label></div>
+        <div class="setting-item">
+            <div class="setting-label">🪞 Imej Cermin</div>
+            <label class="toggle-switch"><input type="checkbox" id="mirror-toggle"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">📱 Getaran</div>
+            <label class="toggle-switch"><input type="checkbox" id="vibration-toggle" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="warning-text">
+            <i data-lucide="info"></i> Kamera akan dihidupkan/dimatikan secara automatik mengikut masa yang ditetapkan.
+        </div>
     </div>
 </div>
 
@@ -772,6 +846,8 @@
     let html5QrCode = new Html5Qrcode("reader");
     let isScanning = false, currentCameraId = null, isProcessing = false;
     let wakeLock = null;
+    let scheduleCheckInterval = null;
+    let isAutoCameraEnabled = true;
     
     // 视频播放列表
     let videoList = [];
@@ -789,16 +865,90 @@
     const vibrationToggle = document.getElementById('vibration-toggle');
     const cameraOnTimeInput = document.getElementById('cameraOnTime');
     const cameraOffTimeInput = document.getElementById('cameraOffTime');
+    const autoCameraToggle = document.getElementById('autoCameraToggle');
     const liveClockSpan = document.getElementById('currentTime');
     const attendanceListDiv = document.getElementById('attendanceList');
     const totalBadge = document.getElementById('totalCountBadge');
     const readerDiv = document.getElementById('reader');
     const loopToggle = document.getElementById('loopToggle');
+    const cameraStatusText = document.getElementById('cameraStatusText');
+    const cameraStatusBadge = document.getElementById('cameraStatusBadge');
     
     // 视频元素
     const localVideo = document.getElementById('localVideo');
     const youtubeIframe = document.getElementById('youtubeIframe');
     const videoSourceLabel = document.getElementById('videoSourceLabel');
+    
+    // 更新相机状态显示
+    function updateCameraStatusDisplay() {
+        if (isScanning) {
+            cameraStatusText.innerText = 'Kamera Hidup';
+            cameraStatusBadge.classList.add('on');
+            cameraStatusBadge.classList.remove('off');
+        } else {
+            cameraStatusText.innerText = 'Kamera Mati';
+            cameraStatusBadge.classList.add('off');
+            cameraStatusBadge.classList.remove('on');
+        }
+    }
+    
+    // ========== 相机定时控制功能 ==========
+    async function checkCameraSchedule() {
+        if (!isAutoCameraEnabled) return;
+        
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTotalMin = currentHour * 60 + currentMinute;
+        
+        const onTime = cameraOnTimeInput.value;
+        const offTime = cameraOffTimeInput.value;
+        
+        if (!onTime || !offTime) return;
+        
+        const [onHour, onMin] = onTime.split(':').map(Number);
+        const [offHour, offMin] = offTime.split(':').map(Number);
+        
+        const onTotalMin = onHour * 60 + onMin;
+        const offTotalMin = offHour * 60 + offMin;
+        
+        let shouldBeOn = false;
+        if (onTotalMin < offTotalMin) {
+            shouldBeOn = (currentTotalMin >= onTotalMin && currentTotalMin < offTotalMin);
+        } else {
+            shouldBeOn = (currentTotalMin >= onTotalMin || currentTotalMin < offTotalMin);
+        }
+        
+        const isCurrentlyOn = isScanning;
+        
+        if (shouldBeOn && !isCurrentlyOn && currentCameraId) {
+            console.log("定时开启相机", new Date().toLocaleTimeString());
+            await startScanning(currentCameraId);
+            showResult("Kamera", "Dihidupkan mengikut jadual", "success");
+            setTimeout(resetResult, 1500);
+        } else if (!shouldBeOn && isCurrentlyOn) {
+            console.log("定时关闭相机", new Date().toLocaleTimeString());
+            if (html5QrCode && html5QrCode.isScanning) {
+                try {
+                    await html5QrCode.stop();
+                    isScanning = false;
+                    updateCameraStatusDisplay();
+                    showResult("Kamera", "Dimatikan mengikut jadual", "wait");
+                    setTimeout(resetResult, 1500);
+                } catch(e) { console.warn("停止相机失败", e); }
+            }
+        }
+        updateCameraStatusDisplay();
+    }
+    
+    // 启动定时检查
+    function startScheduleCheck() {
+        if (scheduleCheckInterval) clearInterval(scheduleCheckInterval);
+        scheduleCheckInterval = setInterval(() => {
+            checkCameraSchedule();
+        }, 30000);
+        checkCameraSchedule();
+    }
     
     // 从 YouTube URL 提取视频 ID
     function extractYoutubeId(url) {
@@ -813,7 +963,6 @@
         return null;
     }
     
-    // 加载 YouTube 视频（无广告、无Cookie）
     function loadYoutubeVideo(videoId, videoTitle = '') {
         if (!videoId) return false;
         const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&enablejsapi=1&playsinline=1`;
@@ -825,7 +974,6 @@
         return true;
     }
     
-    // 播放指定索引的视频
     function playVideoAtIndex(index) {
         if (!videoList.length || index < 0 || index >= videoList.length) return;
         currentVideoIndex = index;
@@ -837,7 +985,6 @@
         localStorage.setItem('currentVideoIndex', currentVideoIndex);
     }
     
-    // 播放下一个视频
     function playNextVideo() {
         if (!videoList.length) return;
         let nextIndex = currentVideoIndex + 1;
@@ -851,7 +998,6 @@
         playVideoAtIndex(nextIndex);
     }
     
-    // ========== Firestore 视频列表管理 ==========
     const VIDEOS_COLLECTION = 'videoPlaylist';
     
     async function loadVideoListFromFirestore() {
@@ -868,9 +1014,7 @@
             });
         });
         videoList.sort((a, b) => (a.order || 0) - (b.order || 0));
-        
         renderVideoListUI();
-        
         const savedIndex = parseInt(localStorage.getItem('currentVideoIndex')) || 0;
         if (videoList.length > 0) {
             if (savedIndex < videoList.length && savedIndex >= 0) {
@@ -936,7 +1080,7 @@
         }
     };
     
-    // ========== Firebase attendance functions ==========
+    // Firebase attendance
     async function loadAttendanceList() {
         const today = new Date().toLocaleDateString('en-CA');
         try {
@@ -973,7 +1117,6 @@
     setInterval(loadAttendanceList, 10000);
     loadAttendanceList();
     
-    // 扫码功能
     function triggerVibration() { if (vibrationToggle.checked && 'vibrate' in navigator) navigator.vibrate(200); }
     function showResult(name, msg, type) {
         document.getElementById('res-name').innerText = name;
@@ -1028,10 +1171,15 @@
     
     async function startScanning(cameraId) {
         if (isScanning) try { await html5QrCode.stop(); } catch(e) {}
-        // 使用正方形扫描框
         const config = { fps: 25, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-        html5QrCode.start(cameraId, config, onScanSuccess).then(() => { isScanning = true; }).catch(()=>{ 
-            html5QrCode.start(cameraId, { fps: 10, qrbox: { width: 220, height: 220 } }, onScanSuccess).then(()=> isScanning = true); 
+        html5QrCode.start(cameraId, config, onScanSuccess).then(() => { 
+            isScanning = true; 
+            updateCameraStatusDisplay();
+        }).catch(()=>{ 
+            html5QrCode.start(cameraId, { fps: 10, qrbox: { width: 220, height: 220 } }, onScanSuccess).then(() => { 
+                isScanning = true;
+                updateCameraStatusDisplay();
+            }); 
         });
     }
     
@@ -1046,7 +1194,6 @@
         } catch(e) { console.error("Camera init error", e); }
     }
     
-    // 设置
     function loadSettingsUI() {
         const mirror = localStorage.getItem('scanner_mirror') === 'true';
         mirrorToggle.checked = mirror;
@@ -1054,9 +1201,12 @@
         vibrationToggle.checked = localStorage.getItem('scanner_vibration') !== 'false';
         cameraOnTimeInput.value = localStorage.getItem('camera_on_time') || '08:00';
         cameraOffTimeInput.value = localStorage.getItem('camera_off_time') || '18:00';
+        isAutoCameraEnabled = localStorage.getItem('auto_camera_enabled') !== 'false';
+        autoCameraToggle.checked = isAutoCameraEnabled;
         const savedLoop = localStorage.getItem('video_loop_enabled') === 'true';
         isLoopEnabled = savedLoop;
         loopToggle.checked = savedLoop;
+        if (isAutoCameraEnabled) startScheduleCheck();
     }
     
     function saveAllSettings() {
@@ -1064,16 +1214,29 @@
         localStorage.setItem('scanner_vibration', vibrationToggle.checked);
         localStorage.setItem('camera_on_time', cameraOnTimeInput.value);
         localStorage.setItem('camera_off_time', cameraOffTimeInput.value);
+        localStorage.setItem('auto_camera_enabled', autoCameraToggle.checked);
         localStorage.setItem('video_loop_enabled', loopToggle.checked);
+        isAutoCameraEnabled = autoCameraToggle.checked;
         isLoopEnabled = loopToggle.checked;
         if(mirrorToggle.checked) readerDiv.classList.add('mirror-video'); else readerDiv.classList.remove('mirror-video');
+        
+        if (isAutoCameraEnabled) {
+            if (!scheduleCheckInterval) startScheduleCheck();
+            checkCameraSchedule();
+        } else {
+            if (scheduleCheckInterval) {
+                clearInterval(scheduleCheckInterval);
+                scheduleCheckInterval = null;
+            }
+        }
     }
     
     mirrorToggle.addEventListener('change', saveAllSettings);
     vibrationToggle.addEventListener('change', saveAllSettings);
     cameraOnTimeInput.addEventListener('change', saveAllSettings);
     cameraOffTimeInput.addEventListener('change', saveAllSettings);
-    loopToggle.addEventListener('change', () => { saveAllSettings(); });
+    autoCameraToggle.addEventListener('change', saveAllSettings);
+    loopToggle.addEventListener('change', saveAllSettings);
     
     openSettingsBtn.onclick = () => { settingsModal.style.display = 'flex'; lucide.createIcons(); renderVideoListUI(); };
     closeSettingsBtn.onclick = () => { settingsModal.style.display = 'none'; saveAllSettings(); };
@@ -1082,7 +1245,6 @@
     function updateClock() { const now=new Date(); liveClockSpan.innerText=now.toLocaleTimeString('en-GB'); }
     setInterval(updateClock,1000); updateClock();
     
-    // 添加视频按钮
     document.getElementById('addVideoBtn').addEventListener('click', async () => {
         const url = document.getElementById('newVideoUrl').value.trim();
         if (url) {
