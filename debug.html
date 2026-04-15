@@ -1917,7 +1917,8 @@
                         ic: data.ic,
                         phone: data.phone,
                         dob: data.dob,
-                        avatar: localStorage.getItem('semsira_avatar_' + doc.id) || null
+                        // 优先使用 Firestore 中的 avatarUrl
+                        avatar: data.avatarUrl || localStorage.getItem('semsira_avatar_' + doc.id) || '/semsira.png'
                     });
                 }
             });
@@ -1958,7 +1959,7 @@
             div.innerHTML = `
                 <img class="student-avatar-small" src="${student.avatar || '/semsira.png'}" onerror="this.src='/semsira.png'">
                 <div class="student-info">
-                    <div class="student-name">${student.name}</div>
+                    <div class="student-name">${escapeHtml(student.name)}</div>
                     <div class="student-class">${student.className}</div>
                 </div>
             `;
@@ -1984,7 +1985,6 @@
         const chatId2 = `${selectedChatUser.uid}_${auth.currentUser.uid}`;
         
         try {
-            // 查找或创建聊天室
             const q1 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId1));
             const q2 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId2));
             
@@ -1993,39 +1993,36 @@
                 snapshot = await getDocs(q2);
             }
             
+            // 获取当前用户头像
+            const currentUserAvatar = window.currentUserData.avatarUrl || 
+                localStorage.getItem('semsira_avatar_' + auth.currentUser.uid) || '';
+            
             if (snapshot.empty) {
-                // 创建新聊天室
-                const newChatRef = await addDoc(collection(db, CHAT_COLLECTION), {
+                await addDoc(collection(db, CHAT_COLLECTION), {
                     chatId: chatId1,
                     participants: [auth.currentUser.uid, selectedChatUser.uid],
                     participantNames: [currentUser.name, selectedChatUser.name],
-                    participantAvatars: [
-                        localStorage.getItem('semsira_avatar_' + auth.currentUser.uid) || '',
-                        selectedChatUser.avatar || ''
-                    ],
+                    participantAvatars: [currentUserAvatar, selectedChatUser.avatar],
                     lastMessage: "",
                     lastMessageTime: serverTimestamp(),
                     createdAt: serverTimestamp()
                 });
-                currentChatId = newChatRef.id;
+                currentChatId = snapshot.docs?.[0]?.id;
             } else {
                 currentChatId = snapshot.docs[0].id;
             }
             
-            // 显示聊天界面
             document.getElementById('chat-container').style.display = 'block';
             document.getElementById('chat-name').innerText = selectedChatUser.name;
             document.getElementById('chat-class').innerText = selectedChatUser.className;
             document.getElementById('chat-avatar').src = selectedChatUser.avatar || '/semsira.png';
             document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
             
-            // 清除搜索结果
             document.getElementById('student-search-results').innerHTML = '';
             document.getElementById('chat-search').value = '';
             selectedChatUser = null;
             document.getElementById('chat-start-btn').disabled = true;
             
-            // 加载消息
             loadMessages();
             
         } catch(e) {
@@ -2451,14 +2448,16 @@
         document.getElementById('prof-phone').innerText = d.phone || "-";
         document.getElementById('prof-vehicle').innerText = d.vehicleNo || "Tiada";
         
-        const savedAvatar = localStorage.getItem('semsira_avatar_' + auth.currentUser.uid);
-        if (savedAvatar) {
-            document.getElementById('profile-avatar').src = savedAvatar;
+        // 优先从 Firestore 数据读取头像，其次从 localStorage
+        const avatarUrl = d.avatarUrl || localStorage.getItem('semsira_avatar_' + auth.currentUser.uid);
+        if (avatarUrl) {
+            document.getElementById('profile-avatar').src = avatarUrl;
         } else {
-            getDefaultAvatar().then(avatarUrl => {
-                if (avatarUrl) {
-                    document.getElementById('profile-avatar').src = avatarUrl;
-                    localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, avatarUrl);
+            getDefaultAvatar().then(defaultAvatar => {
+                if (defaultAvatar) {
+                    document.getElementById('profile-avatar').src = defaultAvatar;
+                    // 保存到 Firestore
+                    updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), { avatarUrl: defaultAvatar }).catch(e => console.log(e));
                 } else {
                     document.getElementById('profile-avatar').src = "/semsira.png";
                 }
@@ -2469,7 +2468,7 @@
     window.updateProfile = async () => {
         toast("⚠️ Sila gunakan butang ⚙️ di penjuru kanan untuk kemaskini profil");
     };
-    
+
     window.saveProfileSettings = async function() {
         const selectedAvatar = document.querySelector('input[name="avatar-select"]:checked');
         const avatarUrl = selectedAvatar ? selectedAvatar.value : null;
@@ -2489,29 +2488,40 @@
         
         try {
             const newSemester = await getSemesterForClass(updates.className);
-            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), {
+            
+            // 准备更新数据 - 包含头像URL
+            const updateData = {
                 name: updates.name,
                 phone: updates.phone,
                 address: updates.address || "",
                 className: updates.className,
                 semester: newSemester,
                 vehicleNo: updates.vehicleNo || ""
-            });
+            };
             
+            // 如果用户选择了头像，保存到 Firestore
             if (avatarUrl) {
+                updateData.avatarUrl = avatarUrl;
                 localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, avatarUrl);
                 document.getElementById('profile-avatar').src = avatarUrl;
             } else {
+                // 如果没有选择头像，使用默认头像
                 const defaultAvatar = await getDefaultAvatar();
                 if (defaultAvatar) {
+                    updateData.avatarUrl = defaultAvatar;
                     localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, defaultAvatar);
                     document.getElementById('profile-avatar').src = defaultAvatar;
                 }
             }
             
+            await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), updateData);
+            
+            // 更新本地数据
             Object.assign(window.currentUserData, updates);
             window.currentUserData.semester = newSemester;
+            if (avatarUrl) window.currentUserData.avatarUrl = avatarUrl;
             
+            // 更新缓存
             localStorage.setItem('semsira_cached_user_' + auth.currentUser.uid, JSON.stringify(window.currentUserData));
             if (window.currentUserData.ic) {
                 cachedIC = window.currentUserData.ic;
