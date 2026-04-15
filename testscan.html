@@ -31,6 +31,7 @@
             position: relative;
         }
 
+        /* 顶部视频区域 */
         .top-video-area {
             position: relative;
             background: #000;
@@ -50,12 +51,22 @@
             background: #000;
             position: relative;
         }
+        
+        /* 本地视频样式 */
         .video-player-container video {
             width: 100%;
             height: 100%;
             object-fit: contain;
             background: #000;
         }
+        
+        /* YouTube iframe 样式 */
+        .youtube-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
         .video-overlay-text {
             position: absolute;
             bottom: 16px;
@@ -270,11 +281,13 @@
         .settings-card {
             background: #1C1F2A;
             width: 90%;
-            max-width: 400px;
+            max-width: 420px;
             border-radius: 40px;
             padding: 24px;
             color: white;
             border: 1px solid rgba(255,255,255,0.1);
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .setting-item {
             display: flex;
@@ -282,6 +295,14 @@
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid rgba(255,255,255,0.08);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .setting-item .setting-label {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .toggle-switch {
             position: relative;
@@ -396,19 +417,77 @@
         .mirror-video video { transform: scaleX(-1) !important; }
         .time-input { background: #2C2F38; border: none; padding: 8px; border-radius: 12px; color: white; }
         .warning-text { font-size: 11px; background: #FF9F0A20; padding: 8px; border-radius: 16px; margin-top: 8px; }
-        .error-text { font-size: 11px; background: #FF3B3020; padding: 8px; border-radius: 16px; margin-top: 8px; color: #FF6B5E; }
-        .video-url-input { width: 100%; padding: 8px; border-radius: 12px; background: #2C2F38; border: none; color: white; margin-top: 8px; }
+        
+        /* 视频上传和YouTube输入样式 */
+        .video-source-btn {
+            background: #2C2F38;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .video-source-btn.active {
+            background: #007AFF;
+        }
+        .video-input-group {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+        }
+        .video-input-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 12px;
+            background: #2C2F38;
+            border: none;
+            color: white;
+            margin-top: 8px;
+        }
+        .video-input-group button {
+            background: #007AFF;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+        .file-upload-label {
+            background: #34C759;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            display: inline-block;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        .current-source-badge {
+            font-size: 10px;
+            background: rgba(0,122,255,0.3);
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
 <div class="app-container">
     <div class="top-video-area" id="topVideoArea">
-        <div class="video-player-container">
-            <video id="topVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: contain;">
-                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
-            </video>
+        <div class="video-player-container" id="videoPlayerContainer">
+            <!-- 本地视频元素 -->
+            <video id="localVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: contain; display: none;"></video>
+            <!-- YouTube iframe 元素 -->
+            <iframe id="youtubeIframe" class="youtube-iframe" style="display: none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             <div class="video-overlay-text">
-                <i data-lucide="tv"></i> <span>Promosi Semsira</span>
+                <i data-lucide="tv"></i> <span id="videoSourceLabel">Promosi Semsira</span>
             </div>
         </div>
         <div class="live-clock" id="liveClock">
@@ -478,22 +557,40 @@
             <h3><i data-lucide="settings"></i> Tetapan</h3>
             <button class="close-settings" id="close-settings-btn">✕</button>
         </div>
-        <div class="setting-item">
-            <div class="setting-label">🎬 URL Video</div>
-            <button id="changeVideoBtn" style="background:#007AFF; border:none; padding:6px 12px; border-radius:12px; color:white; cursor:pointer;">Tukar</button>
+        
+        <!-- 视频源设置区域 -->
+        <div class="setting-item" style="flex-direction: column; align-items: stretch;">
+            <div class="setting-label">🎬 Sumber Video</div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <button id="youtubeBtn" class="video-source-btn">YouTube</button>
+                <button id="uploadBtn" class="video-source-btn">Muat Naik Video</button>
+            </div>
+            
+            <!-- YouTube 输入区域 -->
+            <div id="youtubeInputArea" class="video-input-group" style="display: none;">
+                <div style="font-size: 12px; opacity: 0.7;">Masukkan YouTube URL (contoh: https://youtu.be/xxxx  atau https://www.youtube.com/watch?v=xxxx)</div>
+                <input type="text" id="youtubeUrlInput" placeholder="https://youtu.be/...">
+                <button id="loadYoutubeBtn">Muat YouTube</button>
+            </div>
+            
+            <!-- 视频上传区域 -->
+            <div id="uploadArea" class="video-input-group" style="display: none;">
+                <div style="font-size: 12px; opacity: 0.7;">Pilih fail video (MP4, WebM, MOV)</div>
+                <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/quicktime" style="display: none;">
+                <button id="chooseFileBtn" class="file-upload-label">📁 Pilih Fail</button>
+                <div id="selectedFileName" style="font-size: 11px; margin-top: 5px; color: #aaa;"></div>
+            </div>
+            <div id="currentVideoSource" style="font-size: 11px; margin-top: 8px; color: #007AFF;"></div>
         </div>
-        <div id="videoUrlInputContainer" style="display:none; margin-top:8px;">
-            <input type="text" id="videoUrlInput" class="video-url-input" placeholder="https://.../video.mp4">
-            <button id="saveVideoUrlBtn" style="background:#34C759; border:none; padding:6px 12px; border-radius:12px; color:white; margin-top:8px; cursor:pointer;">Simpan</button>
-        </div>
+        
         <div class="setting-item"><div class="setting-label">⏰ Masa Hidup Kamera</div><input type="time" id="cameraOnTime" class="time-input" value="08:00"></div>
         <div class="setting-item"><div class="setting-label">⏰ Masa Mati Kamera</div><input type="time" id="cameraOffTime" class="time-input" value="18:00"></div>
-        <div class="setting-item"><div class="setting-label">📹 Kualiti Video</div><select id="quality-select" style="background:#2C2F38; color:white; border-radius:12px; padding:6px;"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option></select></div>
+        <div class="setting-item"><div class="setting-label">📹 Kualiti Video Rakaman</div><select id="quality-select" style="background:#2C2F38; color:white; border-radius:12px; padding:6px;"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option></select></div>
         <div class="setting-item"><div class="setting-label">🎬 Time-lapse</div><label class="toggle-switch"><input type="checkbox" id="timelapse-toggle"><span class="toggle-slider"></span></label></div>
         <div class="setting-item"><div class="setting-label">⚡ Kelajuan TL</div><select id="speed-factor" style="background:#2C2F38; color:white;"><option value="6">6x</option><option value="10">10x</option><option value="15">15x</option><option value="20" selected>20x</option><option value="30">30x</option></select></div>
         <div class="setting-item"><div class="setting-label">🪞 Imej Cermin</div><label class="toggle-switch"><input type="checkbox" id="mirror-toggle"><span class="toggle-slider"></span></label></div>
         <div class="setting-item"><div class="setting-label">📱 Getaran</div><label class="toggle-switch"><input type="checkbox" id="vibration-toggle" checked><span class="toggle-slider"></span></label></div>
-        <div class="warning-text"><i data-lucide="info"></i> Tip: Masukkan URL video yang berakhir dengan .mp4</div>
+        <div class="warning-text"><i data-lucide="info"></i> YouTube: video akan dimainkan tanpa iklan dan tanpa cookie. Muat naik: video disimpan dalam penyemak imbas anda.</div>
     </div>
 </div>
 
@@ -531,86 +628,149 @@
     const attendanceListDiv = document.getElementById('attendanceList');
     const totalBadge = document.getElementById('totalCountBadge');
     const readerDiv = document.getElementById('reader');
-    const videoEl = document.getElementById('topVideo');
+    
+    // 视频元素
+    const localVideo = document.getElementById('localVideo');
+    const youtubeIframe = document.getElementById('youtubeIframe');
+    const videoSourceLabel = document.getElementById('videoSourceLabel');
     
     // ========== 视频播放功能 ==========
-    // 可播放的视频URL列表（示例）
-    const demoVideos = [
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFunflies.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4"
-    ];
+    let currentVideoType = localStorage.getItem('videoType') || 'youtube';
+    let currentYoutubeId = localStorage.getItem('youtubeVideoId') || '';
+    let currentLocalVideoUrl = localStorage.getItem('localVideoUrl') || '';
     
-    let currentVideoIndex = 0;
-    
-    function loadVideo(url) {
-        if (!url) return;
-        console.log("Loading video:", url);
-        videoEl.src = url;
-        videoEl.load();
-        videoEl.play().catch(e => console.log("Autoplay blocked:", e));
-        // 保存到localStorage
-        localStorage.setItem('customVideoUrl', url);
+    // 从 YouTube URL 提取视频 ID
+    function extractYoutubeId(url) {
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/,
+            /youtube\.com\/embed\/([^/?]+)/,
+            /youtube\.com\/v\/([^/?]+)/
+        ];
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) return match[1];
+        }
+        return null;
     }
     
-    // 从localStorage加载保存的视频URL
-    function loadSavedVideo() {
-        const savedUrl = localStorage.getItem('customVideoUrl');
-        if (savedUrl && savedUrl !== '') {
-            loadVideo(savedUrl);
+    // 加载 YouTube 视频（无广告、无Cookie）
+    function loadYoutubeVideo(videoId) {
+        if (!videoId) return false;
+        currentYoutubeId = videoId;
+        localStorage.setItem('youtubeVideoId', videoId);
+        
+        // 使用 youtube-nocookie.com 避免追踪，启用隐私增强模式
+        const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&enablejsapi=1`;
+        youtubeIframe.src = embedUrl;
+        
+        youtubeIframe.style.display = 'block';
+        localVideo.style.display = 'none';
+        localVideo.pause();
+        
+        currentVideoType = 'youtube';
+        localStorage.setItem('videoType', 'youtube');
+        videoSourceLabel.innerText = 'YouTube Video';
+        return true;
+    }
+    
+    // 加载本地视频
+    function loadLocalVideo(videoUrl) {
+        if (!videoUrl) return false;
+        currentLocalVideoUrl = videoUrl;
+        localStorage.setItem('localVideoUrl', videoUrl);
+        
+        localVideo.src = videoUrl;
+        localVideo.load();
+        localVideo.play().catch(e => console.log("Autoplay blocked:", e));
+        
+        localVideo.style.display = 'block';
+        youtubeIframe.style.display = 'none';
+        youtubeIframe.src = '';
+        
+        currentVideoType = 'local';
+        localStorage.setItem('videoType', 'local');
+        videoSourceLabel.innerText = 'Video Tempatan';
+        return true;
+    }
+    
+    // 初始化视频
+    function initVideo() {
+        if (currentVideoType === 'youtube' && currentYoutubeId) {
+            loadYoutubeVideo(currentYoutubeId);
+        } else if (currentVideoType === 'local' && currentLocalVideoUrl) {
+            loadLocalVideo(currentLocalVideoUrl);
         } else {
-            // 默认使用第一个演示视频
-            loadVideo(demoVideos[0]);
+            // 默认播放示例 YouTube 视频（无广告）
+            loadYoutubeVideo('dQw4w9WgXcQ'); // 示例视频
         }
     }
     
-    // 设置弹窗中的视频URL切换功能
-    const changeVideoBtn = document.getElementById('changeVideoBtn');
-    const videoUrlInputContainer = document.getElementById('videoUrlInputContainer');
-    const videoUrlInput = document.getElementById('videoUrlInput');
-    const saveVideoUrlBtn = document.getElementById('saveVideoUrlBtn');
+    // ========== 设置弹窗中的视频控制 ==========
+    const youtubeBtn = document.getElementById('youtubeBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const youtubeInputArea = document.getElementById('youtubeInputArea');
+    const uploadArea = document.getElementById('uploadArea');
+    const youtubeUrlInput = document.getElementById('youtubeUrlInput');
+    const loadYoutubeBtn = document.getElementById('loadYoutubeBtn');
+    const videoFileInput = document.getElementById('videoFileInput');
+    const chooseFileBtn = document.getElementById('chooseFileBtn');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const currentVideoSourceSpan = document.getElementById('currentVideoSource');
     
-    changeVideoBtn.addEventListener('click', () => {
-        const isVisible = videoUrlInputContainer.style.display === 'block';
-        videoUrlInputContainer.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible) {
-            videoUrlInput.value = localStorage.getItem('customVideoUrl') || '';
-        }
+    youtubeBtn.addEventListener('click', () => {
+        youtubeBtn.classList.add('active');
+        uploadBtn.classList.remove('active');
+        youtubeInputArea.style.display = 'block';
+        uploadArea.style.display = 'none';
     });
     
-    saveVideoUrlBtn.addEventListener('click', () => {
-        const newUrl = videoUrlInput.value.trim();
-        if (newUrl) {
-            loadVideo(newUrl);
-            videoUrlInputContainer.style.display = 'none';
-            showResult("Video", "URL video telah ditukar", "success");
+    uploadBtn.addEventListener('click', () => {
+        uploadBtn.classList.add('active');
+        youtubeBtn.classList.remove('active');
+        youtubeInputArea.style.display = 'none';
+        uploadArea.style.display = 'block';
+    });
+    
+    loadYoutubeBtn.addEventListener('click', () => {
+        const url = youtubeUrlInput.value.trim();
+        const videoId = extractYoutubeId(url);
+        if (videoId) {
+            loadYoutubeVideo(videoId);
+            settingsModal.style.display = 'none';
+            showResult("YouTube", "Video dimuatkan", "success");
             setTimeout(resetResult, 1500);
+            updateCurrentSourceDisplay();
         } else {
-            showResult("Error", "Sila masukkan URL yang sah", "error");
+            showResult("Error", "URL YouTube tidak sah", "error");
         }
     });
     
-    // 可选：从GitHub Issues获取视频（作为备选）
-    async function loadGithubVideoOptional() {
-        const repo = "bdpsemsira/bdpsemsira.github.io";
-        try {
-            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&labels=videos&t=${Date.now()}`);
-            const issues = await res.json();
-            if (issues && issues.length > 0) {
-                const body = issues[0].body || "";
-                const urlRegex = /(https?:\/\/[^\s]+\.(mp4|mov|webm))/i;
-                const match = body.match(urlRegex);
-                if (match && !localStorage.getItem('customVideoUrl')) {
-                    loadVideo(match[0]);
-                }
-            }
-        } catch(e) { console.log("GitHub fetch optional"); }
-    }
+    chooseFileBtn.addEventListener('click', () => {
+        videoFileInput.click();
+    });
     
-    loadSavedVideo();
-    loadGithubVideoOptional();
+    videoFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('video/')) {
+            selectedFileName.innerText = file.name;
+            const videoUrl = URL.createObjectURL(file);
+            loadLocalVideo(videoUrl);
+            settingsModal.style.display = 'none';
+            showResult("Video", "Video dimuat naik", "success");
+            setTimeout(resetResult, 1500);
+            updateCurrentSourceDisplay();
+        } else {
+            showResult("Error", "Sila pilih fail video", "error");
+        }
+    });
+    
+    function updateCurrentSourceDisplay() {
+        if (currentVideoType === 'youtube') {
+            currentVideoSourceSpan.innerHTML = `📺 YouTube: ${currentYoutubeId}`;
+        } else {
+            currentVideoSourceSpan.innerHTML = `💾 Video tempatan`;
+        }
+    }
     
     // ========== 可拖动调整大小功能 ==========
     const topVideoArea = document.getElementById('topVideoArea');
@@ -644,7 +804,6 @@
         }
     });
     
-    // 水平拖动
     const attendancePanel = document.getElementById('attendancePanel');
     const verticalHandle = document.getElementById('verticalResizeHandle');
     let isDraggingVertical = false;
@@ -729,7 +888,6 @@
         document.getElementById('res-msg').innerText = msg;
         const iconDiv = document.getElementById('status-icon');
         let iconName = type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2');
-        if (type === 'waiting') iconName = 'loader-2';
         iconDiv.innerHTML = `<i data-lucide="${iconName}"></i>`;
         lucide.createIcons();
         if (type !== 'waiting') setTimeout(resetResult, 2500);
@@ -855,12 +1013,13 @@
     speedFactorSelect.addEventListener('change', saveAllSettings);
     cameraOnTimeInput.addEventListener('change', saveAllSettings);
     cameraOffTimeInput.addEventListener('change', saveAllSettings);
-    openSettingsBtn.onclick = () => { settingsModal.style.display = 'flex'; lucide.createIcons(); };
+    openSettingsBtn.onclick = () => { settingsModal.style.display = 'flex'; lucide.createIcons(); updateCurrentSourceDisplay(); };
     closeSettingsBtn.onclick = () => { settingsModal.style.display = 'none'; saveAllSettings(); };
     wakelockBtn.onclick = async () => { if(wakeLock) { wakeLock.release(); wakeLock=null; } else { wakeLock = await navigator.wakeLock.request('screen'); } };
     function updateClock() { const now=new Date(); liveClockSpan.innerText=now.toLocaleTimeString('en-GB'); }
     setInterval(updateClock,1000); updateClock();
     
+    initVideo();
     initCameraList();
     loadSettingsUI();
     lucide.createIcons();
