@@ -1057,7 +1057,7 @@
         </div>
         
         <!-- 搜索栏 -->
-        <div class="glass" style="padding: 15px; margin-bottom: 15px;">
+        <div class="glass" style="padding: 15px; margin-bottom: 15px;" id="chat-search-container">
             <input type="text" id="chat-search" placeholder="🔍 Cari nama pelajar..." onkeyup="searchStudents()">
             <div id="student-search-results" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
             <button id="chat-start-btn" onclick="startChat()" style="margin-top: 10px;" disabled>💬 Mula Chat</button>
@@ -2041,7 +2041,10 @@
             // 隐藏聊天列表容器
             document.getElementById('chat-list-container').style.display = 'none';
             // 隐藏搜索栏
-            document.querySelector('#tab-chat .glass:first-of-type').style.display = 'none';
+            const searchContainer = document.getElementById('chat-search-container');
+            if (searchContainer) {
+                searchContainer.style.display = 'none';
+            }
             
             // 清除搜索结果
             document.getElementById('student-search-results').innerHTML = '';
@@ -2179,7 +2182,7 @@
             chatListContainer.style.display = 'block';
         }
         // 重新显示搜索栏
-        const searchContainer = document.querySelector('#tab-chat .glass:first-of-type');
+        const searchContainer = document.getElementById('chat-search-container');
         if (searchContainer) {
             searchContainer.style.display = 'block';
         }
@@ -3007,7 +3010,7 @@
         // 隐藏聊天列表容器
         document.getElementById('chat-list-container').style.display = 'none';
         // 隐藏搜索栏
-        const searchContainer = document.querySelector('#tab-chat .glass:first-of-type');
+        const searchContainer = document.getElementById('chat-search-container');
         if (searchContainer) {
             searchContainer.style.display = 'none';
         }
