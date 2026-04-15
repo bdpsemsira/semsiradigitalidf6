@@ -2459,7 +2459,7 @@
             }, 2000);
         }
     }
-    
+
     function listenToAttendance(studentIc) {
         const todayStr = new Date().toLocaleDateString('en-CA');
         const statusEl = document.getElementById('attendance-status');
@@ -2467,10 +2467,10 @@
         const qrcEl = document.getElementById('qrcode');
         const instEl = document.getElementById('scan-instruction');
         const timerEl = document.getElementById('qr-timer');
-
+    
         const q = query(collection(db, ATTENDANCE_LOGS), where("ic", "==", studentIc), where("date", "==", todayStr));
         if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe();
-
+    
         attendanceListenerUnsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
                 if (!isAttendedToday && isAudioUnlocked) {
@@ -2484,7 +2484,14 @@
                 if(overlay) overlay.style.display = 'none';
                 const status = data.status;
                 statusEl.innerText = status.toUpperCase();
-                statusEl.className = "status-text " + (status.toLowerCase() === "hadir" ? "status-hadir" : "status-lewat");
+                // 修改：根据状态设置不同的颜色
+                if (status.toLowerCase() === "hadir") {
+                    statusEl.className = "status-text status-hadir";
+                } else if (status.toLowerCase() === "lewat") {
+                    statusEl.className = "status-text status-lewat";
+                } else {
+                    statusEl.className = "status-text status-tidak-hadir";
+                }
                 qrcEl.style.opacity = "0.3";
                 instEl.innerText = "Kehadiran telah direkodkan. Terima kasih.";
                 timerEl.innerText = "SIGNED IN";
