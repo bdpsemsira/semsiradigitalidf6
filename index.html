@@ -1714,7 +1714,7 @@
         document.body.appendChild(div);
         setTimeout(() => div.remove(), 2500);
     }
-    
+
     // ========== 离线优先的登录状态处理 ==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -1724,7 +1724,6 @@
         if (user) {
             loadingOverlay.style.display = 'flex';
             
-            // 先尝试从本地缓存加载用户数据
             const cachedUserData = localStorage.getItem('semsira_cached_user_' + user.uid);
             let userData = null;
             let isOffline = false;
@@ -1733,9 +1732,18 @@
                 const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
                 if (snap.exists()) {
                     userData = snap.data();
-                    // 缓存用户数据用于离线
+                    
+                    // ========== 检查账号是否已被管理员删除 ==========
+                    if (userData.isDeleted === true) {
+                        console.log("Account has been deleted by admin");
+                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
+                        await signOut(auth);
+                        loadingOverlay.style.display = 'none';
+                        return;
+                    }
+                    // =============================================
+                    
                     localStorage.setItem('semsira_cached_user_' + user.uid, JSON.stringify(userData));
-                    // 缓存IC用于离线QR生成
                     cachedIC = userData.ic;
                     localStorage.setItem('semsira_cached_ic', userData.ic);
                 } else {
@@ -1746,6 +1754,14 @@
                 isOffline = true;
                 if (cachedUserData) {
                     userData = JSON.parse(cachedUserData);
+                    // 检查缓存中的数据是否已被删除
+                    if (userData.isDeleted === true) {
+                        console.log("Cached account has been deleted");
+                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir.");
+                        await signOut(auth);
+                        loadingOverlay.style.display = 'none';
+                        return;
+                    }
                     cachedIC = userData.ic;
                 } else {
                     loadingOverlay.style.display = 'none';
@@ -1762,6 +1778,7 @@
             window.currentUserData = userData;
             
             await setupOneSignalForUser(user, userData);
+            await loadAllStudents();
             
             setTimeout(() => {
                 document.getElementById('page-login').classList.remove('active');
@@ -1772,12 +1789,10 @@
                 
                 enhancedRequestNotificationPermission();
                 
-                // 只有在在线时才启动通知检查器和加载网络数据
                 if (!isOffline) {
                     startNotificationChecker();
                     loadHomeData();
                 } else {
-                    // 离线模式：显示缓存内容或提示
                     const announcementsList = document.getElementById('announcements-list');
                     if (announcementsList) {
                         announcementsList.innerHTML = '<div class="glass" style="padding:15px; text-align:center;">📱 Mod Offline - Pengumuman tidak tersedia</div>';
@@ -1791,6 +1806,9 @@
                 setupAccountPage();
                 listenToAttendance(userData.ic);
                 loadMonthlyAttendanceData(userData.ic);
+                
+                // 加载聊天列表
+                loadChatList();
                 
                 try {
                     lucide.createIcons();
@@ -1806,6 +1824,8 @@
             document.getElementById('page-login').classList.add('active');
             document.getElementById('page-register').classList.remove('active');
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
+            if(messagesUnsubscribe) messagesUnsubscribe();
+            if(chatListUnsubscribe) chatListUnsubscribe();
             
             if (window.OneSignal && window.oneSignalReady) {
                 try {
