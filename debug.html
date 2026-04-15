@@ -1987,21 +1987,26 @@
         console.log("Chat ID possibilities:", chatId1, chatId2);
         
         try {
-            const q1 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId1));
-            const q2 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId2));
+            // 先尝试第一种顺序
+            let chatDocRef = doc(db, CHAT_COLLECTION, chatId1);
+            let chatDocSnap = await getDoc(chatDocRef);
+            let finalChatId = chatId1;
             
-            let snapshot = await getDocs(q1);
-            if (snapshot.empty) {
-                snapshot = await getDocs(q2);
+            // 如果不存在，尝试第二种顺序
+            if (!chatDocSnap.exists()) {
+                chatDocRef = doc(db, CHAT_COLLECTION, chatId2);
+                chatDocSnap = await getDoc(chatDocRef);
+                finalChatId = chatId2;
             }
             
             const currentUserAvatar = window.currentUserData.avatarUrl || 
                 localStorage.getItem('semsira_avatar_' + auth.currentUser.uid) || '';
             
-            if (snapshot.empty) {
-                console.log("Creating new chat...");
-                const newChatRef = await addDoc(collection(db, CHAT_COLLECTION), {
-                    chatId: chatId1,
+            if (!chatDocSnap.exists()) {
+                // 创建新聊天室 - 使用 setDoc 指定文档 ID
+                console.log("Creating new chat with ID:", finalChatId);
+                await setDoc(chatDocRef, {
+                    chatId: finalChatId,
                     participants: [auth.currentUser.uid, selectedChatUser.uid],
                     participantNames: [currentUser.name, selectedChatUser.name],
                     participantAvatars: [currentUserAvatar, selectedChatUser.avatar],
@@ -2009,10 +2014,9 @@
                     lastMessageTime: serverTimestamp(),
                     createdAt: serverTimestamp()
                 });
-                currentChatId = newChatRef.id;
-                console.log("Created new chat with ID:", currentChatId);
+                currentChatId = finalChatId;
             } else {
-                currentChatId = snapshot.docs[0].id;
+                currentChatId = finalChatId;
                 console.log("Using existing chat with ID:", currentChatId);
             }
             
@@ -2029,7 +2033,7 @@
             selectedChatUser = null;
             document.getElementById('chat-start-btn').disabled = true;
             
-            // 加载消息 - 传入 currentChatId
+            // 加载消息
             loadMessages(currentChatId);
             
         } catch(e) {
@@ -2037,7 +2041,6 @@
             toast("❌ Gagal memulakan chat: " + e.message);
         }
     };
-    
     // ========== 加载消息 ==========
     async function loadMessages(chatId) {
         // 如果已有监听器，先断开
