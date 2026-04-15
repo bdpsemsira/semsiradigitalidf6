@@ -1048,6 +1048,14 @@
             <h3>CHAT</h3>
         </div>
         
+        <!-- 聊天列表 -->
+        <div id="chat-list-container" class="glass" style="margin-bottom: 15px; max-height: 350px; overflow-y: auto;">
+            <div style="padding: 12px; font-weight: bold; border-bottom: 1px solid var(--border);">💬 Chat Terkini</div>
+            <div id="chat-list" style="min-height: 50px;">
+                <div style="text-align: center; padding: 20px; color: #888;">Memuatkan...</div>
+            </div>
+        </div>
+        
         <!-- 搜索栏 -->
         <div class="glass" style="padding: 15px; margin-bottom: 15px;">
             <input type="text" id="chat-search" placeholder="🔍 Cari nama pelajar..." onkeyup="searchStudents()">
@@ -1066,18 +1074,17 @@
                 <div style="cursor: pointer;" onclick="closeChat()">✕</div>
             </div>
             
-            <!-- 消息列表 -->
             <div id="chat-messages" style="height: 400px; overflow-y: auto; padding: 10px; background: var(--card); border-radius: 15px; margin-bottom: 10px;">
                 <div style="text-align: center; color: #888; padding: 20px;">Pilih pelajar untuk memulakan chat</div>
             </div>
             
-            <!-- 输入区域 -->
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="chat-input" placeholder="Taip mesej..." style="flex: 1;" onkeypress="if(event.key==='Enter') sendMessage()">
                 <button onclick="sendMessage()" style="width: auto; padding: 12px 20px;">📤 Hantar</button>
             </div>
         </div>
     </div>
+    
     <!-- AKAUN 页面 -->
     <div id="tab-akaun" class="page">
         <div class="header-container">
@@ -2003,7 +2010,7 @@
                 localStorage.getItem('semsira_avatar_' + auth.currentUser.uid) || '';
             
             if (!chatDocSnap.exists()) {
-                // 创建新聊天室 - 使用 setDoc 指定文档 ID
+                // 创建新聊天室 - 添加 unreadCount
                 console.log("Creating new chat with ID:", finalChatId);
                 await setDoc(chatDocRef, {
                     chatId: finalChatId,
@@ -2012,7 +2019,11 @@
                     participantAvatars: [currentUserAvatar, selectedChatUser.avatar],
                     lastMessage: "",
                     lastMessageTime: serverTimestamp(),
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    unreadCount: {
+                        [auth.currentUser.uid]: 0,
+                        [selectedChatUser.uid]: 0
+                    }
                 });
                 currentChatId = finalChatId;
             } else {
@@ -2027,6 +2038,9 @@
             document.getElementById('chat-avatar').src = selectedChatUser.avatar || '/semsira.png';
             document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
             
+            // 隐藏聊天列表容器
+            document.getElementById('chat-list-container').style.display = 'none';
+            
             // 清除搜索结果
             document.getElementById('student-search-results').innerHTML = '';
             document.getElementById('chat-search').value = '';
@@ -2035,6 +2049,9 @@
             
             // 加载消息
             loadMessages(currentChatId);
+            
+            // 标记消息为已读
+            markMessagesAsRead(currentChatId);
             
         } catch(e) {
             console.error("Start chat error:", e);
@@ -2089,6 +2106,10 @@
             
             // 滚动到底部
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // 标记消息为已读
+            markMessagesAsRead(chatId);
+            
         }, (error) => {
             console.error("Messages listener error:", error);
             toast("❌ Gagal memuatkan mesej: " + error.message);
@@ -2106,7 +2127,21 @@
             return;
         }
         
+        console.log("Sending message to chatId:", currentChatId);
+        
         try {
+            // 获取聊天室信息，找到接收者
+            const chatRef = doc(db, CHAT_COLLECTION, currentChatId);
+            const chatSnap = await getDoc(chatRef);
+            const chatData = chatSnap.data();
+            
+            // 确定接收者ID
+            const receiverId = chatData.participants.find(p => p !== auth.currentUser.uid);
+            
+            // 获取当前未读计数
+            const currentUnread = chatData.unreadCount?.[receiverId] || 0;
+            
+            // 发送消息
             await addDoc(collection(db, MESSAGES_COLLECTION), {
                 chatId: currentChatId,
                 senderId: auth.currentUser.uid,
@@ -2116,17 +2151,17 @@
                 read: false
             });
             
-            // 更新聊天室最后消息
-            const chatRef = doc(db, CHAT_COLLECTION, currentChatId);
+            // 更新聊天室：最后消息、时间、未读计数
             await updateDoc(chatRef, {
                 lastMessage: text,
-                lastMessageTime: serverTimestamp()
+                lastMessageTime: serverTimestamp(),
+                [`unreadCount.${receiverId}`]: currentUnread + 1
             });
             
             input.value = '';
         } catch(e) {
             console.error("Send message error:", e);
-            toast("❌ Gagal menghantar mesej");
+            toast("❌ Gagal menghantar mesej: " + e.message);
         }
     };
     
@@ -2136,23 +2171,22 @@
         document.getElementById('chat-messages').innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Pilih pelajar untuk memulakan chat</div>';
         document.getElementById('chat-input').value = '';
         
+        // 重新显示聊天列表
+        const chatListContainer = document.getElementById('chat-list-container');
+        if (chatListContainer) {
+            chatListContainer.style.display = 'block';
+        }
+        
         if (messagesUnsubscribe) {
             messagesUnsubscribe();
             messagesUnsubscribe = null;
         }
         currentChatId = null;
+        selectedChatUser = null;
+        
+        // 刷新聊天列表
+        loadChatList();
     };
-    
-    // ========== 显示聊天用户详情 ==========
-    window.showChatUserDetail = function() {
-        if (!selectedChatUser && currentChatId) {
-            // 从当前聊天获取用户信息
-            toast("🔍 Klik pada nama untuk lihat profil");
-            return;
-        }
-        showUserDetail(selectedChatUser);
-    };
-    
     // ========== 显示用户详情面板 ==========
     function showUserDetail(user) {
         if (!user) return;
@@ -2249,6 +2283,9 @@
                 listenToAttendance(userData.ic);
                 loadMonthlyAttendanceData(userData.ic);
                 
+                // 加载聊天列表
+                loadChatList();
+                
                 try {
                     lucide.createIcons();
                 } catch(e) {
@@ -2264,6 +2301,7 @@
             document.getElementById('page-register').classList.remove('active');
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
             if(messagesUnsubscribe) messagesUnsubscribe();
+            if(chatListUnsubscribe) chatListUnsubscribe();
             
             if (window.OneSignal && window.oneSignalReady) {
                 try {
@@ -2274,7 +2312,7 @@
             }
         }
     });
-
+ 
     function startNotificationChecker() {
         if (notificationCheckInterval) clearInterval(notificationCheckInterval);
         
@@ -2853,6 +2891,138 @@
         } catch (error) {
             console.error("Error loading monthly attendance:", error);
             renderCalendar();
+        }
+    }
+
+    // 加载用户的聊天列表
+    let chatListUnsubscribe = null;
+    
+    async function loadChatList() {
+        if (chatListUnsubscribe) {
+            chatListUnsubscribe();
+        }
+        
+        const userId = auth.currentUser.uid;
+        const chatsRef = collection(db, CHAT_COLLECTION);
+        const q = query(chatsRef, where("participants", "array-contains", userId), orderBy("lastMessageTime", "desc"));
+        
+        chatListUnsubscribe = onSnapshot(q, (snapshot) => {
+            const chatListDiv = document.getElementById('chat-list');
+            if (!chatListDiv) return;
+            
+            if (snapshot.empty) {
+                chatListDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Tiada chat terkini</div>';
+                return;
+            }
+            
+            chatListDiv.innerHTML = '';
+            
+            snapshot.forEach(doc => {
+                const chat = doc.data();
+                // 获取对方的ID和名字
+                const otherParticipantId = chat.participants.find(p => p !== userId);
+                const otherParticipantName = chat.participantNames[chat.participants.indexOf(otherParticipantId)];
+                const otherParticipantAvatar = chat.participantAvatars?.[chat.participants.indexOf(otherParticipantId)] || '/semsira.png';
+                const lastMessage = chat.lastMessage || "Tiada mesej";
+                const lastTime = chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date();
+                const timeStr = formatChatTime(lastTime);
+                
+                // 检查是否有未读消息
+                const unreadCount = chat.unreadCount?.[userId] || 0;
+                
+                const chatItem = document.createElement('div');
+                chatItem.className = 'student-search-item';
+                chatItem.style.cursor = 'pointer';
+                chatItem.innerHTML = `
+                    <img class="student-avatar-small" src="${otherParticipantAvatar}" onerror="this.src='/semsira.png'">
+                    <div class="student-info">
+                        <div class="student-name">${escapeHtml(otherParticipantName)}</div>
+                        <div class="student-class" style="font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${escapeHtml(lastMessage)}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 10px; color: #888;">${timeStr}</div>
+                        ${unreadCount > 0 ? `<div style="background: var(--primary); color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; margin-top: 4px;">${unreadCount}</div>` : ''}
+                    </div>
+                `;
+                
+                chatItem.onclick = () => {
+                    openChatFromList(chat, otherParticipantId, otherParticipantName, otherParticipantAvatar);
+                };
+                
+                chatListDiv.appendChild(chatItem);
+            });
+        }, (error) => {
+            console.error("Load chat list error:", error);
+        });
+    }
+
+    // 格式化聊天时间
+    function formatChatTime(date) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (date >= today) {
+            return date.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+        } else if (date >= yesterday) {
+            return "Semalam";
+        } else {
+            return `${date.getDate()}/${date.getMonth()+1}`;
+        }
+    }
+
+    // 从聊天列表打开聊天
+    async function openChatFromList(chat, otherUserId, otherName, otherAvatar) {
+        // 获取对方完整信息
+        const otherUserRef = doc(db, COLLECTION_NAME, otherUserId);
+        const otherUserSnap = await getDoc(otherUserRef);
+        const otherUserData = otherUserSnap.exists() ? otherUserSnap.data() : {};
+        
+        selectedChatUser = {
+            uid: otherUserId,
+            name: otherName,
+            className: otherUserData.className || "-",
+            avatar: otherAvatar,
+            dob: otherUserData.dob,
+            phone: otherUserData.phone
+        };
+        
+        currentChatId = chat.chatId;
+        
+        // 显示聊天界面
+        document.getElementById('chat-container').style.display = 'block';
+        document.getElementById('chat-name').innerText = otherName;
+        document.getElementById('chat-class').innerText = otherUserData.className || "-";
+        document.getElementById('chat-avatar').src = otherAvatar;
+        document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
+        
+        // 隐藏聊天列表容器
+        document.getElementById('chat-list-container').style.display = 'none';
+        
+        // 清除搜索结果
+        document.getElementById('student-search-results').innerHTML = '';
+        document.getElementById('chat-search').value = '';
+        document.getElementById('chat-start-btn').disabled = true;
+        
+        // 加载消息
+        loadMessages(currentChatId);
+        
+        // 标记消息为已读
+        markMessagesAsRead(currentChatId);
+    }
+
+    // 标记消息为已读
+    async function markMessagesAsRead(chatId) {
+        const userId = auth.currentUser.uid;
+        const chatRef = doc(db, CHAT_COLLECTION, chatId);
+        
+        try {
+            await updateDoc(chatRef, {
+                [`unreadCount.${userId}`]: 0
+            });
+        } catch(e) {
+            console.log("Mark read error:", e);
         }
     }
     
