@@ -28,14 +28,15 @@
             flex-direction: column;
             height: 100vh;
             background: radial-gradient(circle at 20% 30%, #141B2B, #0A0D14);
+            position: relative;
         }
 
-        /* 顶部视频区域 - 高度增加一倍 (从32%增加到64%) */
         .top-video-area {
             position: relative;
             background: #000;
-            height: 64%;
-            min-height: 400px;
+            height: 50%;
+            min-height: 150px;
+            max-height: 85%;
             overflow: hidden;
             border-bottom-left-radius: 28px;
             border-bottom-right-radius: 28px;
@@ -52,7 +53,8 @@
         .video-player-container video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            background: #000;
         }
         .video-overlay-text {
             position: absolute;
@@ -69,25 +71,35 @@
             align-items: center;
             gap: 8px;
             z-index: 2;
-            letter-spacing: 0.5px;
-        }
-        .video-overlay-text i {
-            width: 16px;
         }
 
-        /* 中间区域 - 因为视频变大了，这个区域会相应缩小 */
+        /* 可拖动的分隔条 */
+        .resize-handle {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 122, 255, 0.5);
+            cursor: row-resize;
+            z-index: 10;
+            transition: background 0.2s;
+        }
+        .resize-handle:hover, .vertical-resize-handle:hover {
+            background: #007AFF;
+        }
+
         .middle-split {
             flex: 1;
             display: flex;
             flex-direction: row;
             padding: 12px 18px;
-            gap: 16px;
+            gap: 8px;
             min-height: 0;
             overflow: hidden;
         }
 
         .attendance-panel {
-            flex: 1.2;
+            width: 40%;
+            min-width: 180px;
+            max-width: 70%;
             background: rgba(18, 22, 32, 0.75);
             backdrop-filter: blur(12px);
             border-radius: 32px;
@@ -104,6 +116,7 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
+            flex-shrink: 0;
         }
         .attendance-header h3 {
             font-size: 16px;
@@ -134,43 +147,29 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: 0.2s ease;
-            border: 1px solid rgba(255,255,255,0.02);
+            flex-shrink: 0;
         }
-        .attendance-item.hadir {
-            border-left: 4px solid #34C759;
-        }
-        .attendance-item.lewat {
-            border-left: 4px solid #FF9F0A;
-        }
-        .student-info {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-        .student-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .student-class {
-            font-size: 10px;
-            color: #aaa;
-        }
-        .status-chip {
-            font-size: 11px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 30px;
-            background: rgba(52,199,89,0.2);
-            color: #34C759;
-        }
-        .status-chip.lewat {
-            background: rgba(255,159,10,0.2);
-            color: #FF9F0A;
+        .attendance-item.hadir { border-left: 4px solid #34C759; }
+        .attendance-item.lewat { border-left: 4px solid #FF9F0A; }
+        .student-info { display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+        .student-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .student-class { font-size: 10px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .status-chip { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 30px; background: rgba(52,199,89,0.2); color: #34C759; flex-shrink: 0; }
+        .status-chip.lewat { background: rgba(255,159,10,0.2); color: #FF9F0A; }
+
+        .vertical-resize-handle {
+            width: 6px;
+            height: auto;
+            background: rgba(0, 122, 255, 0.5);
+            cursor: col-resize;
+            border-radius: 3px;
+            transition: background 0.2s;
+            margin: 0 2px;
         }
 
         .scanner-grill {
             flex: 1;
+            min-width: 200px;
             background: rgba(0,0,0,0.5);
             border-radius: 32px;
             backdrop-filter: blur(8px);
@@ -186,6 +185,7 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
         }
         .scanner-header span {
             font-weight: 500;
@@ -201,7 +201,7 @@
             border-radius: 0;
             overflow: hidden;
             background: #000;
-            min-height: 180px;
+            min-height: 0;
         }
         .scanner-footer {
             padding: 10px;
@@ -209,6 +209,7 @@
             justify-content: center;
             gap: 12px;
             border-top: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
         }
         .cam-control {
             background: rgba(255,255,255,0.1);
@@ -239,7 +240,6 @@
             gap: 12px;
             z-index: 200;
             border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
         }
         .status-icon {
             width: 40px;
@@ -250,17 +250,9 @@
             justify-content: center;
             background: rgba(0,0,0,0.5);
         }
-        .result-text {
-            flex: 1;
-        }
-        .result-text h3 {
-            font-size: 15px;
-            font-weight: 600;
-        }
-        .result-text p {
-            font-size: 11px;
-            opacity: 0.7;
-        }
+        .result-text { flex: 1; }
+        .result-text h3 { font-size: 15px; font-weight: 600; }
+        .result-text p { font-size: 11px; opacity: 0.7; }
 
         .settings-modal {
             display: none;
@@ -297,11 +289,7 @@
             width: 48px;
             height: 28px;
         }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .toggle-slider {
             position: absolute;
             cursor: pointer;
@@ -324,19 +312,10 @@
             transition: 0.3s;
             border-radius: 50%;
         }
-        input:checked + .toggle-slider {
-            background-color: #007AFF;
-        }
-        input:checked + .toggle-slider:before {
-            transform: translateX(20px);
-        }
-        .close-settings {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-        }
+        input:checked + .toggle-slider { background-color: #007AFF; }
+        input:checked + .toggle-slider:before { transform: translateX(20px); }
+        .close-settings { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        
         .recording-indicator {
             position: fixed;
             top: 16px;
@@ -359,7 +338,7 @@
             border-radius: 50%;
             animation: blink 1s infinite;
         }
-        @keyframes blink { 0%{opacity:1;} 50%{opacity:0.3;} }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
         
         .live-clock {
             position: absolute;
@@ -414,39 +393,18 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #222; }
         ::-webkit-scrollbar-thumb { background: #007AFF; border-radius: 10px; }
-        .mirror-video video {
-            transform: scaleX(-1) !important;
-        }
-        .time-input {
-            background: #2C2F38;
-            border: none;
-            padding: 8px;
-            border-radius: 12px;
-            color: white;
-        }
-        .warning-text {
-            font-size: 11px;
-            background: #FF9F0A20;
-            padding: 8px;
-            border-radius: 16px;
-            margin-top: 8px;
-        }
-        .error-text {
-            font-size: 11px;
-            background: #FF3B3020;
-            padding: 8px;
-            border-radius: 16px;
-            margin-top: 8px;
-            color: #FF6B5E;
-        }
+        .mirror-video video { transform: scaleX(-1) !important; }
+        .time-input { background: #2C2F38; border: none; padding: 8px; border-radius: 12px; color: white; }
+        .warning-text { font-size: 11px; background: #FF9F0A20; padding: 8px; border-radius: 16px; margin-top: 8px; }
+        .error-text { font-size: 11px; background: #FF3B3020; padding: 8px; border-radius: 16px; margin-top: 8px; color: #FF6B5E; }
+        .video-url-input { width: 100%; padding: 8px; border-radius: 12px; background: #2C2F38; border: none; color: white; margin-top: 8px; }
     </style>
 </head>
 <body>
 <div class="app-container">
-    <div class="top-video-area">
-        <div class="video-player-container" id="videoPlayerContainer">
-            <video id="topVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: cover;">
-                <!-- 备用视频：使用一个公开的测试视频 -->
+    <div class="top-video-area" id="topVideoArea">
+        <div class="video-player-container">
+            <video id="topVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: contain;">
                 <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
             </video>
             <div class="video-overlay-text">
@@ -462,8 +420,10 @@
         </button>
     </div>
 
-    <div class="middle-split">
-        <div class="attendance-panel">
+    <div class="resize-handle" id="horizontalResizeHandle"></div>
+
+    <div class="middle-split" id="middleSplit">
+        <div class="attendance-panel" id="attendancePanel">
             <div class="attendance-header">
                 <h3><i data-lucide="users"></i> Kehadiran Hari Ini</h3>
                 <div class="attendance-badge" id="totalCountBadge">0</div>
@@ -472,7 +432,10 @@
                 <div style="text-align:center; padding:20px; opacity:0.6;">Memuatkan...</div>
             </div>
         </div>
-        <div class="scanner-grill">
+        
+        <div class="vertical-resize-handle" id="verticalResizeHandle"></div>
+        
+        <div class="scanner-grill" id="scannerGrill">
             <div class="scanner-header">
                 <span><i data-lucide="scan-line"></i> Pengimbas Pro</span>
                 <select id="camera-select" style="background:rgba(0,0,0,0.5); border:none; color:white; border-radius:20px; padding:4px 10px; font-size:12px;">
@@ -515,6 +478,14 @@
             <h3><i data-lucide="settings"></i> Tetapan</h3>
             <button class="close-settings" id="close-settings-btn">✕</button>
         </div>
+        <div class="setting-item">
+            <div class="setting-label">🎬 URL Video</div>
+            <button id="changeVideoBtn" style="background:#007AFF; border:none; padding:6px 12px; border-radius:12px; color:white; cursor:pointer;">Tukar</button>
+        </div>
+        <div id="videoUrlInputContainer" style="display:none; margin-top:8px;">
+            <input type="text" id="videoUrlInput" class="video-url-input" placeholder="https://.../video.mp4">
+            <button id="saveVideoUrlBtn" style="background:#34C759; border:none; padding:6px 12px; border-radius:12px; color:white; margin-top:8px; cursor:pointer;">Simpan</button>
+        </div>
         <div class="setting-item"><div class="setting-label">⏰ Masa Hidup Kamera</div><input type="time" id="cameraOnTime" class="time-input" value="08:00"></div>
         <div class="setting-item"><div class="setting-label">⏰ Masa Mati Kamera</div><input type="time" id="cameraOffTime" class="time-input" value="18:00"></div>
         <div class="setting-item"><div class="setting-label">📹 Kualiti Video</div><select id="quality-select" style="background:#2C2F38; color:white; border-radius:12px; padding:6px;"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option></select></div>
@@ -522,8 +493,7 @@
         <div class="setting-item"><div class="setting-label">⚡ Kelajuan TL</div><select id="speed-factor" style="background:#2C2F38; color:white;"><option value="6">6x</option><option value="10">10x</option><option value="15">15x</option><option value="20" selected>20x</option><option value="30">30x</option></select></div>
         <div class="setting-item"><div class="setting-label">🪞 Imej Cermin</div><label class="toggle-switch"><input type="checkbox" id="mirror-toggle"><span class="toggle-slider"></span></label></div>
         <div class="setting-item"><div class="setting-label">📱 Getaran</div><label class="toggle-switch"><input type="checkbox" id="vibration-toggle" checked><span class="toggle-slider"></span></label></div>
-        <div class="warning-text"><i data-lucide="info"></i> Rakaman: klik butang kamera video di atas</div>
-        <div class="error-text" id="videoErrorMsg" style="display:none;"><i data-lucide="alert-circle"></i> <span id="videoErrorText"></span></div>
+        <div class="warning-text"><i data-lucide="info"></i> Tip: Masukkan URL video yang berakhir dengan .mp4</div>
     </div>
 </div>
 
@@ -540,6 +510,7 @@
     let wakeLock = null;
     let mediaRecorder = null, recordedChunks = [], isRecording = false, recordingStartTime = null, recordingTimerInterval = null, isTimelapseMode = false, speedFactor = 20;
     
+    // DOM 元素
     const cameraSelect = document.getElementById('camera-select');
     const beepSound = document.getElementById('beep-sound');
     const wakelockBtn = document.getElementById('wakelock-toggle');
@@ -560,105 +531,169 @@
     const attendanceListDiv = document.getElementById('attendanceList');
     const totalBadge = document.getElementById('totalCountBadge');
     const readerDiv = document.getElementById('reader');
+    const videoEl = document.getElementById('topVideo');
     
-    // 修复: 尝试获取真实的视频文件URL (GitHub attachment需要转换)
-    async function getGitHubAttachmentVideoUrl(attachmentUrl) {
-        // 如果是 github.com/user-attachments/assets/ 格式，需要获取实际文件
-        if (attachmentUrl.includes('github.com/user-attachments/assets/')) {
-            // 直接使用 raw 方式获取? GitHub attachments 不能直接 raw
-            // 返回原链接，浏览器可能无法播放
-            console.warn('GitHub attachment URL may not be directly playable:', attachmentUrl);
-            return null;
-        }
-        return attachmentUrl;
+    // ========== 视频播放功能 ==========
+    // 可播放的视频URL列表（示例）
+    const demoVideos = [
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFunflies.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4"
+    ];
+    
+    let currentVideoIndex = 0;
+    
+    function loadVideo(url) {
+        if (!url) return;
+        console.log("Loading video:", url);
+        videoEl.src = url;
+        videoEl.load();
+        videoEl.play().catch(e => console.log("Autoplay blocked:", e));
+        // 保存到localStorage
+        localStorage.setItem('customVideoUrl', url);
     }
     
-    async function loadGithubVideo() {
+    // 从localStorage加载保存的视频URL
+    function loadSavedVideo() {
+        const savedUrl = localStorage.getItem('customVideoUrl');
+        if (savedUrl && savedUrl !== '') {
+            loadVideo(savedUrl);
+        } else {
+            // 默认使用第一个演示视频
+            loadVideo(demoVideos[0]);
+        }
+    }
+    
+    // 设置弹窗中的视频URL切换功能
+    const changeVideoBtn = document.getElementById('changeVideoBtn');
+    const videoUrlInputContainer = document.getElementById('videoUrlInputContainer');
+    const videoUrlInput = document.getElementById('videoUrlInput');
+    const saveVideoUrlBtn = document.getElementById('saveVideoUrlBtn');
+    
+    changeVideoBtn.addEventListener('click', () => {
+        const isVisible = videoUrlInputContainer.style.display === 'block';
+        videoUrlInputContainer.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            videoUrlInput.value = localStorage.getItem('customVideoUrl') || '';
+        }
+    });
+    
+    saveVideoUrlBtn.addEventListener('click', () => {
+        const newUrl = videoUrlInput.value.trim();
+        if (newUrl) {
+            loadVideo(newUrl);
+            videoUrlInputContainer.style.display = 'none';
+            showResult("Video", "URL video telah ditukar", "success");
+            setTimeout(resetResult, 1500);
+        } else {
+            showResult("Error", "Sila masukkan URL yang sah", "error");
+        }
+    });
+    
+    // 可选：从GitHub Issues获取视频（作为备选）
+    async function loadGithubVideoOptional() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
-        const videoEl = document.getElementById('topVideo');
-        
-        // 尝试从GitHub Issues获取视频
         try {
             const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&labels=videos&t=${Date.now()}`);
             const issues = await res.json();
             if (issues && issues.length > 0) {
-                const firstIssue = issues[0];
-                const body = firstIssue.body || "";
-                
-                // 尝试多种格式
-                let videoUrl = null;
-                
-                // 格式1: 直接MP4链接
-                const urlRegex = /(https?:\/\/[^\s]+\.(mp4|mov|webm|MP4|MOV|WEBM))/i;
-                const urlMatch = body.match(urlRegex);
-                if (urlMatch) videoUrl = urlMatch[0];
-                
-                // 格式2: Markdown图片语法
-                if (!videoUrl) {
-                    const markdownLinkRegex = /!\[.*?\]\((https?:\/\/[^\s]+)\)/;
-                    const match = body.match(markdownLinkRegex);
-                    if (match && match[1]) videoUrl = match[1];
+                const body = issues[0].body || "";
+                const urlRegex = /(https?:\/\/[^\s]+\.(mp4|mov|webm))/i;
+                const match = body.match(urlRegex);
+                if (match && !localStorage.getItem('customVideoUrl')) {
+                    loadVideo(match[0]);
                 }
-                
-                // 格式3: 纯URL链接
-                if (!videoUrl) {
-                    const plainUrlRegex = /(https?:\/\/[^\s<>\"]+)/g;
-                    const matches = body.match(plainUrlRegex);
-                    if (matches) {
-                        for (const url of matches) {
-                            if (url.includes('.mp4') || url.includes('.mov') || url.includes('.webm')) {
-                                videoUrl = url;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                if (videoUrl) {
-                    // 检查是否是GitHub attachment
-                    const realUrl = await getGitHubAttachmentVideoUrl(videoUrl);
-                    if (realUrl) {
-                        videoEl.src = realUrl;
-                        videoEl.load();
-                        videoEl.play().catch(e => console.log("autoplay blocked:", e));
-                        console.log("Video loaded from GitHub issue");
-                        return;
-                    }
-                }
-                console.log("No valid video link in issue");
             }
-        } catch(e) { 
-            console.warn("github fetch error", e);
-        }
-        
-        // 如果GitHub没有视频或失败，使用备用视频（已经通过source设置了）
-        console.log("Using fallback video");
-        // 确保视频有源
-        if (!videoEl.src || videoEl.src === '') {
-            videoEl.src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
-            videoEl.load();
-            videoEl.play().catch(e => console.log("fallback autoplay blocked"));
-        }
+        } catch(e) { console.log("GitHub fetch optional"); }
     }
     
-    loadGithubVideo();
+    loadSavedVideo();
+    loadGithubVideoOptional();
     
-    // 修复Firebase索引问题 - 移除 orderBy，只使用 where 查询
+    // ========== 可拖动调整大小功能 ==========
+    const topVideoArea = document.getElementById('topVideoArea');
+    const horizontalHandle = document.getElementById('horizontalResizeHandle');
+    let isDraggingHorizontal = false;
+    let startY = 0, startHeight = 0;
+    
+    horizontalHandle.addEventListener('mousedown', (e) => {
+        isDraggingHorizontal = true;
+        startY = e.clientY;
+        startHeight = topVideoArea.offsetHeight;
+        document.body.style.cursor = 'row-resize';
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDraggingHorizontal) return;
+        const deltaY = e.clientY - startY;
+        let newHeight = startHeight + deltaY;
+        const maxHeight = window.innerHeight * 0.85;
+        const minHeight = 150;
+        newHeight = Math.min(maxHeight, Math.max(minHeight, newHeight));
+        topVideoArea.style.height = newHeight + 'px';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDraggingHorizontal) {
+            isDraggingHorizontal = false;
+            document.body.style.cursor = '';
+            localStorage.setItem('videoHeight', topVideoArea.style.height);
+        }
+    });
+    
+    // 水平拖动
+    const attendancePanel = document.getElementById('attendancePanel');
+    const verticalHandle = document.getElementById('verticalResizeHandle');
+    let isDraggingVertical = false;
+    let startX = 0, startWidth = 0;
+    
+    verticalHandle.addEventListener('mousedown', (e) => {
+        isDraggingVertical = true;
+        startX = e.clientX;
+        startWidth = attendancePanel.offsetWidth;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDraggingVertical) return;
+        const deltaX = e.clientX - startX;
+        let newWidth = startWidth + deltaX;
+        const containerWidth = document.getElementById('middleSplit').offsetWidth;
+        const maxWidth = containerWidth * 0.7;
+        const minWidth = 180;
+        newWidth = Math.min(maxWidth, Math.max(minWidth, newWidth));
+        attendancePanel.style.width = newWidth + 'px';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDraggingVertical) {
+            isDraggingVertical = false;
+            document.body.style.cursor = '';
+            localStorage.setItem('attendanceWidth', attendancePanel.style.width);
+        }
+    });
+    
+    function loadSavedSizes() {
+        const savedVideoHeight = localStorage.getItem('videoHeight');
+        if (savedVideoHeight) topVideoArea.style.height = savedVideoHeight;
+        const savedAttendanceWidth = localStorage.getItem('attendanceWidth');
+        if (savedAttendanceWidth) attendancePanel.style.width = savedAttendanceWidth;
+    }
+    loadSavedSizes();
+    
+    // ========== Firebase attendance functions ==========
     async function loadAttendanceList() {
         const today = new Date().toLocaleDateString('en-CA');
         try {
-            // 不使用 orderBy 避免需要索引
             const logsQuery = query(collection(db, "attendanceLogs"), where("date", "==", today));
             const snapshot = await getDocs(logsQuery);
             const list = [];
-            snapshot.forEach(docSnap => { list.push(docSnap.data()); });
-            // 手动排序（按时间戳倒序）
-            list.sort((a, b) => {
-                const timeA = a.timestamp?.seconds || 0;
-                const timeB = b.timestamp?.seconds || 0;
-                return timeB - timeA;
-            });
-            
+            snapshot.forEach(docSnap => list.push(docSnap.data()));
+            list.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
             totalBadge.innerText = list.length;
             if (list.length === 0) {
                 attendanceListDiv.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.6;">Tiada rekod hari ini</div>';
@@ -675,52 +710,43 @@
             `).join('');
         } catch (error) {
             console.error("Firestore error:", error);
-            if (error.code === 'failed-precondition' || error.message?.includes('index')) {
-                attendanceListDiv.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.6; color:#FF9F0A;">⚠️ Perlu index. Sila klik butang seting untuk maklumat.</div>';
-                // 在设置弹窗中显示索引创建链接
-                const errorMsgDiv = document.getElementById('videoErrorMsg');
-                const errorTextSpan = document.getElementById('videoErrorText');
-                if (errorMsgDiv) {
-                    errorTextSpan.innerHTML = 'Firestore index needed. <a href="https://console.firebase.google.com/v1/r/project/bdpsemsira-5c274/firestore/indexes?create_composite=Cldwcm9qZWN0cy9iZHBzZW1zaXJhLTVjMjc0L2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9hdHRlbmRhbmNlTG9ncy9pbmRleGVzL18QARoICgRkYXRlEAEaDQoJdGltZXN0YW1wEAIaDAoIX19uYW1lX18QAg" target="_blank" style="color:#007AFF;">Klik sini untuk buat index</a>';
-                    errorMsgDiv.style.display = 'block';
-                }
-            }
+            attendanceListDiv.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.6;">Ralat memuat data</div>';
         }
     }
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
     }
     
-    setInterval(() => { loadAttendanceList(); }, 10000);
+    setInterval(loadAttendanceList, 10000);
     loadAttendanceList();
     
+    // 扫码功能
     function triggerVibration() { if (vibrationToggle.checked && 'vibrate' in navigator) navigator.vibrate(200); }
-    function showResult(name, msg, type, time = "") {
-        const iconDiv = document.getElementById('status-icon');
+    function showResult(name, msg, type) {
         document.getElementById('res-name').innerText = name;
         document.getElementById('res-msg').innerText = msg;
-        iconDiv.className = 'status-icon ' + (type === 'success' ? 'success' : (type === 'error' ? 'error' : 'waiting'));
-        let iconName = 'qr-code';
-        if (type === 'success') iconName = 'check-circle';
-        else if (type === 'error') iconName = 'alert-circle';
-        else if (type === 'waiting') iconName = 'loader-2';
+        const iconDiv = document.getElementById('status-icon');
+        let iconName = type === 'success' ? 'check-circle' : (type === 'error' ? 'alert-circle' : 'loader-2');
+        if (type === 'waiting') iconName = 'loader-2';
         iconDiv.innerHTML = `<i data-lucide="${iconName}"></i>`;
         lucide.createIcons();
-        if (type !== 'waiting') setTimeout(() => resetResult(), 2500);
+        if (type !== 'waiting') setTimeout(resetResult, 2500);
     }
-    function resetResult() { isProcessing = false; document.getElementById('res-name').innerText = "Sedia Imbas"; document.getElementById('res-msg').innerText = "Halakan kamera ke kod QR"; document.getElementById('status-icon').innerHTML = '<i data-lucide="qr-code"></i>'; lucide.createIcons(); }
+    function resetResult() { 
+        isProcessing = false; 
+        document.getElementById('res-name').innerText = "Sedia Imbas";
+        document.getElementById('res-msg').innerText = "Halakan kamera ke kod QR";
+        document.getElementById('status-icon').innerHTML = '<i data-lucide="qr-code"></i>';
+        lucide.createIcons();
+    }
     
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         isProcessing = true;
-        beepSound.currentTime = 0; beepSound.play().catch(()=>{});
+        beepSound.currentTime = 0;
+        beepSound.play().catch(()=>{});
         triggerVibration();
         showResult("Memproses", "Sila tunggu...", "wait");
         try {
@@ -744,7 +770,7 @@
             const status = timeStr > late ? "Lewat" : "Hadir";
             const expireDate = new Date(); expireDate.setDate(now.getDate() + 35);
             await addDoc(collection(db, "attendanceLogs"), { name: student.name, ic: student.ic, className: student.className, status: status, date: today, timeFull: now.toLocaleString('ms-MY'), timestamp: serverTimestamp(), expireAt: expireDate });
-            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", now.toLocaleTimeString());
+            showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success");
             loadAttendanceList();
             setTimeout(resetResult, 2500);
         } catch (err) { showResult("Gagal", err.message, "error"); setTimeout(resetResult, 2000); }
@@ -767,6 +793,7 @@
         } catch(e) { console.error("Camera init error", e); }
     }
     
+    // 屏幕录制
     async function startScreenRecording() {
         if (isRecording) { showResult("Info", "Rakaman sedang berjalan", "wait"); return; }
         isTimelapseMode = timelapseToggle.checked;
@@ -799,6 +826,7 @@
     function stopScreenRecording() { if(mediaRecorder && mediaRecorder.state==='recording') mediaRecorder.stop(); }
     recordBtn.addEventListener('click', () => { if(isRecording) stopScreenRecording(); else startScreenRecording(); });
     
+    // 设置
     function loadSettingsUI() {
         const mirror = localStorage.getItem('scanner_mirror') === 'true';
         mirrorToggle.checked = mirror;
