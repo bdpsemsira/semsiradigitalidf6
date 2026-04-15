@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- ========== OneSignal SDK 添加在此处 ========== -->
+    <!-- ========== OneSignal SDK ========== -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -28,16 +28,13 @@
             });
         });
         
-        // 存储 OneSignal 是否已初始化完成
         window.oneSignalReady = false;
         window.OneSignalDeferred.push(function() {
             window.oneSignalReady = true;
         });
     </script>
-    <!-- ========== OneSignal SDK 添加结束 ========== -->
     
     <style>
-        /* 所有 CSS 保持不变 */
         :root {
             --primary: #007AFF;
             --bg: #F2F2F7;
@@ -60,24 +57,6 @@
             --nav-bg: rgba(28, 28, 30, 0.9);
             --calendar-weekend: #2C2C2E;
             --notification-bg: #0A84FF;
-        }
-
-        #tab-scan {
-            --bg: #F2F2F7 !important;
-            --card: rgba(255, 255, 255, 0.8) !important;
-            --text: #000000 !important;
-            --border: rgba(200, 200, 200, 0.3) !important;
-            background-color: var(--bg) !important;
-            color: var(--text) !important;
-        }
-        
-        #tab-scan .glass {
-            background: var(--card) !important;
-            border: 1px solid var(--border) !important;
-        }
-
-        #tab-scan h3, #tab-scan p {
-            color: #000000 !important;
         }
 
         body {
@@ -127,6 +106,7 @@
             justify-content: center;
             transition: opacity 0.5s ease;
         }
+        
         #splash-screen img {
             width: 100px;
             height: auto;
@@ -134,10 +114,12 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
             animation: splashFadeIn 0.8s ease;
         }
+        
         @keyframes splashFadeIn {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
+        
         .splash-text {
             margin-top: 20px;
             font-size: 14px;
@@ -230,18 +212,23 @@
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 0;
         }
+        
         .switch {
             position: relative; display: inline-block; width: 50px; height: 28px;
         }
+        
         .switch input { opacity: 0; width: 0; height: 0; }
+        
         .slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
             background-color: #ccc; transition: .4s; border-radius: 34px;
         }
+        
         .slider:before {
             position: absolute; content: ""; height: 22px; width: 22px;
             left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
         }
+        
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(22px); }
 
@@ -285,6 +272,7 @@
             cursor: pointer;
             overflow: hidden;
         }
+        
         .image-modal.active-modal {
             display: flex;
         }
@@ -642,7 +630,6 @@
             }
         }
 
-        /* ========== 新增请假按钮和模态框样式 ========== */
         .leave-btn {
             background-color: #FF9500;
             margin-top: 10px;
@@ -739,6 +726,126 @@
             z-index: 40000;
             white-space: nowrap;
         }
+
+        /* Chat 页面样式 */
+        .chat-message {
+            display: flex;
+            margin-bottom: 15px;
+            animation: messageSlideIn 0.3s ease;
+        }
+        
+        @keyframes messageSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chat-message.sent {
+            justify-content: flex-end;
+        }
+        
+        .chat-message.received {
+            justify-content: flex-start;
+        }
+        
+        .message-bubble {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        
+        .chat-message.sent .message-bubble {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-message.received .message-bubble {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-time {
+            font-size: 10px;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+        
+        .chat-message.sent .message-time {
+            text-align: right;
+        }
+        
+        .student-search-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .student-search-item:hover {
+            background: var(--card);
+        }
+        
+        .student-search-item.selected {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .student-avatar-small {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .student-info {
+            flex: 1;
+        }
+        
+        .student-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        .student-class {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        /* 用户详情面板 */
+        .user-detail-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 15000;
+            border-top: 1px solid var(--border);
+        }
+        
+        .user-detail-panel.active {
+            transform: translateY(0);
+        }
+        
+        .detail-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 15px;
+            display: block;
+        }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -822,7 +929,7 @@
     </div>
 </div>
 
-<!-- ========== 新增请假模态框 ========== -->
+<!-- 请假模态框 -->
 <div id="leaveModal" class="leave-modal">
     <div class="leave-modal-content">
         <h4>📋 Permohonan Cuti / Keizinan Tidak Hadir</h4>
@@ -848,11 +955,61 @@
     </div>
 </div>
 
+<!-- 设置个人资料模态框 -->
+<div id="profileSettingsModal" class="leave-modal">
+    <div class="leave-modal-content">
+        <h4>⚙️ Kemaskini Profil</h4>
+        
+        <label style="font-size:13px; color:#888;">Nama Penuh:</label>
+        <input type="text" id="settings-name" placeholder="Nama Penuh">
+        
+        <label style="font-size:13px; color:#888;">No. Telefon:</label>
+        <input type="tel" id="settings-phone" placeholder="No. Telefon">
+        
+        <label style="font-size:13px; color:#888;">Alamat Rumah:</label>
+        <input type="text" id="settings-address" placeholder="Alamat Rumah">
+        
+        <label style="font-size:13px; color:#888;">No. Kenderaan:</label>
+        <input type="text" id="settings-vehicle" placeholder="No. Kenderaan (Jika ada)">
+        
+        <label style="font-size:13px; color:#888;">Kelas:</label>
+        <select id="settings-class">
+            <option>6 SUMAYYAH</option><option>6 SARAH</option><option>6 KHADIJAH</option>
+            <option>6 FATIMAH</option><option>6 AISHAH</option><option>6 RUQAYYAH</option>
+            <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
+            <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option>
+            <option>6 AL MAWARDI</option><option>6 AL RAZI</option><option>6 IBNU KHALDUN</option>
+            <option>6 IBNU RUSYD</option>
+        </select>
+        
+        <label style="font-size:13px; color:#888;">Pilih Avatar:</label>
+        <div id="avatar-options" style="display: flex; flex-wrap: wrap; gap: 15px; margin: 10px 0; max-height: 200px; overflow-y: auto; justify-content: center;">
+            <div style="text-align: center; width: 100%; color: #888;">Memuatkan avatar...</div>
+        </div>
+        
+        <div class="leave-modal-buttons">
+            <button class="cancel-btn" onclick="closeProfileSettings()">Batal</button>
+            <button onclick="saveProfileSettings()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- 用户详情面板 -->
+<div id="userDetailPanel" class="user-detail-panel" onclick="closeUserDetail()">
+    <div style="text-align: center;">
+        <img id="detail-avatar" class="detail-avatar" src="">
+        <h3 id="detail-name" style="margin: 5px 0;">-</h3>
+        <p id="detail-class" style="margin: 5px 0; color: var(--primary);">-</p>
+        <p id="detail-dob" style="margin: 5px 0; font-size: 12px; opacity: 0.7;">Tarikh Lahir: -</p>
+        <button onclick="closeUserDetail()" style="width: auto; padding: 8px 20px; margin-top: 10px;">Tutup</button>
+    </div>
+</div>
+
 <div id="main-app" style="display:none">
     <div id="tab-home" class="page active">
         <div class="header-container">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
-            <h3>Utama</h3>
+            <h3>UTAMA</h3>
         </div>
         <div id="poster-slider" class="glass"></div>
         <div id="notification-prompt-area"></div>
@@ -860,10 +1017,10 @@
         <div id="announcements-list">Memuatkan...</div>
     </div>
 
-    <div id="tab-scan" class="page" style="text-align:center">
+    <div id="tab-imbas" class="page" style="text-align:center">
         <div class="header-container" style="justify-content: flex-start; text-align: left;">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
-            <h3>Kehadiran Digital</h3>
+            <h3>IMBAS</h3>
         </div>
         <p id="scan-instruction">Sila tunjukkan kod QR ini kepada guru bertugas.</p>
         
@@ -884,10 +1041,48 @@
         </div>
     </div>
 
-    <div id="tab-account" class="page">
+    <!-- CHAT 页面 -->
+    <div id="tab-chat" class="page">
         <div class="header-container">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
-            <h3>PROFI PELAJAR</h3>
+            <h3>CHAT</h3>
+        </div>
+        
+        <!-- 搜索栏 -->
+        <div class="glass" style="padding: 15px; margin-bottom: 15px;">
+            <input type="text" id="chat-search" placeholder="🔍 Cari nama pelajar..." onkeyup="searchStudents()">
+            <div id="student-search-results" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
+            <button id="chat-start-btn" onclick="startChat()" style="margin-top: 10px;" disabled>💬 Mula Chat</button>
+        </div>
+        
+        <!-- 聊天区域 -->
+        <div id="chat-container" style="display: none;">
+            <div class="glass" style="padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
+                <img id="chat-avatar" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; cursor: pointer;" onclick="showChatUserDetail()">
+                <div style="flex: 1;">
+                    <div id="chat-name" style="font-weight: bold;"></div>
+                    <div id="chat-class" style="font-size: 12px; color: #888;"></div>
+                </div>
+                <div style="cursor: pointer;" onclick="closeChat()">✕</div>
+            </div>
+            
+            <!-- 消息列表 -->
+            <div id="chat-messages" style="height: 400px; overflow-y: auto; padding: 10px; background: var(--card); border-radius: 15px; margin-bottom: 10px;">
+                <div style="text-align: center; color: #888; padding: 20px;">Pilih pelajar untuk memulakan chat</div>
+            </div>
+            
+            <!-- 输入区域 -->
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="chat-input" placeholder="Taip mesej..." style="flex: 1;" onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" style="width: auto; padding: 12px 20px;">📤 Hantar</button>
+            </div>
+        </div>
+    </div>
+    <!-- AKAUN 页面 -->
+    <div id="tab-akaun" class="page">
+        <div class="header-container">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>AKAUN</h3>
             <div style="margin-left: auto; cursor: pointer;" onclick="openProfileSettings()">
                 <i data-lucide="more-vertical"></i>
             </div>
@@ -952,7 +1147,7 @@
                     <div class="legend-item"><span class="legend-icon future" style="background:#E5E5EA;"></span><span>Hari Akan Datang</span></div>
                 </div>
             </div>
-    
+
             <!-- 请假按钮 -->
             <button class="leave-btn" onclick="openLeaveModal()">
                 <i data-lucide="calendar-x" style="width: 18px; height: 18px;"></i> 📋 Mohon Cuti / Tidak Hadir
@@ -971,19 +1166,23 @@
         </div>
     </div>
 
+    <!-- 底部导航栏 -->
     <nav class="nav-bar">
         <div class="nav-item active-nav" onclick="switchTab('tab-home', this)">
             <i data-lucide="home"></i>
-            <div>Utama</div>
+            <div>UTAMA</div>
         </div>
-        <div class="nav-item" onclick="switchTab('tab-scan', this)">
+        <div class="nav-item" onclick="switchTab('tab-imbas', this)">
             <i data-lucide="qr-code"></i>
-            <div>Imbas</div>
+            <div>IMBAS</div>
         </div>
-        <div class="nav-item notification-badge" onclick="switchTab('tab-account', this)">
+        <div class="nav-item" onclick="switchTab('tab-chat', this)">
+            <i data-lucide="message-circle"></i>
+            <div>CHAT</div>
+        </div>
+        <div class="nav-item" onclick="switchTab('tab-akaun', this)">
             <i data-lucide="user"></i>
-            <div>Akaun</div>
-            <span id="notificationBadge" class="badge-new" style="display: none;">!</span>
+            <div>AKAUN</div>
         </div>
     </nav>
 </div>
@@ -991,7 +1190,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where, getDocs, orderBy, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4",
@@ -1010,13 +1209,15 @@
     const SETTINGS_COLLECTION = "systemSettings";
     const ATTENDANCE_LOGS = "attendanceLogs";
     const TEACHER_COL = "classSettings";
+    const CHAT_COLLECTION = "chats";
+    const MESSAGES_COLLECTION = "messages";
 
     window.currentUserData = null;
     let qrUpdateInterval = null;
     let isAttendedToday = false; 
     let attendanceListenerUnsubscribe = null;
     let isAudioUnlocked = false; 
-    let cachedIC = null; // 缓存IC用于离线QR生成
+    let cachedIC = null;
 
     let currentCalendarDate = new Date();
     let currentAttendanceRecords = {};
@@ -1035,14 +1236,21 @@
     let isZooming = false;
 
     let currentTabId = 'tab-home';
+    
+    // Chat 相关变量
+    let allStudents = [];
+    let selectedChatUser = null;
+    let messagesUnsubscribe = null;
+    let currentChatId = null;
+
     window.history.pushState({ tab: 'tab-home' }, '');
     window.addEventListener('popstate', handleBackButton);
 
-    // ========== 核心修复：离线可用的页面切换函数 ==========
+    // ========== 页面切换函数 ==========
     window.switchTab = function(id, el) {
         console.log("Switching to tab:", id);
         
-        const pages = ['tab-home', 'tab-scan', 'tab-account'];
+        const pages = ['tab-home', 'tab-imbas', 'tab-chat', 'tab-akaun'];
         for (let i = 0; i < pages.length; i++) {
             const page = document.getElementById(pages[i]);
             if (page) {
@@ -1064,7 +1272,7 @@
         
         const watermarkLayer = document.getElementById('watermark-layer');
         if (watermarkLayer) {
-            watermarkLayer.style.display = id === 'tab-scan' ? 'flex' : 'none';
+            watermarkLayer.style.display = id === 'tab-imbas' ? 'flex' : 'none';
         }
         
         currentTabId = id;
@@ -1072,6 +1280,12 @@
         try {
             window.history.pushState({ tab: id }, '');
         } catch(e) {}
+        
+        // 离开聊天页面时断开监听
+        if (id !== 'tab-chat' && messagesUnsubscribe) {
+            messagesUnsubscribe();
+            messagesUnsubscribe = null;
+        }
     };
 
     function handleBackButton(event) {
@@ -1085,8 +1299,9 @@
         
         let activePageId = 'tab-home';
         if (document.getElementById('tab-home').classList.contains('active')) activePageId = 'tab-home';
-        else if (document.getElementById('tab-scan').classList.contains('active')) activePageId = 'tab-scan';
-        else if (document.getElementById('tab-account').classList.contains('active')) activePageId = 'tab-account';
+        else if (document.getElementById('tab-imbas').classList.contains('active')) activePageId = 'tab-imbas';
+        else if (document.getElementById('tab-chat').classList.contains('active')) activePageId = 'tab-chat';
+        else if (document.getElementById('tab-akaun').classList.contains('active')) activePageId = 'tab-akaun';
         
         if (activePageId === 'tab-home') {
             showExitConfirm();
@@ -1404,10 +1619,10 @@
     }
 
     window.handleLogout = () => { 
-        // 添加确认对话框
         if (confirm("Anda pasti mahu log keluar?")) {
             if(attendanceListenerUnsubscribe) attendanceListenerUnsubscribe(); 
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
+            if(messagesUnsubscribe) messagesUnsubscribe();
             signOut(auth).then(() => location.reload());
         }
     }
@@ -1431,7 +1646,6 @@
         }, 500);
     }, 1500);
     
-    // ========== 增强版 sendNotification 函数 ==========
     window.sendNotification = function(title, body, postId) {
         if (!notificationEnabled) return;
         
@@ -1481,17 +1695,8 @@
                 console.log("OneSignal 通知失败:", e);
             }
         }
-        
-        const badge = document.getElementById('notificationBadge');
-        if (badge) {
-            badge.style.display = 'flex';
-            setTimeout(() => {
-                badge.style.display = 'none';
-            }, 5000);
-        }
     };
     
-    // ========== 增强版 requestNotificationPermission ==========
     async function enhancedRequestNotificationPermission() {
         if ("Notification" in window) {
             if (Notification.permission === "granted") {
@@ -1549,7 +1754,6 @@
         }
     }
     
-    // ========== 新增：发送请假信息到老师 Telegram ==========
     async function sendLeaveNotificationToTeacher(leaveDate, reason, details) {
         const user = auth.currentUser;
         if (!user || !window.currentUserData) {
@@ -1560,7 +1764,6 @@
         const studentData = window.currentUserData;
         const className = studentData.className || "";
         
-        // 班级名称映射（匹配 teacher 集合中的班级名称）
         const classMapping = {
             '6 AISHAH': 'Aishah', '6 FATIMAH': 'Fatimah', '6 KHADIJAH': 'Khadijah',
             '6 RUQAYYAH': 'Ruqayyah', '6 SARAH': 'Sarah', '6 SUMAYYAH': 'Sumayyah',
@@ -1574,7 +1777,6 @@
         const teacherClassName = classMapping[className] || className;
         
         try {
-            // 获取老师的 Telegram Chat ID
             const teacherRef = doc(db, TEACHER_COL, teacherClassName);
             const teacherSnap = await getDoc(teacherRef);
             
@@ -1630,12 +1832,10 @@
         }
     }
     
-    // ========== 请假模态框函数 ==========
     window.openLeaveModal = () => {
         const modal = document.getElementById('leaveModal');
         if (!modal) return;
         
-        // 设置默认日期为今天
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -1664,7 +1864,6 @@
             return;
         }
         
-        // 格式化日期显示
         const dateParts = leaveDate.split('-');
         const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
         
@@ -1692,7 +1891,6 @@
     };
     
     function toast(msg) {
-        // 移除已有的toast
         const existingToast = document.querySelector('.toast-message');
         if (existingToast) existingToast.remove();
         
@@ -1701,6 +1899,262 @@
         div.className = 'toast-message';
         document.body.appendChild(div);
         setTimeout(() => div.remove(), 2500);
+    }
+    
+    // ========== 加载所有学生数据用于 Chat ==========
+    async function loadAllStudents() {
+        try {
+            const q = query(collection(db, COLLECTION_NAME));
+            const snapshot = await getDocs(q);
+            allStudents = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.ic !== window.currentUserData?.ic) {
+                    allStudents.push({
+                        uid: doc.id,
+                        name: data.name || "Unknown",
+                        className: data.className || "-",
+                        ic: data.ic,
+                        phone: data.phone,
+                        dob: data.dob,
+                        avatar: localStorage.getItem('semsira_avatar_' + doc.id) || null
+                    });
+                }
+            });
+            console.log("Loaded students:", allStudents.length);
+        } catch(e) {
+            console.error("Error loading students:", e);
+        }
+    }
+    
+    // ========== 搜索学生 ==========
+    window.searchStudents = function() {
+        const searchTerm = document.getElementById('chat-search').value.toLowerCase().trim();
+        const resultsDiv = document.getElementById('student-search-results');
+        const startBtn = document.getElementById('chat-start-btn');
+        
+        if (!searchTerm) {
+            resultsDiv.innerHTML = '';
+            startBtn.disabled = true;
+            selectedChatUser = null;
+            return;
+        }
+        
+        const filtered = allStudents.filter(s => 
+            s.name.toLowerCase().includes(searchTerm) || 
+            s.className.toLowerCase().includes(searchTerm)
+        );
+        
+        if (filtered.length === 0) {
+            resultsDiv.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">Tiada pelajar ditemui</div>';
+            startBtn.disabled = true;
+            return;
+        }
+        
+        resultsDiv.innerHTML = '';
+        filtered.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'student-search-item';
+            div.innerHTML = `
+                <img class="student-avatar-small" src="${student.avatar || '/semsira.png'}" onerror="this.src='/semsira.png'">
+                <div class="student-info">
+                    <div class="student-name">${student.name}</div>
+                    <div class="student-class">${student.className}</div>
+                </div>
+            `;
+            div.onclick = () => {
+                document.querySelectorAll('.student-search-item').forEach(item => item.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedChatUser = student;
+                startBtn.disabled = false;
+            };
+            resultsDiv.appendChild(div);
+        });
+    };
+    
+    // ========== 开始聊天 ==========
+    window.startChat = async function() {
+        if (!selectedChatUser) {
+            toast("❌ Sila pilih pelajar terlebih dahulu");
+            return;
+        }
+        
+        const currentUser = window.currentUserData;
+        const chatId1 = `${auth.currentUser.uid}_${selectedChatUser.uid}`;
+        const chatId2 = `${selectedChatUser.uid}_${auth.currentUser.uid}`;
+        
+        try {
+            // 查找或创建聊天室
+            const q1 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId1));
+            const q2 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId2));
+            
+            let snapshot = await getDocs(q1);
+            if (snapshot.empty) {
+                snapshot = await getDocs(q2);
+            }
+            
+            if (snapshot.empty) {
+                // 创建新聊天室
+                const newChatRef = await addDoc(collection(db, CHAT_COLLECTION), {
+                    chatId: chatId1,
+                    participants: [auth.currentUser.uid, selectedChatUser.uid],
+                    participantNames: [currentUser.name, selectedChatUser.name],
+                    participantAvatars: [
+                        localStorage.getItem('semsira_avatar_' + auth.currentUser.uid) || '',
+                        selectedChatUser.avatar || ''
+                    ],
+                    lastMessage: "",
+                    lastMessageTime: serverTimestamp(),
+                    createdAt: serverTimestamp()
+                });
+                currentChatId = newChatRef.id;
+            } else {
+                currentChatId = snapshot.docs[0].id;
+            }
+            
+            // 显示聊天界面
+            document.getElementById('chat-container').style.display = 'block';
+            document.getElementById('chat-name').innerText = selectedChatUser.name;
+            document.getElementById('chat-class').innerText = selectedChatUser.className;
+            document.getElementById('chat-avatar').src = selectedChatUser.avatar || '/semsira.png';
+            document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
+            
+            // 清除搜索结果
+            document.getElementById('student-search-results').innerHTML = '';
+            document.getElementById('chat-search').value = '';
+            selectedChatUser = null;
+            document.getElementById('chat-start-btn').disabled = true;
+            
+            // 加载消息
+            loadMessages();
+            
+        } catch(e) {
+            console.error("Start chat error:", e);
+            toast("❌ Gagal memulakan chat: " + e.message);
+        }
+    };
+    
+    // ========== 加载消息 ==========
+    async function loadMessages() {
+        if (messagesUnsubscribe) {
+            messagesUnsubscribe();
+        }
+        
+        const messagesRef = collection(db, MESSAGES_COLLECTION);
+        const q = query(messagesRef, where("chatId", "==", currentChatId), orderBy("timestamp", "asc"));
+        
+        messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.innerHTML = '';
+            
+            if (snapshot.empty) {
+                messagesDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Tiada mesej. Hantar mesej pertama!</div>';
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const msg = doc.data();
+                const isSent = msg.senderId === auth.currentUser.uid;
+                const time = msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date();
+                const timeStr = time.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${isSent ? 'sent' : 'received'}`;
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">
+                        ${escapeHtml(msg.text)}
+                        <div class="message-time">${timeStr}</div>
+                    </div>
+                `;
+                messagesDiv.appendChild(messageDiv);
+            });
+            
+            // 滚动到底部
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }, (error) => {
+            console.error("Messages listener error:", error);
+        });
+    }
+    
+    // ========== 发送消息 ==========
+    window.sendMessage = async function() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        
+        if (!text) return;
+        if (!currentChatId) {
+            toast("❌ Sila mulakan chat terlebih dahulu");
+            return;
+        }
+        
+        try {
+            await addDoc(collection(db, MESSAGES_COLLECTION), {
+                chatId: currentChatId,
+                senderId: auth.currentUser.uid,
+                senderName: window.currentUserData.name,
+                text: text,
+                timestamp: serverTimestamp(),
+                read: false
+            });
+            
+            // 更新聊天室最后消息
+            const chatRef = doc(db, CHAT_COLLECTION, currentChatId);
+            await updateDoc(chatRef, {
+                lastMessage: text,
+                lastMessageTime: serverTimestamp()
+            });
+            
+            input.value = '';
+        } catch(e) {
+            console.error("Send message error:", e);
+            toast("❌ Gagal menghantar mesej");
+        }
+    };
+    
+    // ========== 关闭聊天 ==========
+    window.closeChat = function() {
+        document.getElementById('chat-container').style.display = 'none';
+        document.getElementById('chat-messages').innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Pilih pelajar untuk memulakan chat</div>';
+        document.getElementById('chat-input').value = '';
+        
+        if (messagesUnsubscribe) {
+            messagesUnsubscribe();
+            messagesUnsubscribe = null;
+        }
+        currentChatId = null;
+    };
+    
+    // ========== 显示聊天用户详情 ==========
+    window.showChatUserDetail = function() {
+        if (!selectedChatUser && currentChatId) {
+            // 从当前聊天获取用户信息
+            toast("🔍 Klik pada nama untuk lihat profil");
+            return;
+        }
+        showUserDetail(selectedChatUser);
+    };
+    
+    // ========== 显示用户详情面板 ==========
+    function showUserDetail(user) {
+        if (!user) return;
+        
+        document.getElementById('detail-name').innerText = user.name;
+        document.getElementById('detail-class').innerText = user.className;
+        document.getElementById('detail-dob').innerHTML = `Tarikh Lahir: ${user.dob || 'Tidak diketahui'}`;
+        document.getElementById('detail-avatar').src = user.avatar || '/semsira.png';
+        document.getElementById('detail-avatar').onerror = function() { this.src = '/semsira.png'; };
+        
+        document.getElementById('userDetailPanel').classList.add('active');
+    }
+    
+    window.closeUserDetail = function() {
+        document.getElementById('userDetailPanel').classList.remove('active');
+    };
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
     
     // ========== 离线优先的登录状态处理 ==========
@@ -1712,7 +2166,6 @@
         if (user) {
             loadingOverlay.style.display = 'flex';
             
-            // 先尝试从本地缓存加载用户数据
             const cachedUserData = localStorage.getItem('semsira_cached_user_' + user.uid);
             let userData = null;
             let isOffline = false;
@@ -1721,9 +2174,7 @@
                 const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
                 if (snap.exists()) {
                     userData = snap.data();
-                    // 缓存用户数据用于离线
                     localStorage.setItem('semsira_cached_user_' + user.uid, JSON.stringify(userData));
-                    // 缓存IC用于离线QR生成
                     cachedIC = userData.ic;
                     localStorage.setItem('semsira_cached_ic', userData.ic);
                 } else {
@@ -1750,6 +2201,7 @@
             window.currentUserData = userData;
             
             await setupOneSignalForUser(user, userData);
+            await loadAllStudents();
             
             setTimeout(() => {
                 document.getElementById('page-login').classList.remove('active');
@@ -1760,12 +2212,10 @@
                 
                 enhancedRequestNotificationPermission();
                 
-                // 只有在在线时才启动通知检查器和加载网络数据
                 if (!isOffline) {
                     startNotificationChecker();
                     loadHomeData();
                 } else {
-                    // 离线模式：显示缓存内容或提示
                     const announcementsList = document.getElementById('announcements-list');
                     if (announcementsList) {
                         announcementsList.innerHTML = '<div class="glass" style="padding:15px; text-align:center;">📱 Mod Offline - Pengumuman tidak tersedia</div>';
@@ -1794,6 +2244,7 @@
             document.getElementById('page-login').classList.add('active');
             document.getElementById('page-register').classList.remove('active');
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
+            if(messagesUnsubscribe) messagesUnsubscribe();
             
             if (window.OneSignal && window.oneSignalReady) {
                 try {
@@ -1893,7 +2344,6 @@
                 instEl.innerText = "Sila tunjukkan kod QR ini kepada guru bertugas.";
             }
         }, (error) => {
-            // 离线时忽略Firestore错误，继续使用本地状态
             console.warn("Attendance listener offline, keeping local state");
         });
     }
@@ -1950,7 +2400,6 @@
     }
 
     let qr;
-    // ========== 修复：离线QR生成，完全使用本地缓存IC和当前时间戳 ==========
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
         if (!qr) { 
@@ -1962,7 +2411,6 @@
                 return; 
             }
             
-            // 获取IC：优先使用缓存，然后从userData获取，最后从localStorage获取
             let ic = cachedIC;
             if (!ic && window.currentUserData && window.currentUserData.ic) {
                 ic = window.currentUserData.ic;
@@ -1977,7 +2425,6 @@
                 return;
             }
             
-            // 生成时间戳（完全本地，不依赖网络）
             const now = new Date();
             const ts = now.getFullYear() + 
                        String(now.getMonth() + 1).padStart(2, '0') + 
@@ -2004,30 +2451,25 @@
         document.getElementById('prof-phone').innerText = d.phone || "-";
         document.getElementById('prof-vehicle').innerText = d.vehicleNo || "Tiada";
         
-        // 加载头像
         const savedAvatar = localStorage.getItem('semsira_avatar_' + auth.currentUser.uid);
         if (savedAvatar) {
             document.getElementById('profile-avatar').src = savedAvatar;
         } else {
-            // 尝试加载默认头像
             getDefaultAvatar().then(avatarUrl => {
                 if (avatarUrl) {
                     document.getElementById('profile-avatar').src = avatarUrl;
                     localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, avatarUrl);
                 } else {
-                    // 使用默认占位图
                     document.getElementById('profile-avatar').src = "/semsira.png";
                 }
             });
         }
     }
     
-    // 旧的 updateProfile 已不再需要，但保留一个提示版本
     window.updateProfile = async () => {
         toast("⚠️ Sila gunakan butang ⚙️ di penjuru kanan untuk kemaskini profil");
     };
     
-    // 保存个人资料设置（从设置模态框调用）
     window.saveProfileSettings = async function() {
         const selectedAvatar = document.querySelector('input[name="avatar-select"]:checked');
         const avatarUrl = selectedAvatar ? selectedAvatar.value : null;
@@ -2056,12 +2498,10 @@
                 vehicleNo: updates.vehicleNo || ""
             });
             
-            // 保存头像
             if (avatarUrl) {
                 localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, avatarUrl);
                 document.getElementById('profile-avatar').src = avatarUrl;
             } else {
-                // 如果没有选择头像，使用默认 SEMSIRA 头像
                 const defaultAvatar = await getDefaultAvatar();
                 if (defaultAvatar) {
                     localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, defaultAvatar);
@@ -2069,11 +2509,9 @@
                 }
             }
             
-            // 更新本地数据
             Object.assign(window.currentUserData, updates);
             window.currentUserData.semester = newSemester;
             
-            // 更新缓存
             localStorage.setItem('semsira_cached_user_' + auth.currentUser.uid, JSON.stringify(window.currentUserData));
             if (window.currentUserData.ic) {
                 cachedIC = window.currentUserData.ic;
@@ -2089,7 +2527,6 @@
         }
     };
     
-    // 获取默认头像 (AVATAR - SEMSIRA)
     async function getDefaultAvatar() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
         try {
@@ -2107,7 +2544,6 @@
         }
     }
     
-    // 从 GitHub Issues 加载所有头像
     async function loadAvatarsFromIssues() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
         try {
@@ -2125,8 +2561,6 @@
                 for (const avatar of avatars) {
                     const titleParts = avatar.title.split(" - ");
                     const avatarName = titleParts[1] || "Unknown";
-                    
-                    // 提取图片URL
                     const imgMatch = avatar.body.match(/!\[.*?\]\((.*?)\)/);
                     if (imgMatch) {
                         const imgUrl = imgMatch[1];
@@ -2135,21 +2569,17 @@
                         div.innerHTML = `
                             <img src="${imgUrl}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
                             <div style="font-size: 10px; margin-top: 4px;">${avatarName}</div>
-                            <input type="radio" name="avatar-select" value="${imgUrl}" data-name="${avatarName}" style="margin-top: 4px;">
+                            <input type="radio" name="avatar-select" value="${imgUrl}" style="margin-top: 4px;">
                         `;
                         avatarContainer.appendChild(div);
-                        
-                        // 添加点击事件选择 radio
                         div.addEventListener('click', () => {
-                            const radio = div.querySelector('input');
-                            radio.checked = true;
+                            div.querySelector('input').checked = true;
                         });
                     }
                 }
             } else if (avatarContainer) {
                 avatarContainer.innerHTML = '<div style="text-align: center; width: 100%; color: #888;">Tiada avatar tersedia</div>';
             }
-            
             return avatars;
         } catch(e) {
             console.error("Error loading avatars:", e);
@@ -2161,7 +2591,6 @@
         }
     }
     
-    // 打开设置个人资料模态框
     window.openProfileSettings = async function() {
         const user = window.currentUserData;
         if (!user) {
@@ -2169,17 +2598,14 @@
             return;
         }
         
-        // 填充表单
         document.getElementById('settings-name').value = user.name || '';
         document.getElementById('settings-phone').value = user.phone || '';
         document.getElementById('settings-address').value = user.address || '';
         document.getElementById('settings-vehicle').value = user.vehicleNo || '';
         document.getElementById('settings-class').value = user.className || '';
         
-        // 加载头像列表
         await loadAvatarsFromIssues();
         
-        // 设置当前头像为选中
         const currentAvatar = localStorage.getItem('semsira_avatar_' + auth.currentUser.uid);
         if (currentAvatar) {
             const radios = document.querySelectorAll('input[name="avatar-select"]');
@@ -2194,7 +2620,6 @@
         document.getElementById('profileSettingsModal').style.display = 'flex';
     };
     
-    // 关闭设置个人资料模态框
     window.closeProfileSettings = function() {
         document.getElementById('profileSettingsModal').style.display = 'none';
     };
@@ -2370,7 +2795,7 @@
             
         } catch (error) {
             console.error("Error loading monthly attendance:", error);
-            renderCalendar(); // 即使失败也渲染日历（离线模式）
+            renderCalendar();
         }
     }
     
@@ -2462,7 +2887,6 @@
     
     window.renderCalendar = renderCalendar;
     
-    // 预加载缓存的IC
     const cachedIcFromStorage = localStorage.getItem('semsira_cached_ic');
     if (cachedIcFromStorage) {
         cachedIC = cachedIcFromStorage;
