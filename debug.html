@@ -2219,7 +2219,7 @@
         div.textContent = text;
         return div.innerHTML;
     }
-    
+
     // ========== 离线优先的登录状态处理 ==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -2237,6 +2237,20 @@
                 const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
                 if (snap.exists()) {
                     userData = snap.data();
+                    
+                    // ========== 新增：检查账号是否已被管理员删除 ==========
+                    if (userData.isDeleted === true) {
+                        console.log("Account has been deleted by admin");
+                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
+                        // 清除本地缓存
+                        localStorage.removeItem('semsira_cached_user_' + user.uid);
+                        localStorage.removeItem('semsira_cached_ic');
+                        await signOut(auth);
+                        loadingOverlay.style.display = 'none';
+                        return;
+                    }
+                    // ====================================================
+                    
                     localStorage.setItem('semsira_cached_user_' + user.uid, JSON.stringify(userData));
                     cachedIC = userData.ic;
                     localStorage.setItem('semsira_cached_ic', userData.ic);
@@ -2248,6 +2262,19 @@
                 isOffline = true;
                 if (cachedUserData) {
                     userData = JSON.parse(cachedUserData);
+                    
+                    // ========== 新增：检查缓存中的数据是否已被删除 ==========
+                    if (userData.isDeleted === true) {
+                        console.log("Cached account has been deleted");
+                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
+                        localStorage.removeItem('semsira_cached_user_' + user.uid);
+                        localStorage.removeItem('semsira_cached_ic');
+                        await signOut(auth);
+                        loadingOverlay.style.display = 'none';
+                        return;
+                    }
+                    // ====================================================
+                    
                     cachedIC = userData.ic;
                 } else {
                     loadingOverlay.style.display = 'none';
@@ -2256,6 +2283,16 @@
                     return;
                 }
             }
+            
+            // ========== 双重保险：再次检查 ==========
+            if (userData && userData.isDeleted === true) {
+                toast("❌ Akaun anda telah dipadamkan.");
+                localStorage.removeItem('semsira_cached_user_' + user.uid);
+                await signOut(auth);
+                loadingOverlay.style.display = 'none';
+                return;
+            }
+            // ====================================
             
             if (!(await verifyDevice(user, userData))) { 
                 loadingOverlay.style.display = 'none'; 
