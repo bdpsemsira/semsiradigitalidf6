@@ -1984,6 +1984,8 @@
         const chatId1 = `${auth.currentUser.uid}_${selectedChatUser.uid}`;
         const chatId2 = `${selectedChatUser.uid}_${auth.currentUser.uid}`;
         
+        console.log("Chat ID possibilities:", chatId1, chatId2);
+        
         try {
             const q1 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId1));
             const q2 = query(collection(db, CHAT_COLLECTION), where("chatId", "==", chatId2));
@@ -1993,12 +1995,12 @@
                 snapshot = await getDocs(q2);
             }
             
-            // 获取当前用户头像
             const currentUserAvatar = window.currentUserData.avatarUrl || 
                 localStorage.getItem('semsira_avatar_' + auth.currentUser.uid) || '';
             
             if (snapshot.empty) {
-                await addDoc(collection(db, CHAT_COLLECTION), {
+                console.log("Creating new chat...");
+                const newChatRef = await addDoc(collection(db, CHAT_COLLECTION), {
                     chatId: chatId1,
                     participants: [auth.currentUser.uid, selectedChatUser.uid],
                     participantNames: [currentUser.name, selectedChatUser.name],
@@ -2007,23 +2009,28 @@
                     lastMessageTime: serverTimestamp(),
                     createdAt: serverTimestamp()
                 });
-                currentChatId = snapshot.docs?.[0]?.id;
+                currentChatId = newChatRef.id;
+                console.log("Created new chat with ID:", currentChatId);
             } else {
                 currentChatId = snapshot.docs[0].id;
+                console.log("Using existing chat with ID:", currentChatId);
             }
             
+            // 显示聊天界面
             document.getElementById('chat-container').style.display = 'block';
             document.getElementById('chat-name').innerText = selectedChatUser.name;
             document.getElementById('chat-class').innerText = selectedChatUser.className;
             document.getElementById('chat-avatar').src = selectedChatUser.avatar || '/semsira.png';
             document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
             
+            // 清除搜索结果
             document.getElementById('student-search-results').innerHTML = '';
             document.getElementById('chat-search').value = '';
             selectedChatUser = null;
             document.getElementById('chat-start-btn').disabled = true;
             
-            loadMessages();
+            // 加载消息 - 传入 currentChatId
+            loadMessages(currentChatId);
             
         } catch(e) {
             console.error("Start chat error:", e);
@@ -2032,15 +2039,26 @@
     };
     
     // ========== 加载消息 ==========
-    async function loadMessages() {
+    async function loadMessages(chatId) {
+        // 如果已有监听器，先断开
         if (messagesUnsubscribe) {
             messagesUnsubscribe();
+            messagesUnsubscribe = null;
         }
         
+        if (!chatId) {
+            console.error("No chatId provided to loadMessages");
+            return;
+        }
+        
+        console.log("Loading messages for chatId:", chatId);
+        
         const messagesRef = collection(db, MESSAGES_COLLECTION);
-        const q = query(messagesRef, where("chatId", "==", currentChatId), orderBy("timestamp", "asc"));
+        const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "asc"));
         
         messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+            console.log("Snapshot received, message count:", snapshot.size);
+            
             const messagesDiv = document.getElementById('chat-messages');
             messagesDiv.innerHTML = '';
             
@@ -2070,6 +2088,7 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }, (error) => {
             console.error("Messages listener error:", error);
+            toast("❌ Gagal memuatkan mesej: " + error.message);
         });
     }
     
