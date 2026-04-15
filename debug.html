@@ -2543,16 +2543,27 @@
             return null;
         }
     }
-    
+
     async function loadAvatarsFromIssues() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
         try {
-            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&t=${Date.now()}`);
+            // 添加 per_page=100 确保获取所有 issues
+            const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&per_page=100&t=${Date.now()}`);
+            if (!res.ok) {
+                console.error("GitHub API error:", res.status);
+                return [];
+            }
             const issues = await res.json();
             
+            // 调试：打印所有 issues 标题
+            console.log("All issues:", issues.map(i => i.title));
+            
+            // 筛选以 "AVATAR - " 开头的 issues（注意空格）
             const avatars = issues.filter(issue => 
                 issue.title && issue.title.startsWith("AVATAR - ")
             );
+            
+            console.log("Found avatars:", avatars.length);
             
             const avatarContainer = document.getElementById('avatar-options');
             if (avatarContainer && avatars.length > 0) {
@@ -2561,19 +2572,33 @@
                 for (const avatar of avatars) {
                     const titleParts = avatar.title.split(" - ");
                     const avatarName = titleParts[1] || "Unknown";
-                    const imgMatch = avatar.body.match(/!\[.*?\]\((.*?)\)/);
-                    if (imgMatch) {
-                        const imgUrl = imgMatch[1];
+                    
+                    // 提取图片URL - 支持多种格式
+                    let imgUrl = null;
+                    const imgMatchMarkdown = avatar.body.match(/!\[.*?\]\((.*?)\)/);
+                    const imgMatchHtml = avatar.body.match(/src="(.*?)"/);
+                    const imgMatchUrl = avatar.body.match(/(https?:\/\/[^\s]+\.(jpg|png|jpeg|gif|webp))/i);
+                    
+                    if (imgMatchMarkdown) {
+                        imgUrl = imgMatchMarkdown[1];
+                    } else if (imgMatchHtml) {
+                        imgUrl = imgMatchHtml[1];
+                    } else if (imgMatchUrl) {
+                        imgUrl = imgMatchUrl[1];
+                    }
+                    
+                    if (imgUrl) {
                         const div = document.createElement('div');
                         div.style.cssText = 'cursor: pointer; text-align: center;';
                         div.innerHTML = `
-                            <img src="${imgUrl}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
-                            <div style="font-size: 10px; margin-top: 4px;">${avatarName}</div>
+                            <img src="${imgUrl}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);" onerror="this.src='/semsira.png'">
+                            <div style="font-size: 10px; margin-top: 4px;">${escapeHtml(avatarName)}</div>
                             <input type="radio" name="avatar-select" value="${imgUrl}" style="margin-top: 4px;">
                         `;
                         avatarContainer.appendChild(div);
                         div.addEventListener('click', () => {
-                            div.querySelector('input').checked = true;
+                            const radio = div.querySelector('input');
+                            radio.checked = true;
                         });
                     }
                 }
