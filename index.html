@@ -1737,6 +1737,9 @@
                     if (userData.isDeleted === true) {
                         console.log("Account has been deleted by admin");
                         toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
+                        // 清除本地缓存
+                        localStorage.removeItem('semsira_cached_user_' + user.uid);
+                        localStorage.removeItem('semsira_cached_ic');
                         await signOut(auth);
                         loadingOverlay.style.display = 'none';
                         return;
@@ -1754,14 +1757,19 @@
                 isOffline = true;
                 if (cachedUserData) {
                     userData = JSON.parse(cachedUserData);
-                    // 检查缓存中的数据是否已被删除
+                    
+                    // ========== 检查缓存中的数据是否已被删除 ==========
                     if (userData.isDeleted === true) {
                         console.log("Cached account has been deleted");
-                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir.");
+                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
+                        localStorage.removeItem('semsira_cached_user_' + user.uid);
+                        localStorage.removeItem('semsira_cached_ic');
                         await signOut(auth);
                         loadingOverlay.style.display = 'none';
                         return;
                     }
+                    // =============================================
+                    
                     cachedIC = userData.ic;
                 } else {
                     loadingOverlay.style.display = 'none';
@@ -1770,6 +1778,18 @@
                     return;
                 }
             }
+            
+            // ========== 双重保险：再次检查是否已被删除 ==========
+            if (userData && userData.isDeleted === true) {
+                console.log("Account has been deleted (double check)");
+                toast("❌ Akaun anda telah dipadamkan oleh pentadbir.");
+                localStorage.removeItem('semsira_cached_user_' + user.uid);
+                localStorage.removeItem('semsira_cached_ic');
+                await signOut(auth);
+                loadingOverlay.style.display = 'none';
+                return;
+            }
+            // ===================================================
             
             if (!(await verifyDevice(user, userData))) { 
                 loadingOverlay.style.display = 'none'; 
