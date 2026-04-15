@@ -3006,6 +3006,11 @@
         
         // 隐藏聊天列表容器
         document.getElementById('chat-list-container').style.display = 'none';
+        // 隐藏搜索栏
+        const searchContainer = document.querySelector('#tab-chat .glass:first-of-type');
+        if (searchContainer) {
+            searchContainer.style.display = 'none';
+        }
         
         // 清除搜索结果
         document.getElementById('student-search-results').innerHTML = '';
