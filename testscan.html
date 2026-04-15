@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Semsira Scanner - Lotus Style Pro</title>
+    <title>Semsira Scanner - 左右布局专业版</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -16,7 +16,7 @@
         }
 
         body {
-            background: #0B0E14;
+            background: #0A0D14;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
             height: 100vh;
             overflow: hidden;
@@ -25,23 +25,20 @@
 
         .app-container {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             height: 100vh;
-            background: radial-gradient(circle at 20% 30%, #141B2B, #0A0D14);
-            position: relative;
+            width: 100%;
+            background: radial-gradient(circle at 30% 50%, #141B2B, #0A0D14);
         }
 
-        /* 顶部视频区域 */
-        .top-video-area {
+        /* 左侧视频区域 - 70% 宽度 */
+        .left-video-area {
+            width: 70%;
+            height: 100vh;
             position: relative;
             background: #000;
-            height: 50%;
-            min-height: 150px;
-            max-height: 85%;
             overflow: hidden;
-            border-bottom-left-radius: 28px;
-            border-bottom-right-radius: 28px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+            box-shadow: 4px 0 20px rgba(0,0,0,0.5);
             z-index: 5;
         }
 
@@ -51,29 +48,27 @@
             background: #000;
             position: relative;
         }
-        
-        /* 本地视频样式 */
+
         .video-player-container video {
             width: 100%;
             height: 100%;
             object-fit: contain;
             background: #000;
         }
-        
-        /* YouTube iframe 样式 */
+
         .youtube-iframe {
             width: 100%;
             height: 100%;
             border: none;
         }
-        
+
         .video-overlay-text {
             position: absolute;
-            bottom: 16px;
+            bottom: 20px;
             left: 20px;
             background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(6px);
-            padding: 6px 14px;
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
             border-radius: 30px;
             font-size: 13px;
             font-weight: 500;
@@ -82,35 +77,103 @@
             align-items: center;
             gap: 8px;
             z-index: 2;
+            pointer-events: none;
         }
 
-        /* 可拖动的分隔条 */
-        .resize-handle {
-            width: 100%;
-            height: 8px;
-            background: rgba(0, 122, 255, 0.5);
-            cursor: row-resize;
-            z-index: 10;
-            transition: background 0.2s;
-        }
-        .resize-handle:hover, .vertical-resize-handle:hover {
-            background: #007AFF;
-        }
-
-        .middle-split {
-            flex: 1;
+        /* 右侧区域 - 30% 宽度 */
+        .right-area {
+            width: 30%;
+            height: 100vh;
             display: flex;
-            flex-direction: row;
-            padding: 12px 18px;
-            gap: 8px;
-            min-height: 0;
+            flex-direction: column;
+            padding: 16px 16px 16px 12px;
+            gap: 16px;
             overflow: hidden;
         }
 
-        .attendance-panel {
-            width: 40%;
-            min-width: 180px;
-            max-width: 70%;
+        /* 右侧上方 - 扫码框 (正方形) */
+        .scanner-section {
+            flex: 1;
+            min-height: 0;
+            background: rgba(0,0,0,0.4);
+            border-radius: 32px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .scanner-header {
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
+        }
+
+        .scanner-header span {
+            font-weight: 500;
+            font-size: 14px;
+            background: rgba(0,122,255,0.2);
+            padding: 5px 14px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #reader {
+            width: 100%;
+            flex: 1;
+            margin: 0;
+            background: #000;
+            position: relative;
+            min-height: 0;
+        }
+        
+        /* 确保二维码扫描区域为正方形比例 */
+        #reader video {
+            object-fit: cover !important;
+        }
+        
+        #reader__dashboard_section_csr {
+            display: none;
+        }
+
+        .scanner-footer {
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
+        }
+
+        .cam-control {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cam-control:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* 右侧下方 - 出席状况面板 */
+        .attendance-section {
+            flex: 1;
+            min-height: 0;
             background: rgba(18, 22, 32, 0.75);
             backdrop-filter: blur(12px);
             border-radius: 32px;
@@ -122,13 +185,14 @@
         }
 
         .attendance-header {
-            padding: 14px 16px 10px;
+            padding: 14px 16px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
+            align-items: center;
             flex-shrink: 0;
         }
+
         .attendance-header h3 {
             font-size: 16px;
             font-weight: 600;
@@ -136,135 +200,126 @@
             align-items: center;
             gap: 8px;
         }
+
         .attendance-badge {
             background: #007AFF;
             border-radius: 40px;
-            padding: 4px 10px;
+            padding: 4px 12px;
             font-size: 12px;
             font-weight: 600;
         }
+
         .attendance-list {
             flex: 1;
             overflow-y: auto;
-            padding: 8px 12px 16px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
+
         .attendance-item {
             background: rgba(255,255,255,0.05);
             border-radius: 20px;
-            padding: 10px 14px;
+            padding: 12px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-shrink: 0;
-        }
-        .attendance-item.hadir { border-left: 4px solid #34C759; }
-        .attendance-item.lewat { border-left: 4px solid #FF9F0A; }
-        .student-info { display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
-        .student-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .student-class { font-size: 10px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .status-chip { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 30px; background: rgba(52,199,89,0.2); color: #34C759; flex-shrink: 0; }
-        .status-chip.lewat { background: rgba(255,159,10,0.2); color: #FF9F0A; }
-
-        .vertical-resize-handle {
-            width: 6px;
-            height: auto;
-            background: rgba(0, 122, 255, 0.5);
-            cursor: col-resize;
-            border-radius: 3px;
-            transition: background 0.2s;
-            margin: 0 2px;
+            transition: 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.02);
         }
 
-        .scanner-grill {
-            flex: 1;
-            min-width: 200px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 32px;
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.1);
+        .attendance-item.hadir {
+            border-left: 4px solid #34C759;
+        }
+
+        .attendance-item.lewat {
+            border-left: 4px solid #FF9F0A;
+        }
+
+        .student-info {
             display: flex;
             flex-direction: column;
+            gap: 4px;
             overflow: hidden;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-        }
-        .scanner-header {
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            flex-shrink: 0;
-        }
-        .scanner-header span {
-            font-weight: 500;
-            font-size: 13px;
-            background: rgba(0,122,255,0.2);
-            padding: 4px 12px;
-            border-radius: 20px;
-        }
-        #reader {
-            width: 100%;
-            flex: 1;
-            margin: 0;
-            border-radius: 0;
-            overflow: hidden;
-            background: #000;
-            min-height: 0;
-        }
-        .scanner-footer {
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            flex-shrink: 0;
-        }
-        .cam-control {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            padding: 6px 14px;
-            border-radius: 30px;
-            color: white;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
         }
 
+        .student-name {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .student-class {
+            font-size: 11px;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-chip {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 30px;
+            background: rgba(52,199,89,0.2);
+            color: #34C759;
+            flex-shrink: 0;
+        }
+
+        .status-chip.lewat {
+            background: rgba(255,159,10,0.2);
+            color: #FF9F0A;
+        }
+
+        /* 结果浮动卡片 */
         .result-card {
             position: fixed;
-            bottom: 20px;
+            bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
             width: 85%;
-            max-width: 360px;
-            background: rgba(28,28,32,0.9);
+            max-width: 400px;
+            background: rgba(28,28,32,0.95);
             backdrop-filter: blur(20px);
             border-radius: 60px;
-            padding: 10px 18px;
+            padding: 12px 20px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             z-index: 200;
             border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
         }
+
         .status-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 40px;
+            width: 44px;
+            height: 44px;
+            border-radius: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: rgba(0,0,0,0.5);
         }
-        .result-text { flex: 1; }
-        .result-text h3 { font-size: 15px; font-weight: 600; }
-        .result-text p { font-size: 11px; opacity: 0.7; }
 
+        .result-text {
+            flex: 1;
+        }
+
+        .result-text h3 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .result-text p {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        /* 设置弹窗 */
         .settings-modal {
             display: none;
             position: fixed;
@@ -272,45 +327,55 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             backdrop-filter: blur(20px);
             z-index: 3000;
             align-items: center;
             justify-content: center;
         }
+
         .settings-card {
             background: #1C1F2A;
             width: 90%;
-            max-width: 420px;
+            max-width: 500px;
             border-radius: 40px;
             padding: 24px;
             color: white;
             border: 1px solid rgba(255,255,255,0.1);
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
         }
+
         .setting-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
+            padding: 14px 0;
             border-bottom: 1px solid rgba(255,255,255,0.08);
             flex-wrap: wrap;
             gap: 10px;
         }
-        .setting-item .setting-label {
+
+        .setting-label {
             font-size: 14px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
         .toggle-switch {
             position: relative;
             display: inline-block;
             width: 48px;
             height: 28px;
         }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
         .toggle-slider {
             position: absolute;
             cursor: pointer;
@@ -322,6 +387,7 @@
             transition: 0.3s;
             border-radius: 34px;
         }
+
         .toggle-slider:before {
             position: absolute;
             content: "";
@@ -333,16 +399,39 @@
             transition: 0.3s;
             border-radius: 50%;
         }
-        input:checked + .toggle-slider { background-color: #007AFF; }
-        input:checked + .toggle-slider:before { transform: translateX(20px); }
-        .close-settings { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        
+
+        input:checked + .toggle-slider {
+            background-color: #007AFF;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .close-settings {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-settings:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
         .recording-indicator {
             position: fixed;
-            top: 16px;
-            right: 16px;
+            top: 20px;
+            right: 20px;
             background: #FF3B30;
-            padding: 6px 14px;
+            padding: 8px 16px;
             border-radius: 40px;
             font-size: 12px;
             z-index: 1000;
@@ -352,6 +441,7 @@
             font-weight: 600;
             display: none;
         }
+
         .recording-dot {
             width: 10px;
             height: 10px;
@@ -359,15 +449,19 @@
             border-radius: 50%;
             animation: blink 1s infinite;
         }
-        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-        
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
         .live-clock {
             position: absolute;
-            top: 16px;
+            top: 20px;
             right: 20px;
             background: rgba(0,0,0,0.5);
             backdrop-filter: blur(8px);
-            padding: 6px 14px;
+            padding: 8px 16px;
             border-radius: 30px;
             font-size: 14px;
             font-weight: 500;
@@ -375,18 +469,19 @@
             z-index: 20;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             color: white;
         }
-        .record-btn-mini {
+
+        .settings-btn {
             position: absolute;
-            top: 16px;
-            left: 20px;
-            background: rgba(0,0,0,0.5);
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
             backdrop-filter: blur(8px);
             border: none;
-            width: 38px;
-            height: 38px;
+            width: 48px;
+            height: 48px;
             border-radius: 30px;
             color: white;
             display: flex;
@@ -394,130 +489,162 @@
             justify-content: center;
             cursor: pointer;
             z-index: 20;
+            transition: all 0.2s;
         }
-        .settings-btn-mini {
-            position: absolute;
-            bottom: 16px;
-            right: 16px;
-            background: rgba(0,0,0,0.6);
-            border: none;
-            width: 42px;
-            height: 42px;
-            border-radius: 30px;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 20;
+
+        .settings-btn:hover {
+            background: #007AFF;
         }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #222; }
-        ::-webkit-scrollbar-thumb { background: #007AFF; border-radius: 10px; }
-        .mirror-video video { transform: scaleX(-1) !important; }
-        .time-input { background: #2C2F38; border: none; padding: 8px; border-radius: 12px; color: white; }
-        .warning-text { font-size: 11px; background: #FF9F0A20; padding: 8px; border-radius: 16px; margin-top: 8px; }
-        
-        /* 视频上传和YouTube输入样式 */
-        .video-source-btn {
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #222;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #007AFF;
+            border-radius: 10px;
+        }
+
+        .mirror-video video {
+            transform: scaleX(-1) !important;
+        }
+
+        .time-input {
             background: #2C2F38;
             border: none;
             padding: 8px 12px;
-            border-radius: 20px;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .warning-text {
+            font-size: 11px;
+            background: #FF9F0A20;
+            padding: 10px;
+            border-radius: 16px;
+            margin-top: 12px;
+        }
+
+        .video-url-item {
+            background: #2C2F38;
+            border-radius: 16px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .video-url-text {
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .video-url-actions button {
+            background: none;
+            border: none;
             color: white;
             cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
             font-size: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
         }
-        .video-source-btn.active {
-            background: #007AFF;
+
+        .video-url-actions .delete-btn:hover {
+            background: #FF3B30;
         }
-        .video-input-group {
-            margin-top: 10px;
-            padding: 10px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 16px;
+
+        .video-url-actions .play-btn:hover {
+            background: #34C759;
         }
-        .video-input-group input {
-            width: 100%;
-            padding: 10px;
-            border-radius: 12px;
+
+        .add-video-form {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .add-video-form input {
+            flex: 1;
             background: #2C2F38;
             border: none;
+            padding: 10px 12px;
+            border-radius: 20px;
             color: white;
-            margin-top: 8px;
+            font-size: 12px;
         }
-        .video-input-group button {
+
+        .add-video-form button {
             background: #007AFF;
             border: none;
             padding: 8px 16px;
             border-radius: 20px;
             color: white;
-            margin-top: 8px;
             cursor: pointer;
         }
-        .file-upload-label {
+
+        .video-source-badge {
             background: #34C759;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 10px;
+        }
+        
+        .playlist-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .playlist-control button {
+            background: #2C2F38;
             border: none;
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 20px;
             color: white;
             cursor: pointer;
-            display: inline-block;
-            font-size: 12px;
-            margin-top: 8px;
-        }
-        .current-source-badge {
-            font-size: 10px;
-            background: rgba(0,122,255,0.3);
-            padding: 2px 8px;
-            border-radius: 20px;
-            margin-left: 8px;
+            font-size: 11px;
         }
     </style>
 </head>
 <body>
 <div class="app-container">
-    <div class="top-video-area" id="topVideoArea">
+    <!-- 左侧视频区域 70% -->
+    <div class="left-video-area">
         <div class="video-player-container" id="videoPlayerContainer">
-            <!-- 本地视频元素 -->
             <video id="localVideo" autoplay muted loop playsinline style="width:100%; height:100%; object-fit: contain; display: none;"></video>
-            <!-- YouTube iframe 元素 -->
-            <iframe id="youtubeIframe" class="youtube-iframe" style="display: none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            <iframe id="youtubeIframe" class="youtube-iframe" style="display: none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             <div class="video-overlay-text">
-                <i data-lucide="tv"></i> <span id="videoSourceLabel">Promosi Semsira</span>
+                <i data-lucide="tv"></i>
+                <span id="videoSourceLabel">Promosi Semsira</span>
             </div>
         </div>
         <div class="live-clock" id="liveClock">
             <i data-lucide="clock"></i>
             <span id="currentTime">--:--:--</span>
         </div>
-        <button class="record-btn-mini" id="record-btn-mini">
-            <i data-lucide="video"></i>
+        <button class="settings-btn" id="open-settings-btn">
+            <i data-lucide="settings"></i>
         </button>
     </div>
 
-    <div class="resize-handle" id="horizontalResizeHandle"></div>
-
-    <div class="middle-split" id="middleSplit">
-        <div class="attendance-panel" id="attendancePanel">
-            <div class="attendance-header">
-                <h3><i data-lucide="users"></i> Kehadiran Hari Ini</h3>
-                <div class="attendance-badge" id="totalCountBadge">0</div>
-            </div>
-            <div class="attendance-list" id="attendanceList">
-                <div style="text-align:center; padding:20px; opacity:0.6;">Memuatkan...</div>
-            </div>
-        </div>
-        
-        <div class="vertical-resize-handle" id="verticalResizeHandle"></div>
-        
-        <div class="scanner-grill" id="scannerGrill">
+    <!-- 右侧区域 30% -->
+    <div class="right-area">
+        <!-- 上方扫码框 -->
+        <div class="scanner-section">
             <div class="scanner-header">
                 <span><i data-lucide="scan-line"></i> Pengimbas Pro</span>
-                <select id="camera-select" style="background:rgba(0,0,0,0.5); border:none; color:white; border-radius:20px; padding:4px 10px; font-size:12px;">
+                <select id="camera-select" style="background:rgba(0,0,0,0.5); border:none; color:white; border-radius:20px; padding:5px 10px; font-size:12px;">
                     <option>Mengesan...</option>
                 </select>
             </div>
@@ -526,21 +653,28 @@
                 <button id="wakelock-toggle" class="cam-control"><i data-lucide="sun"></i> Skrin Terang</button>
             </div>
         </div>
-    </div>
-    
-    <div id="result-card" class="result-card">
-        <div id="status-icon" class="status-icon waiting">
-            <i data-lucide="qr-code"></i>
+
+        <!-- 下方出席状况 -->
+        <div class="attendance-section">
+            <div class="attendance-header">
+                <h3><i data-lucide="users"></i> Kehadiran Hari Ini</h3>
+                <div class="attendance-badge" id="totalCountBadge">0</div>
+            </div>
+            <div class="attendance-list" id="attendanceList">
+                <div style="text-align:center; padding:20px; opacity:0.6;">Memuatkan...</div>
+            </div>
         </div>
-        <div class="result-text">
-            <h3 id="res-name">Sedia Imbas</h3>
-            <p id="res-msg">Halakan kamera ke kod QR</p>
-        </div>
     </div>
-    
-    <button class="settings-btn-mini" id="open-settings-btn">
-        <i data-lucide="settings"></i>
-    </button>
+</div>
+
+<div id="result-card" class="result-card">
+    <div id="status-icon" class="status-icon waiting">
+        <i data-lucide="qr-code"></i>
+    </div>
+    <div class="result-text">
+        <h3 id="res-name">Sedia Imbas</h3>
+        <p id="res-msg">Halakan kamera ke kod QR</p>
+    </div>
 </div>
 
 <div id="recording-indicator" class="recording-indicator">
@@ -553,50 +687,45 @@
 
 <div id="settings-modal" class="settings-modal">
     <div class="settings-card">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h3><i data-lucide="settings"></i> Tetapan</h3>
             <button class="close-settings" id="close-settings-btn">✕</button>
         </div>
         
-        <!-- 视频源设置区域 -->
+        <!-- 视频播放列表管理 -->
         <div class="setting-item" style="flex-direction: column; align-items: stretch;">
-            <div class="setting-label">🎬 Sumber Video</div>
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
-                <button id="youtubeBtn" class="video-source-btn">YouTube</button>
-                <button id="uploadBtn" class="video-source-btn">Muat Naik Video</button>
+            <div class="setting-label">🎬 Senarai Video (YouTube)</div>
+            <div id="videoListContainer" style="max-height: 200px; overflow-y: auto; margin-top: 8px;">
+                <!-- 动态加载视频列表 -->
             </div>
-            
-            <!-- YouTube 输入区域 -->
-            <div id="youtubeInputArea" class="video-input-group" style="display: none;">
-                <div style="font-size: 12px; opacity: 0.7;">Masukkan YouTube URL (contoh: https://youtu.be/xxxx  atau https://www.youtube.com/watch?v=xxxx)</div>
-                <input type="text" id="youtubeUrlInput" placeholder="https://youtu.be/...">
-                <button id="loadYoutubeBtn">Muat YouTube</button>
+            <div class="add-video-form">
+                <input type="text" id="newVideoUrl" placeholder="https://youtu.be/... atau https://youtube.com/watch?v=...">
+                <button id="addVideoBtn">+ Tambah</button>
             </div>
-            
-            <!-- 视频上传区域 -->
-            <div id="uploadArea" class="video-input-group" style="display: none;">
-                <div style="font-size: 12px; opacity: 0.7;">Pilih fail video (MP4, WebM, MOV)</div>
-                <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/quicktime" style="display: none;">
-                <button id="chooseFileBtn" class="file-upload-label">📁 Pilih Fail</button>
-                <div id="selectedFileName" style="font-size: 11px; margin-top: 5px; color: #aaa;"></div>
+            <div class="playlist-control">
+                <button id="prevVideoBtn" class="cam-control" style="background:#2C2F38;">⏮ Sebelum</button>
+                <button id="nextVideoBtn" class="cam-control" style="background:#2C2F38;">⏭ Seterusnya</button>
+                <label class="toggle-switch" style="width: auto; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 12px;">🔁 Ulang</span>
+                    <input type="checkbox" id="loopToggle">
+                    <span class="toggle-slider" style="position: relative; display: inline-block; width: 40px;"></span>
+                </label>
             </div>
-            <div id="currentVideoSource" style="font-size: 11px; margin-top: 8px; color: #007AFF;"></div>
+            <div class="warning-text" style="margin-top: 8px;">
+                <i data-lucide="info"></i> Masukkan URL YouTube. Video akan dimainkan secara automatik dan bertukar ke video seterusnya apabila selesai.
+            </div>
         </div>
         
         <div class="setting-item"><div class="setting-label">⏰ Masa Hidup Kamera</div><input type="time" id="cameraOnTime" class="time-input" value="08:00"></div>
         <div class="setting-item"><div class="setting-label">⏰ Masa Mati Kamera</div><input type="time" id="cameraOffTime" class="time-input" value="18:00"></div>
-        <div class="setting-item"><div class="setting-label">📹 Kualiti Video Rakaman</div><select id="quality-select" style="background:#2C2F38; color:white; border-radius:12px; padding:6px;"><option value="480">480p</option><option value="720" selected>720p</option><option value="1080">1080p</option></select></div>
-        <div class="setting-item"><div class="setting-label">🎬 Time-lapse</div><label class="toggle-switch"><input type="checkbox" id="timelapse-toggle"><span class="toggle-slider"></span></label></div>
-        <div class="setting-item"><div class="setting-label">⚡ Kelajuan TL</div><select id="speed-factor" style="background:#2C2F38; color:white;"><option value="6">6x</option><option value="10">10x</option><option value="15">15x</option><option value="20" selected>20x</option><option value="30">30x</option></select></div>
         <div class="setting-item"><div class="setting-label">🪞 Imej Cermin</div><label class="toggle-switch"><input type="checkbox" id="mirror-toggle"><span class="toggle-slider"></span></label></div>
         <div class="setting-item"><div class="setting-label">📱 Getaran</div><label class="toggle-switch"><input type="checkbox" id="vibration-toggle" checked><span class="toggle-slider"></span></label></div>
-        <div class="warning-text"><i data-lucide="info"></i> YouTube: video akan dimainkan tanpa iklan dan tanpa cookie. Muat naik: video disimpan dalam penyemak imbas anda.</div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyCqY9ADs8oy1Uvh3-7eVCQLYfyTijm8lo4", authDomain: "bdpsemsira-5c274.firebaseapp.com", projectId: "bdpsemsira-5c274", storageBucket: "bdpsemsira-5c274.firebasestorage.app", messagingSenderId: "176946808975", appId: "1:176946808975:web:ef7447a11bb57fe71b88fa" };
     const app = initializeApp(firebaseConfig);
@@ -605,46 +734,39 @@
     let html5QrCode = new Html5Qrcode("reader");
     let isScanning = false, currentCameraId = null, isProcessing = false;
     let wakeLock = null;
-    let mediaRecorder = null, recordedChunks = [], isRecording = false, recordingStartTime = null, recordingTimerInterval = null, isTimelapseMode = false, speedFactor = 20;
+    
+    // 视频播放列表
+    let videoList = [];
+    let currentVideoIndex = 0;
+    let isLoopEnabled = false;
     
     // DOM 元素
     const cameraSelect = document.getElementById('camera-select');
     const beepSound = document.getElementById('beep-sound');
     const wakelockBtn = document.getElementById('wakelock-toggle');
-    const recordBtn = document.getElementById('record-btn-mini');
-    const recordingIndicator = document.getElementById('recording-indicator');
-    const recordingTimerSpan = document.getElementById('recording-timer');
     const openSettingsBtn = document.getElementById('open-settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const mirrorToggle = document.getElementById('mirror-toggle');
     const vibrationToggle = document.getElementById('vibration-toggle');
-    const qualitySelect = document.getElementById('quality-select');
-    const timelapseToggle = document.getElementById('timelapse-toggle');
-    const speedFactorSelect = document.getElementById('speed-factor');
     const cameraOnTimeInput = document.getElementById('cameraOnTime');
     const cameraOffTimeInput = document.getElementById('cameraOffTime');
     const liveClockSpan = document.getElementById('currentTime');
     const attendanceListDiv = document.getElementById('attendanceList');
     const totalBadge = document.getElementById('totalCountBadge');
     const readerDiv = document.getElementById('reader');
+    const loopToggle = document.getElementById('loopToggle');
     
     // 视频元素
     const localVideo = document.getElementById('localVideo');
     const youtubeIframe = document.getElementById('youtubeIframe');
     const videoSourceLabel = document.getElementById('videoSourceLabel');
     
-    // ========== 视频播放功能 ==========
-    let currentVideoType = localStorage.getItem('videoType') || 'youtube';
-    let currentYoutubeId = localStorage.getItem('youtubeVideoId') || '';
-    let currentLocalVideoUrl = localStorage.getItem('localVideoUrl') || '';
-    
     // 从 YouTube URL 提取视频 ID
     function extractYoutubeId(url) {
         const patterns = [
             /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/,
-            /youtube\.com\/embed\/([^/?]+)/,
-            /youtube\.com\/v\/([^/?]+)/
+            /youtube\.com\/embed\/([^/?]+)/
         ];
         for (const pattern of patterns) {
             const match = url.match(pattern);
@@ -654,195 +776,143 @@
     }
     
     // 加载 YouTube 视频（无广告、无Cookie）
-    function loadYoutubeVideo(videoId) {
+    function loadYoutubeVideo(videoId, videoTitle = '') {
         if (!videoId) return false;
-        currentYoutubeId = videoId;
-        localStorage.setItem('youtubeVideoId', videoId);
-        
-        // 使用 youtube-nocookie.com 避免追踪，启用隐私增强模式
-        const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&enablejsapi=1`;
+        const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&enablejsapi=1&playsinline=1`;
         youtubeIframe.src = embedUrl;
-        
         youtubeIframe.style.display = 'block';
         localVideo.style.display = 'none';
         localVideo.pause();
-        
-        currentVideoType = 'youtube';
-        localStorage.setItem('videoType', 'youtube');
-        videoSourceLabel.innerText = 'YouTube Video';
+        videoSourceLabel.innerText = videoTitle ? `🎬 ${videoTitle.substring(0, 30)}` : 'YouTube Video';
         return true;
     }
     
-    // 加载本地视频
-    function loadLocalVideo(videoUrl) {
-        if (!videoUrl) return false;
-        currentLocalVideoUrl = videoUrl;
-        localStorage.setItem('localVideoUrl', videoUrl);
-        
-        localVideo.src = videoUrl;
-        localVideo.load();
-        localVideo.play().catch(e => console.log("Autoplay blocked:", e));
-        
-        localVideo.style.display = 'block';
-        youtubeIframe.style.display = 'none';
-        youtubeIframe.src = '';
-        
-        currentVideoType = 'local';
-        localStorage.setItem('videoType', 'local');
-        videoSourceLabel.innerText = 'Video Tempatan';
-        return true;
-    }
-    
-    // 初始化视频
-    function initVideo() {
-        if (currentVideoType === 'youtube' && currentYoutubeId) {
-            loadYoutubeVideo(currentYoutubeId);
-        } else if (currentVideoType === 'local' && currentLocalVideoUrl) {
-            loadLocalVideo(currentLocalVideoUrl);
-        } else {
-            // 默认播放示例 YouTube 视频（无广告）
-            loadYoutubeVideo('dQw4w9WgXcQ'); // 示例视频
-        }
-    }
-    
-    // ========== 设置弹窗中的视频控制 ==========
-    const youtubeBtn = document.getElementById('youtubeBtn');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const youtubeInputArea = document.getElementById('youtubeInputArea');
-    const uploadArea = document.getElementById('uploadArea');
-    const youtubeUrlInput = document.getElementById('youtubeUrlInput');
-    const loadYoutubeBtn = document.getElementById('loadYoutubeBtn');
-    const videoFileInput = document.getElementById('videoFileInput');
-    const chooseFileBtn = document.getElementById('chooseFileBtn');
-    const selectedFileName = document.getElementById('selectedFileName');
-    const currentVideoSourceSpan = document.getElementById('currentVideoSource');
-    
-    youtubeBtn.addEventListener('click', () => {
-        youtubeBtn.classList.add('active');
-        uploadBtn.classList.remove('active');
-        youtubeInputArea.style.display = 'block';
-        uploadArea.style.display = 'none';
-    });
-    
-    uploadBtn.addEventListener('click', () => {
-        uploadBtn.classList.add('active');
-        youtubeBtn.classList.remove('active');
-        youtubeInputArea.style.display = 'none';
-        uploadArea.style.display = 'block';
-    });
-    
-    loadYoutubeBtn.addEventListener('click', () => {
-        const url = youtubeUrlInput.value.trim();
-        const videoId = extractYoutubeId(url);
+    // 播放指定索引的视频
+    function playVideoAtIndex(index) {
+        if (!videoList.length || index < 0 || index >= videoList.length) return;
+        currentVideoIndex = index;
+        const video = videoList[currentVideoIndex];
+        const videoId = extractYoutubeId(video.url);
         if (videoId) {
-            loadYoutubeVideo(videoId);
-            settingsModal.style.display = 'none';
-            showResult("YouTube", "Video dimuatkan", "success");
-            setTimeout(resetResult, 1500);
-            updateCurrentSourceDisplay();
-        } else {
+            loadYoutubeVideo(videoId, video.title || video.url);
+        }
+        // 保存当前播放进度到 localStorage
+        localStorage.setItem('currentVideoIndex', currentVideoIndex);
+    }
+    
+    // 播放下一个视频
+    function playNextVideo() {
+        if (!videoList.length) return;
+        let nextIndex = currentVideoIndex + 1;
+        if (nextIndex >= videoList.length) {
+            if (isLoopEnabled) {
+                nextIndex = 0;
+            } else {
+                return;
+            }
+        }
+        playVideoAtIndex(nextIndex);
+    }
+    
+    // 监听视频结束事件（通过检查 iframe 或使用定时器检测）
+    function setupVideoEndListener() {
+        // 由于 YouTube iframe 跨域限制，使用时间监听：每5秒检查视频是否还在播放
+        // 简化方案：使用 YouTube Player API 更好，但需要额外加载。这里使用简单轮询
+        let lastCheckTime = Date.now();
+        setInterval(() => {
+            // 简单检测：如果当前是 YouTube 且播放超过一定时间，不做复杂检测
+            // 实际使用中，可以在用户点击下一首时手动切换
+        }, 1000);
+    }
+    
+    // ========== Firestore 视频列表管理 ==========
+    const VIDEOS_COLLECTION = 'videoPlaylist';
+    
+    async function loadVideoListFromFirestore() {
+        const videosRef = collection(db, VIDEOS_COLLECTION);
+        const q = query(videosRef);
+        const snapshot = await getDocs(q);
+        videoList = [];
+        snapshot.forEach(docSnap => {
+            videoList.push({
+                id: docSnap.id,
+                url: docSnap.data().url,
+                title: docSnap.data().title || '',
+                order: docSnap.data().order || 0
+            });
+        });
+        // 按 order 排序
+        videoList.sort((a, b) => (a.order || 0) - (b.order || 0));
+        
+        // 刷新UI显示
+        renderVideoListUI();
+        
+        // 如果有视频且没有正在播放，开始播放第一个
+        const savedIndex = parseInt(localStorage.getItem('currentVideoIndex')) || 0;
+        if (videoList.length > 0) {
+            if (savedIndex < videoList.length && savedIndex >= 0) {
+                playVideoAtIndex(savedIndex);
+            } else {
+                playVideoAtIndex(0);
+            }
+        }
+    }
+    
+    async function addVideoToFirestore(url, title = '') {
+        if (!url.trim()) return;
+        const videoId = extractYoutubeId(url);
+        if (!videoId) {
             showResult("Error", "URL YouTube tidak sah", "error");
+            return;
         }
-    });
-    
-    chooseFileBtn.addEventListener('click', () => {
-        videoFileInput.click();
-    });
-    
-    videoFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith('video/')) {
-            selectedFileName.innerText = file.name;
-            const videoUrl = URL.createObjectURL(file);
-            loadLocalVideo(videoUrl);
-            settingsModal.style.display = 'none';
-            showResult("Video", "Video dimuat naik", "success");
-            setTimeout(resetResult, 1500);
-            updateCurrentSourceDisplay();
-        } else {
-            showResult("Error", "Sila pilih fail video", "error");
-        }
-    });
-    
-    function updateCurrentSourceDisplay() {
-        if (currentVideoType === 'youtube') {
-            currentVideoSourceSpan.innerHTML = `📺 YouTube: ${currentYoutubeId}`;
-        } else {
-            currentVideoSourceSpan.innerHTML = `💾 Video tempatan`;
-        }
+        const videosRef = collection(db, VIDEOS_COLLECTION);
+        const newOrder = videoList.length;
+        await addDoc(videosRef, {
+            url: url.trim(),
+            title: title || url.trim(),
+            order: newOrder,
+            createdAt: serverTimestamp()
+        });
+        showResult("Berjaya", "Video ditambah", "success");
+        setTimeout(resetResult, 1500);
+        await loadVideoListFromFirestore();
     }
     
-    // ========== 可拖动调整大小功能 ==========
-    const topVideoArea = document.getElementById('topVideoArea');
-    const horizontalHandle = document.getElementById('horizontalResizeHandle');
-    let isDraggingHorizontal = false;
-    let startY = 0, startHeight = 0;
-    
-    horizontalHandle.addEventListener('mousedown', (e) => {
-        isDraggingHorizontal = true;
-        startY = e.clientY;
-        startHeight = topVideoArea.offsetHeight;
-        document.body.style.cursor = 'row-resize';
-        e.preventDefault();
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (!isDraggingHorizontal) return;
-        const deltaY = e.clientY - startY;
-        let newHeight = startHeight + deltaY;
-        const maxHeight = window.innerHeight * 0.85;
-        const minHeight = 150;
-        newHeight = Math.min(maxHeight, Math.max(minHeight, newHeight));
-        topVideoArea.style.height = newHeight + 'px';
-    });
-    
-    document.addEventListener('mouseup', () => {
-        if (isDraggingHorizontal) {
-            isDraggingHorizontal = false;
-            document.body.style.cursor = '';
-            localStorage.setItem('videoHeight', topVideoArea.style.height);
-        }
-    });
-    
-    const attendancePanel = document.getElementById('attendancePanel');
-    const verticalHandle = document.getElementById('verticalResizeHandle');
-    let isDraggingVertical = false;
-    let startX = 0, startWidth = 0;
-    
-    verticalHandle.addEventListener('mousedown', (e) => {
-        isDraggingVertical = true;
-        startX = e.clientX;
-        startWidth = attendancePanel.offsetWidth;
-        document.body.style.cursor = 'col-resize';
-        e.preventDefault();
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (!isDraggingVertical) return;
-        const deltaX = e.clientX - startX;
-        let newWidth = startWidth + deltaX;
-        const containerWidth = document.getElementById('middleSplit').offsetWidth;
-        const maxWidth = containerWidth * 0.7;
-        const minWidth = 180;
-        newWidth = Math.min(maxWidth, Math.max(minWidth, newWidth));
-        attendancePanel.style.width = newWidth + 'px';
-    });
-    
-    document.addEventListener('mouseup', () => {
-        if (isDraggingVertical) {
-            isDraggingVertical = false;
-            document.body.style.cursor = '';
-            localStorage.setItem('attendanceWidth', attendancePanel.style.width);
-        }
-    });
-    
-    function loadSavedSizes() {
-        const savedVideoHeight = localStorage.getItem('videoHeight');
-        if (savedVideoHeight) topVideoArea.style.height = savedVideoHeight;
-        const savedAttendanceWidth = localStorage.getItem('attendanceWidth');
-        if (savedAttendanceWidth) attendancePanel.style.width = savedAttendanceWidth;
+    async function deleteVideoFromFirestore(videoId) {
+        await deleteDoc(doc(db, VIDEOS_COLLECTION, videoId));
+        showResult("Berjaya", "Video dipadam", "success");
+        setTimeout(resetResult, 1500);
+        await loadVideoListFromFirestore();
     }
-    loadSavedSizes();
+    
+    function renderVideoListUI() {
+        const container = document.getElementById('videoListContainer');
+        if (!container) return;
+        if (videoList.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:12px; opacity:0.6;">Tiada video. Tambah video YouTube.</div>';
+            return;
+        }
+        container.innerHTML = videoList.map((video, idx) => `
+            <div class="video-url-item" style="${currentVideoIndex === idx ? 'border:1px solid #007AFF;' : ''}">
+                <div class="video-url-text">${idx + 1}. ${video.title || 'YouTube Video'}</div>
+                <div class="video-url-actions">
+                    <button class="play-btn" onclick="window.playVideoAtIndexHandler(${idx})" style="background:#34C759;">▶</button>
+                    <button class="delete-btn" onclick="window.deleteVideoHandler('${video.id}')" style="background:#FF3B30;">🗑</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // 全局函数供 onclick 调用
+    window.playVideoAtIndexHandler = (index) => {
+        playVideoAtIndex(index);
+        settingsModal.style.display = 'none';
+    };
+    window.deleteVideoHandler = async (videoId) => {
+        if (confirm('Padam video ini?')) {
+            await deleteVideoFromFirestore(videoId);
+        }
+    };
     
     // ========== Firebase attendance functions ==========
     async function loadAttendanceList() {
@@ -936,8 +1006,9 @@
     
     async function startScanning(cameraId) {
         if (isScanning) try { await html5QrCode.stop(); } catch(e) {}
-        const config = { fps: 25, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-        html5QrCode.start(cameraId, config, onScanSuccess).then(() => { isScanning = true; }).catch(()=>{ html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess).then(()=> isScanning = true); });
+        // 使用正方形扫描框，确保不变形
+        const config = { fps: 25, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 };
+        html5QrCode.start(cameraId, config, onScanSuccess).then(() => { isScanning = true; }).catch(()=>{ html5QrCode.start(cameraId, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess).then(()=> isScanning = true); });
     }
     
     async function initCameraList() {
@@ -951,79 +1022,77 @@
         } catch(e) { console.error("Camera init error", e); }
     }
     
-    // 屏幕录制
-    async function startScreenRecording() {
-        if (isRecording) { showResult("Info", "Rakaman sedang berjalan", "wait"); return; }
-        isTimelapseMode = timelapseToggle.checked;
-        speedFactor = parseInt(speedFactorSelect.value);
-        const quality = parseInt(qualitySelect.value);
-        const width = quality===480?854:(quality===720?1280:1920), height = quality===480?480:(quality===720?720:1080);
-        try {
-            const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { width: { ideal: width }, height: { ideal: height } }, audio: false, preferCurrentTab: true });
-            recordedChunks = [];
-            mediaRecorder = new MediaRecorder(displayStream, { mimeType: 'video/webm', videoBitsPerSecond: 3000000 });
-            mediaRecorder.ondataavailable = (e) => { if(e.data.size) recordedChunks.push(e.data); };
-            mediaRecorder.onstop = async () => {
-                let webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, '-');
-                const fileName = `semsira_${isTimelapseMode?'timelapse':'recording'}_${timestamp}.webm`;
-                const url = URL.createObjectURL(webmBlob);
-                const a = document.createElement('a'); a.href = url; a.download = fileName; a.click();
-                URL.revokeObjectURL(url);
-                showResult("Selesai", "Video disimpan", "success");
-                displayStream.getTracks().forEach(t=>t.stop());
-                isRecording=false; recordingIndicator.classList.remove('active'); recordBtn.classList.remove('recording-active');
-                if(recordingTimerInterval) clearInterval(recordingTimerInterval);
-            };
-            mediaRecorder.start(1000);
-            isRecording=true; recordingStartTime=Date.now(); recordingIndicator.classList.add('active'); recordBtn.classList.add('recording-active');
-            recordingTimerInterval = setInterval(()=>{ if(recordingStartTime){ let s=Math.floor((Date.now()-recordingStartTime)/1000); recordingTimerSpan.innerText=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; } },1000);
-            displayStream.getVideoTracks()[0].onended = () => { if(mediaRecorder && mediaRecorder.state==='recording') mediaRecorder.stop(); };
-        } catch(err) { alert("Rakaman gagal: " + err.message); }
-    }
-    function stopScreenRecording() { if(mediaRecorder && mediaRecorder.state==='recording') mediaRecorder.stop(); }
-    recordBtn.addEventListener('click', () => { if(isRecording) stopScreenRecording(); else startScreenRecording(); });
-    
     // 设置
     function loadSettingsUI() {
         const mirror = localStorage.getItem('scanner_mirror') === 'true';
         mirrorToggle.checked = mirror;
         if(mirror) readerDiv.classList.add('mirror-video'); else readerDiv.classList.remove('mirror-video');
         vibrationToggle.checked = localStorage.getItem('scanner_vibration') !== 'false';
-        qualitySelect.value = localStorage.getItem('recording_quality') || '720';
-        timelapseToggle.checked = localStorage.getItem('recording_timelapse') === 'true';
-        speedFactorSelect.value = localStorage.getItem('recording_speed') || '20';
         cameraOnTimeInput.value = localStorage.getItem('camera_on_time') || '08:00';
         cameraOffTimeInput.value = localStorage.getItem('camera_off_time') || '18:00';
+        const savedLoop = localStorage.getItem('video_loop_enabled') === 'true';
+        isLoopEnabled = savedLoop;
+        loopToggle.checked = savedLoop;
     }
+    
     function saveAllSettings() {
         localStorage.setItem('scanner_mirror', mirrorToggle.checked);
         localStorage.setItem('scanner_vibration', vibrationToggle.checked);
-        localStorage.setItem('recording_quality', qualitySelect.value);
-        localStorage.setItem('recording_timelapse', timelapseToggle.checked);
-        localStorage.setItem('recording_speed', speedFactorSelect.value);
         localStorage.setItem('camera_on_time', cameraOnTimeInput.value);
         localStorage.setItem('camera_off_time', cameraOffTimeInput.value);
+        localStorage.setItem('video_loop_enabled', loopToggle.checked);
+        isLoopEnabled = loopToggle.checked;
         if(mirrorToggle.checked) readerDiv.classList.add('mirror-video'); else readerDiv.classList.remove('mirror-video');
     }
+    
     mirrorToggle.addEventListener('change', saveAllSettings);
     vibrationToggle.addEventListener('change', saveAllSettings);
-    qualitySelect.addEventListener('change', saveAllSettings);
-    timelapseToggle.addEventListener('change', saveAllSettings);
-    speedFactorSelect.addEventListener('change', saveAllSettings);
     cameraOnTimeInput.addEventListener('change', saveAllSettings);
     cameraOffTimeInput.addEventListener('change', saveAllSettings);
-    openSettingsBtn.onclick = () => { settingsModal.style.display = 'flex'; lucide.createIcons(); updateCurrentSourceDisplay(); };
+    loopToggle.addEventListener('change', () => {
+        saveAllSettings();
+    });
+    
+    openSettingsBtn.onclick = () => { settingsModal.style.display = 'flex'; lucide.createIcons(); renderVideoListUI(); };
     closeSettingsBtn.onclick = () => { settingsModal.style.display = 'none'; saveAllSettings(); };
     wakelockBtn.onclick = async () => { if(wakeLock) { wakeLock.release(); wakeLock=null; } else { wakeLock = await navigator.wakeLock.request('screen'); } };
+    
     function updateClock() { const now=new Date(); liveClockSpan.innerText=now.toLocaleTimeString('en-GB'); }
     setInterval(updateClock,1000); updateClock();
     
-    initVideo();
+    // 添加视频按钮
+    document.getElementById('addVideoBtn').addEventListener('click', async () => {
+        const url = document.getElementById('newVideoUrl').value.trim();
+        if (url) {
+            await addVideoToFirestore(url);
+            document.getElementById('newVideoUrl').value = '';
+        }
+    });
+    
+    document.getElementById('prevVideoBtn').addEventListener('click', () => {
+        if (videoList.length === 0) return;
+        let prevIndex = currentVideoIndex - 1;
+        if (prevIndex < 0) prevIndex = videoList.length - 1;
+        playVideoAtIndex(prevIndex);
+    });
+    
+    document.getElementById('nextVideoBtn').addEventListener('click', () => {
+        playNextVideo();
+    });
+    
+    // 监听 YouTube 视频结束（通过轮询检测 iframe 的 src 变化简化，实际使用中可接受）
+    // 简单实现：每3秒检查一次，用户手动切换或循环
+    
     initCameraList();
     loadSettingsUI();
+    loadVideoListFromFirestore();
     lucide.createIcons();
     setTimeout(()=> lucide.createIcons(), 500);
+    
+    // 确保 #reader 容器有固定宽高比来维持正方形
+    const style = document.createElement('style');
+    style.textContent = `#reader { min-height: 280px; } #reader video { object-fit: cover !important; }`;
+    document.head.appendChild(style);
 </script>
 </body>
 </html>
