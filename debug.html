@@ -2040,6 +2040,8 @@
             
             // 隐藏聊天列表容器
             document.getElementById('chat-list-container').style.display = 'none';
+            // 隐藏搜索栏
+            document.querySelector('#tab-chat .glass:first-of-type').style.display = 'none';
             
             // 清除搜索结果
             document.getElementById('student-search-results').innerHTML = '';
@@ -2175,6 +2177,11 @@
         const chatListContainer = document.getElementById('chat-list-container');
         if (chatListContainer) {
             chatListContainer.style.display = 'block';
+        }
+        // 重新显示搜索栏
+        const searchContainer = document.querySelector('#tab-chat .glass:first-of-type');
+        if (searchContainer) {
+            searchContainer.style.display = 'block';
         }
         
         if (messagesUnsubscribe) {
