@@ -3096,7 +3096,7 @@
 
     // 加载用户的聊天列表
     let chatListUnsubscribe = null;
-    
+
     async function loadChatList() {
         if (chatListUnsubscribe) {
             chatListUnsubscribe();
@@ -3106,7 +3106,7 @@
         const chatsRef = collection(db, CHAT_COLLECTION);
         const q = query(chatsRef, where("participants", "array-contains", userId), orderBy("lastMessageTime", "desc"));
         
-        chatListUnsubscribe = onSnapshot(q, (snapshot) => {
+        chatListUnsubscribe = onSnapshot(q, async (snapshot) => {
             const chatListDiv = document.getElementById('chat-list');
             if (!chatListDiv) return;
             
@@ -3117,12 +3117,30 @@
             
             chatListDiv.innerHTML = '';
             
-            snapshot.forEach(doc => {
+            // 使用 Promise.all 并行获取所有对方的头像
+            const chatItems = [];
+            for (const doc of snapshot.docs) {
                 const chat = doc.data();
-                // 获取对方的ID和名字
+                // 获取对方的ID
                 const otherParticipantId = chat.participants.find(p => p !== userId);
-                const otherParticipantName = chat.participantNames[chat.participants.indexOf(otherParticipantId)];
-                const otherParticipantAvatar = chat.participantAvatars?.[chat.participants.indexOf(otherParticipantId)] || '/semsira.png';
+                
+                // 实时获取对方的最新信息
+                let otherParticipantName = chat.participantNames[chat.participants.indexOf(otherParticipantId)];
+                let otherParticipantAvatar = chat.participantAvatars?.[chat.participants.indexOf(otherParticipantId)] || '/semsira.png';
+                
+                try {
+                    // 从 Firestore 获取对方最新数据
+                    const otherUserRef = doc(db, COLLECTION_NAME, otherParticipantId);
+                    const otherUserSnap = await getDoc(otherUserRef);
+                    if (otherUserSnap.exists()) {
+                        const otherData = otherUserSnap.data();
+                        otherParticipantName = otherData.name || otherParticipantName;
+                        otherParticipantAvatar = otherData.avatarUrl || otherParticipantAvatar;
+                    }
+                } catch(e) {
+                    console.log("Error fetching latest user data:", e);
+                }
+                
                 const lastMessage = chat.lastMessage || "Tiada mesej";
                 const lastTime = chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date();
                 const timeStr = formatChatTime(lastTime);
@@ -3145,12 +3163,17 @@
                     </div>
                 `;
                 
+                // 保存最新的头像到 chatItem 的 dataset 中，供点击时使用
+                chatItem.dataset.otherUserId = otherParticipantId;
+                chatItem.dataset.otherName = otherParticipantName;
+                chatItem.dataset.otherAvatar = otherParticipantAvatar;
+                
                 chatItem.onclick = () => {
                     openChatFromList(chat, otherParticipantId, otherParticipantName, otherParticipantAvatar);
                 };
                 
                 chatListDiv.appendChild(chatItem);
-            });
+            }
         }, (error) => {
             console.error("Load chat list error:", error);
         });
