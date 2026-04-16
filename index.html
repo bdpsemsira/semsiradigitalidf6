@@ -3011,8 +3011,9 @@
             }
         }
     };
-    
+
     function bindImageClickEvents() {
+        // 只绑定公告列表中的图片
         const annList = document.getElementById('announcements-list');
         if (annList) {
             const images = annList.querySelectorAll('img');
