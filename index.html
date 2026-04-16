@@ -2045,13 +2045,22 @@
             resultsDiv.appendChild(div);
         });
     };
-    
+
     // ========== 开始聊天 ==========
     window.startChat = async function() {
         if (!selectedChatUser) {
             toast("❌ Sila pilih pelajar terlebih dahulu");
             return;
         }
+        
+        // 重新获取对方的最新信息（包括最新头像）
+        const otherUserRef = doc(db, COLLECTION_NAME, selectedChatUser.uid);
+        const otherUserSnap = await getDoc(otherUserRef);
+        const otherUserData = otherUserSnap.exists() ? otherUserSnap.data() : {};
+        
+        // 更新 selectedChatUser 的最新头像
+        selectedChatUser.avatar = otherUserData.avatarUrl || selectedChatUser.avatar || '/semsira.png';
+        selectedChatUser.className = otherUserData.className || selectedChatUser.className;
         
         const currentUser = window.currentUserData;
         const chatId1 = `${auth.currentUser.uid}_${selectedChatUser.uid}`;
@@ -2095,13 +2104,24 @@
             } else {
                 currentChatId = finalChatId;
                 console.log("Using existing chat with ID:", currentChatId);
+                
+                // 更新聊天室中的头像（如果对方头像已更新）
+                const chatData = chatDocSnap.data();
+                const participantIndex = chatData.participants.findIndex(p => p === selectedChatUser.uid);
+                if (participantIndex !== -1 && chatData.participantAvatars[participantIndex] !== selectedChatUser.avatar) {
+                    const updatedAvatars = [...chatData.participantAvatars];
+                    updatedAvatars[participantIndex] = selectedChatUser.avatar;
+                    await updateDoc(chatDocRef, {
+                        participantAvatars: updatedAvatars
+                    });
+                }
             }
             
             // 显示聊天界面
             document.getElementById('chat-container').style.display = 'block';
             document.getElementById('chat-name').innerText = selectedChatUser.name;
             document.getElementById('chat-class').innerText = selectedChatUser.className;
-            document.getElementById('chat-avatar').src = selectedChatUser.avatar || '/semsira.png';
+            document.getElementById('chat-avatar').src = selectedChatUser.avatar;
             document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
             
             // 隐藏聊天列表容器
@@ -3154,16 +3174,19 @@
 
     // 从聊天列表打开聊天
     async function openChatFromList(chat, otherUserId, otherName, otherAvatar) {
-        // 获取对方完整信息
+        // 获取对方完整信息（包括最新头像）
         const otherUserRef = doc(db, COLLECTION_NAME, otherUserId);
         const otherUserSnap = await getDoc(otherUserRef);
         const otherUserData = otherUserSnap.exists() ? otherUserSnap.data() : {};
+        
+        // 获取最新的头像URL（优先从 Firestore 获取）
+        const latestAvatar = otherUserData.avatarUrl || otherAvatar || '/semsira.png';
         
         selectedChatUser = {
             uid: otherUserId,
             name: otherName,
             className: otherUserData.className || "-",
-            avatar: otherAvatar,
+            avatar: latestAvatar,
             dob: otherUserData.dob,
             phone: otherUserData.phone
         };
@@ -3174,7 +3197,7 @@
         document.getElementById('chat-container').style.display = 'block';
         document.getElementById('chat-name').innerText = otherName;
         document.getElementById('chat-class').innerText = otherUserData.className || "-";
-        document.getElementById('chat-avatar').src = otherAvatar;
+        document.getElementById('chat-avatar').src = latestAvatar;
         document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
         
         // 隐藏聊天列表容器
@@ -3195,20 +3218,6 @@
         
         // 标记消息为已读
         markMessagesAsRead(currentChatId);
-    }
-
-    // 标记消息为已读
-    async function markMessagesAsRead(chatId) {
-        const userId = auth.currentUser.uid;
-        const chatRef = doc(db, CHAT_COLLECTION, chatId);
-        
-        try {
-            await updateDoc(chatRef, {
-                [`unreadCount.${userId}`]: 0
-            });
-        } catch(e) {
-            console.log("Mark read error:", e);
-        }
     }
     
     function renderCalendar() {
