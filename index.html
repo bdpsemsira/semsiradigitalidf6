@@ -2186,8 +2186,8 @@
             toast("❌ Gagal memuatkan mesej: " + error.message);
         });
     }
-    
-    // ========== 发送消息 ==========
+
+    // ========== 发送消息（乐观更新：先显示再上传） ==========
     window.sendMessage = async function() {
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
@@ -2198,7 +2198,35 @@
             return;
         }
         
+        // 禁用发送按钮，防止重复发送
+        const sendBtn = document.querySelector('#chat-container button');
+        sendBtn.disabled = true;
+        sendBtn.innerText = "⏳ Menghantar...";
+        
         console.log("Sending message to chatId:", currentChatId);
+        
+        // 生成临时ID和临时时间戳
+        const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        const tempTime = new Date();
+        const timeStr = tempTime.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+        
+        // 1. 立即在界面上显示消息（乐观更新）
+        const messagesDiv = document.getElementById('chat-messages');
+        const tempMessageDiv = document.createElement('div');
+        tempMessageDiv.className = 'chat-message sent';
+        tempMessageDiv.id = tempId;
+        tempMessageDiv.setAttribute('data-temp', 'true');
+        tempMessageDiv.innerHTML = `
+            <div class="message-bubble" style="opacity: 0.7;">
+                ${escapeHtml(text)}
+                <div class="message-time">⏳ Menghantar... ${timeStr}</div>
+            </div>
+        `;
+        messagesDiv.appendChild(tempMessageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        // 清空输入框
+        input.value = '';
         
         try {
             // 获取聊天室信息，找到接收者
@@ -2212,8 +2240,8 @@
             // 获取当前未读计数
             const currentUnread = chatData.unreadCount?.[receiverId] || 0;
             
-            // 发送消息
-            await addDoc(collection(db, MESSAGES_COLLECTION), {
+            // 发送消息到 Firestore
+            const docRef = await addDoc(collection(db, MESSAGES_COLLECTION), {
                 chatId: currentChatId,
                 senderId: auth.currentUser.uid,
                 senderName: window.currentUserData.name,
@@ -2229,10 +2257,42 @@
                 [`unreadCount.${receiverId}`]: currentUnread + 1
             });
             
-            input.value = '';
+            // 2. 更新临时消息为成功状态
+            const tempMsgElement = document.getElementById(tempId);
+            if (tempMsgElement) {
+                const successTime = new Date();
+                const successTimeStr = successTime.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+                tempMsgElement.querySelector('.message-bubble').style.opacity = '1';
+                tempMsgElement.querySelector('.message-time').innerHTML = `✓ Dihantar ${successTimeStr}`;
+                tempMsgElement.removeAttribute('data-temp');
+            }
+            
+            console.log("Message sent successfully with ID:", docRef.id);
+            
         } catch(e) {
             console.error("Send message error:", e);
-            toast("❌ Gagal menghantar mesej: " + e.message);
+            
+            // 3. 如果发送失败，显示错误并让用户重试
+            const tempMsgElement = document.getElementById(tempId);
+            if (tempMsgElement) {
+                tempMsgElement.querySelector('.message-bubble').style.backgroundColor = '#FF3B30';
+                tempMsgElement.querySelector('.message-bubble').style.color = 'white';
+                tempMsgElement.querySelector('.message-time').innerHTML = '❌ Gagal menghantar. Ketuk untuk cuba semula';
+                tempMsgElement.style.cursor = 'pointer';
+                tempMsgElement.onclick = async () => {
+                    toast("🔄 Menghantar semula...");
+                    tempMsgElement.remove();
+                    // 重新调用发送函数，但使用当前输入框内容
+                    input.value = text;
+                    window.sendMessage();
+                };
+            } else {
+                toast("❌ Gagal menghantar mesej: " + e.message);
+            }
+        } finally {
+            // 恢复发送按钮
+            sendBtn.disabled = false;
+            sendBtn.innerText = "📤 Hantar";
         }
     };
     
