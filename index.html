@@ -3135,17 +3135,22 @@
                     if (otherUserSnap.exists()) {
                         const otherData = otherUserSnap.data();
                         otherParticipantName = otherData.name || otherParticipantName;
-                        otherParticipantAvatar = otherData.avatarUrl || otherParticipantAvatar;
+                        const newAvatar = otherData.avatarUrl || otherParticipantAvatar;
                         
-                        // 同时更新聊天室中的头像，以便下次加载更快
-                        const chatRef = doc(db, CHAT_COLLECTION, chat.chatId);
-                        const participantIndex = chat.participants.findIndex(p => p === otherParticipantId);
-                        if (participantIndex !== -1 && chat.participantAvatars[participantIndex] !== otherParticipantAvatar) {
-                            const updatedAvatars = [...chat.participantAvatars];
-                            updatedAvatars[participantIndex] = otherParticipantAvatar;
-                            await updateDoc(chatRef, {
-                                participantAvatars: updatedAvatars
-                            }).catch(e => console.log("Update avatar in chat failed:", e));
+                        // 如果头像发生了变化，更新聊天室中的 participantAvatars
+                        if (newAvatar !== otherParticipantAvatar) {
+                            otherParticipantAvatar = newAvatar;
+                            const chatRef = doc(db, CHAT_COLLECTION, chat.chatId);
+                            const participantIndex = chat.participants.findIndex(p => p === otherParticipantId);
+                            if (participantIndex !== -1) {
+                                const updatedAvatars = [...(chat.participantAvatars || [])];
+                                updatedAvatars[participantIndex] = otherParticipantAvatar;
+                                await updateDoc(chatRef, {
+                                    participantAvatars: updatedAvatars
+                                }).catch(e => console.log("Update avatar in chat failed:", e));
+                            }
+                        } else {
+                            otherParticipantAvatar = newAvatar;
                         }
                     }
                 } catch(e) {
