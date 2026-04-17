@@ -486,7 +486,6 @@
         <i data-lucide="clock"></i>
         <span id="currentTime">--:--:--</span>
     </div>
-    <!-- 移除了录制按钮 record-btn -->
     <img src="/semsira.png" alt="Logo">
     <div class="header-text">
         <h2>Semsira Attendance</h2>
@@ -497,7 +496,6 @@
     </button>
 </div>
 
-<!-- 移除录制指示器元素 -->
 <div class="controls-container">
     <select id="camera-select">
         <option value="">Mengesan Kamera...</option>
@@ -546,8 +544,6 @@
             <i data-lucide="info" style="width: 14px;"></i> 
             Kamera akan dihidupkan / dimatikan secara automatik mengikut masa yang ditetapkan (setiap minit disemak).
         </div>
-        
-        <!-- 移除了录像相关设置项 (Kualiti Video, Time-lapse, Kelajuan Time-lapse) -->
         
         <div class="section-title">🖥️ Tetapan Skrin</div>
         <div class="setting-item">
@@ -621,7 +617,6 @@
     const cameraOffTimeInput = document.getElementById('cameraOffTime');
     const liveClockSpan = document.getElementById('currentTime');
     
-    // 移除所有录制相关变量 (mediaRecorder, recordedChunks, isRecording, timelapse 等)
     let isProcessing = false;
     let wakeLock = null;
     let currentCameraId = null;
@@ -702,9 +697,39 @@
         updateClockAndCameraControl();
     });
     
-    // 新增: 显示成功面板 (覆盖相机框)
+    // 通用通知面板（自动关闭3秒）
+    function showNotificationPanel(title, message, isError = false) {
+        const existingPanel = document.querySelector('.success-panel');
+        if(existingPanel) existingPanel.remove();
+        
+        const panel = document.createElement('div');
+        panel.className = 'success-panel';
+        const iconColor = isError ? '#FF3B30' : '#34C759';
+        const iconName = isError ? 'alert-circle' : 'check-circle';
+        panel.innerHTML = `
+            <div class="success-panel-content">
+                <div class="success-icon" style="background: ${iconColor};">
+                    <i data-lucide="${iconName}"></i>
+                </div>
+                <h2>${escapeHtml(title)}</h2>
+                <div class="success-detail">
+                    <p style="text-align:center; justify-content:center;">${escapeHtml(message)}</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(panel);
+        lucide.createIcons({ root: panel });
+        
+        // 3秒后自动关闭
+        setTimeout(() => {
+            if(panel && panel.parentNode) panel.remove();
+        }, 3000);
+        
+        return panel;
+    }
+    
+    // 显示成功面板（3秒自动关闭）
     function showSuccessPanel(studentName, className, timestamp) {
-        // 移除已存在的panel避免重复
         const existingPanel = document.querySelector('.success-panel');
         if(existingPanel) existingPanel.remove();
         
@@ -727,20 +752,24 @@
         document.body.appendChild(panel);
         lucide.createIcons({ root: panel });
         
-        // 关闭面板
+        // 3秒后自动关闭
+        setTimeout(() => {
+            if(panel && panel.parentNode) panel.remove();
+        }, 3000);
+        
+        // 手动关闭按钮
         const closeBtn = panel.querySelector('#closeSuccessPanel');
         closeBtn.addEventListener('click', () => {
-            panel.remove();
+            if(panel && panel.parentNode) panel.remove();
         });
         // 点击背景也可关闭
         panel.addEventListener('click', (e) => {
-            if(e.target === panel) panel.remove();
+            if(e.target === panel && panel.parentNode) panel.remove();
         });
     }
     
     function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
     
-    // 简化原有的showResult，不影响内部逻辑，但保留用于其他提示
     function showResult(name, msg, type, time = "") {
         const icon = document.getElementById('status-icon');
         document.getElementById('res-name').innerText = name;
@@ -762,7 +791,6 @@
         lucide.createIcons();
     }
     
-    // 播放提示音 + 震动
     function playBeepAndVibrate() {
         if(beepSound) {
             beepSound.currentTime = 0;
@@ -772,12 +800,20 @@
         if (vibrationEnabled && 'vibrate' in navigator) navigator.vibrate(200);
     }
     
-    // 核心扫码成功逻辑: 弹出面板 + 去掉了所有录制相关加速等功能
+    // 核心扫码逻辑
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
-        isProcessing = true;
         
-        // 播放提示音和震动
+        // 快速验证QR码有效性
+        if (!decodedText || decodedText.length < 5) {
+            playBeepAndVibrate();
+            showNotificationPanel("QR Tidak Sah", "Kod QR tidak valid, sila cuba lagi.", true);
+            showResult("Ralat", "Kod QR tidak valid", "error");
+            setTimeout(() => { isProcessing = false; resetResult(); }, 2500);
+            return;
+        }
+        
+        isProcessing = true;
         playBeepAndVibrate();
         
         showResult("Memproses", "Sila tunggu sebentar...", "wait");
@@ -809,21 +845,19 @@
             });
             
             const formattedTime = now.toLocaleTimeString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-            // 弹出自定义面板覆盖相机框，显示名字班级时间
             showSuccessPanel(student.name, student.className, formattedTime);
-            // 同时底部卡片显示成功信息 (可选，保留体验)
             showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", formattedTime);
             setTimeout(() => { if(!document.querySelector('.success-panel')) resetResult(); }, 3500);
         } catch (err) {
+            // 错误时也播放beep并弹出3秒自动关闭的错误面板
+            playBeepAndVibrate();
+            showNotificationPanel("Imbasan Gagal", err.message, true);
             showResult("Gagal", err.message, "error");
             setTimeout(resetResult, 2500);
         } finally {
-            // 确保短时间内多次扫码防抖，但处理结束后释放锁 (注意：弹窗期间不会再扫码)
             setTimeout(() => { if(isProcessing && !document.querySelector('.success-panel')) isProcessing = false; }, 800);
         }
     }
-    
-    // 移除录制函数: startScreenRecording, stopScreenRecording, speedUpVideo, getRecordingSettings, loadRecordingSettings, saveRecordingSettings 全部删除，并且不再绑定录制按钮事件
     
     function loadSettings() {
         const mirrorEnabled = localStorage.getItem('scanner_mirror') === 'true';
