@@ -3110,26 +3110,33 @@
         const chatsRef = collection(db, CHAT_COLLECTION);
         const q = query(chatsRef, where("participants", "array-contains", userId), orderBy("lastMessageTime", "desc"));
         
-        chatListUnsubscribe = onSnapshot(q, async (snapshot) => {
+        chatListUnsubscribe = onSnapshot(q, (snapshot) => {
             const chatListDiv = document.getElementById('chat-list');
             if (!chatListDiv) return;
+            
+            // 清空容器，避免重复
+            chatListDiv.innerHTML = '';
             
             if (snapshot.empty) {
                 chatListDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Tiada chat terkini</div>';
                 return;
             }
             
-            chatListDiv.innerHTML = '';
+            // 先清除旧的用户监听器（每次 snapshot 更新时都需要重新创建监听器）
+            userListeners.forEach(unsub => { if(unsub) unsub(); });
+            userListeners = [];
             
-            for (const doc of snapshot.docs) {
+            // 收集所有聊天项，避免异步问题
+            const items = [];
+            
+            snapshot.forEach((doc) => {
                 const chat = doc.data();
                 const otherParticipantId = chat.participants.find(p => p !== userId);
                 const participantIndex = chat.participants.indexOf(otherParticipantId);
                 
-                // 先使用聊天室中存储的信息
+                // 使用聊天室中存储的信息作为初始值
                 let otherParticipantName = chat.participantNames?.[participantIndex] || "Unknown";
                 let otherParticipantAvatar = chat.participantAvatars?.[participantIndex] || '/semsira.png';
-                let otherParticipantClass = "";
                 
                 // 创建聊天项容器
                 const chatItem = document.createElement('div');
@@ -3137,8 +3144,10 @@
                 chatItem.style.cursor = 'pointer';
                 chatItem.dataset.chatId = chat.chatId;
                 chatItem.dataset.otherUserId = otherParticipantId;
+                chatItem.dataset.otherName = otherParticipantName;
+                chatItem.dataset.otherAvatar = otherParticipantAvatar;
                 
-                // 临时显示内容（稍后会被实时更新覆盖）
+                // 设置初始内容
                 chatItem.innerHTML = `
                     <img class="student-avatar-small" src="${otherParticipantAvatar}" onerror="this.src='/semsira.png'">
                     <div class="student-info">
@@ -3151,30 +3160,40 @@
                     </div>
                 `;
                 
+                // 点击打开聊天
+                chatItem.onclick = () => {
+                    const otherId = chatItem.dataset.otherUserId;
+                    const otherName = chatItem.dataset.otherName || otherParticipantName;
+                    const otherAvatar = chatItem.dataset.otherAvatar || otherParticipantAvatar;
+                    openChatFromList(chat, otherId, otherName, otherAvatar);
+                };
+                
                 chatListDiv.appendChild(chatItem);
                 
-                // 关键：实时监听对方用户文档的变化（这样头像更新时会自动刷新）
+                // 实时监听对方用户文档的变化（这样头像更新时会自动刷新这个聊天项）
                 const otherUserRef = doc(db, COLLECTION_NAME, otherParticipantId);
                 const userUnsubscribe = onSnapshot(otherUserRef, (userSnap) => {
-                    if (userSnap.exists()) {
+                    if (userSnap.exists() && chatItem.parentNode) { // 确保 chatItem 还在 DOM 中
                         const otherData = userSnap.data();
                         const latestName = otherData.name || otherParticipantName;
                         const latestAvatar = otherData.avatarUrl || otherParticipantAvatar;
-                        const latestClass = otherData.className || "";
                         
-                        // 更新聊天项中的显示
+                        // 更新 chatItem 中的显示
                         const nameDiv = chatItem.querySelector('.student-name');
-                        if (nameDiv) nameDiv.innerText = escapeHtml(latestName);
+                        if (nameDiv && nameDiv.innerText !== latestName) {
+                            nameDiv.innerText = escapeHtml(latestName);
+                        }
                         
                         const avatarImg = chatItem.querySelector('.student-avatar-small');
-                        if (avatarImg) avatarImg.src = latestAvatar;
+                        if (avatarImg && avatarImg.src !== latestAvatar) {
+                            avatarImg.src = latestAvatar;
+                        }
                         
-                        // 更新 dataset 以便点击时使用
+                        // 更新 dataset
                         chatItem.dataset.otherName = latestName;
                         chatItem.dataset.otherAvatar = latestAvatar;
-                        chatItem.dataset.otherClass = latestClass;
                         
-                        // 同时更新聊天室中的 participantAvatars（可选，让下次加载更快）
+                        // 可选：更新聊天室中的 participantAvatars 以便下次加载更快
                         if (latestAvatar !== otherParticipantAvatar) {
                             const chatRef = doc(db, CHAT_COLLECTION, chat.chatId);
                             const updatedAvatars = [...(chat.participantAvatars || [])];
@@ -3188,21 +3207,12 @@
                 
                 // 存储监听器，以便在组件卸载时清理
                 userListeners.push(userUnsubscribe);
-                
-                // 点击打开聊天
-                chatItem.onclick = () => {
-                    const otherId = chatItem.dataset.otherUserId;
-                    const otherName = chatItem.dataset.otherName || otherParticipantName;
-                    const otherAvatar = chatItem.dataset.otherAvatar || otherParticipantAvatar;
-                    const otherClass = chatItem.dataset.otherClass || "";
-                    
-                    openChatFromList(chat, otherId, otherName, otherAvatar, otherClass);
-                };
-            }
+            });
         }, (error) => {
             console.error("Load chat list error:", error);
         });
     }
+
     // 格式化聊天时间
     function formatChatTime(date) {
         const now = new Date();
