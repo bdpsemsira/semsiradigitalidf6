@@ -2063,29 +2063,22 @@
         selectedChatUser.className = otherUserData.className || selectedChatUser.className;
         
         const currentUser = window.currentUserData;
-        const chatId1 = `${auth.currentUser.uid}_${selectedChatUser.uid}`;
-        const chatId2 = `${selectedChatUser.uid}_${auth.currentUser.uid}`;
         
-        console.log("Chat ID possibilities:", chatId1, chatId2);
+        // ========== 关键修复：使用排序后的 chatId，确保一致性 ==========
+        const sortedParticipants = [auth.currentUser.uid, selectedChatUser.uid].sort();
+        const finalChatId = sortedParticipants.join('_');
+        
+        console.log("统一的ChatId:", finalChatId);
         
         try {
-            // 先尝试第一种顺序
-            let chatDocRef = doc(db, CHAT_COLLECTION, chatId1);
+            let chatDocRef = doc(db, CHAT_COLLECTION, finalChatId);
             let chatDocSnap = await getDoc(chatDocRef);
-            let finalChatId = chatId1;
-            
-            // 如果不存在，尝试第二种顺序
-            if (!chatDocSnap.exists()) {
-                chatDocRef = doc(db, CHAT_COLLECTION, chatId2);
-                chatDocSnap = await getDoc(chatDocRef);
-                finalChatId = chatId2;
-            }
             
             const currentUserAvatar = window.currentUserData.avatarUrl || 
                 localStorage.getItem('semsira_avatar_' + auth.currentUser.uid) || '';
             
             if (!chatDocSnap.exists()) {
-                // 创建新聊天室 - 添加 unreadCount
+                // 创建新聊天室
                 console.log("Creating new chat with ID:", finalChatId);
                 await setDoc(chatDocRef, {
                     chatId: finalChatId,
