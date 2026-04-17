@@ -3096,11 +3096,15 @@
 
     // 加载用户的聊天列表
     let chatListUnsubscribe = null;
+    let userListeners = []; // 存储用户文档监听器
     
     async function loadChatList() {
         if (chatListUnsubscribe) {
             chatListUnsubscribe();
         }
+        // 清除之前的用户监听器
+        userListeners.forEach(unsub => { if(unsub) unsub(); });
+        userListeners = [];
         
         const userId = auth.currentUser.uid;
         const chatsRef = collection(db, CHAT_COLLECTION);
@@ -3117,84 +3121,88 @@
             
             chatListDiv.innerHTML = '';
             
-            // 使用 Promise.all 并行获取所有对方的头像
-            const chatItems = [];
             for (const doc of snapshot.docs) {
                 const chat = doc.data();
-                // 获取对方的ID
                 const otherParticipantId = chat.participants.find(p => p !== userId);
+                const participantIndex = chat.participants.indexOf(otherParticipantId);
                 
-                // 实时获取对方的最新信息
-                let otherParticipantName = chat.participantNames[chat.participants.indexOf(otherParticipantId)];
-                let otherParticipantAvatar = chat.participantAvatars?.[chat.participants.indexOf(otherParticipantId)] || '/semsira.png';
+                // 先使用聊天室中存储的信息
+                let otherParticipantName = chat.participantNames?.[participantIndex] || "Unknown";
+                let otherParticipantAvatar = chat.participantAvatars?.[participantIndex] || '/semsira.png';
+                let otherParticipantClass = "";
                 
-                try {
-                    // 从 Firestore 获取对方最新数据（包括最新头像）
-                    const otherUserRef = doc(db, COLLECTION_NAME, otherParticipantId);
-                    const otherUserSnap = await getDoc(otherUserRef);
-                    if (otherUserSnap.exists()) {
-                        const otherData = otherUserSnap.data();
-                        otherParticipantName = otherData.name || otherParticipantName;
-                        const newAvatar = otherData.avatarUrl || otherParticipantAvatar;
-                        
-                        // 如果头像发生了变化，更新聊天室中的 participantAvatars
-                        if (newAvatar !== otherParticipantAvatar) {
-                            otherParticipantAvatar = newAvatar;
-                            const chatRef = doc(db, CHAT_COLLECTION, chat.chatId);
-                            const participantIndex = chat.participants.findIndex(p => p === otherParticipantId);
-                            if (participantIndex !== -1) {
-                                const updatedAvatars = [...(chat.participantAvatars || [])];
-                                updatedAvatars[participantIndex] = otherParticipantAvatar;
-                                await updateDoc(chatRef, {
-                                    participantAvatars: updatedAvatars
-                                }).catch(e => console.log("Update avatar in chat failed:", e));
-                            }
-                        } else {
-                            otherParticipantAvatar = newAvatar;
-                        }
-                    }
-                } catch(e) {
-                    console.log("Error fetching latest user data:", e);
-                }
-                
-                const lastMessage = chat.lastMessage || "Tiada mesej";
-                const lastTime = chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date();
-                const timeStr = formatChatTime(lastTime);
-                
-                // 检查是否有未读消息
-                const unreadCount = chat.unreadCount?.[userId] || 0;
-                
+                // 创建聊天项容器
                 const chatItem = document.createElement('div');
                 chatItem.className = 'student-search-item';
                 chatItem.style.cursor = 'pointer';
+                chatItem.dataset.chatId = chat.chatId;
+                chatItem.dataset.otherUserId = otherParticipantId;
+                
+                // 临时显示内容（稍后会被实时更新覆盖）
                 chatItem.innerHTML = `
                     <img class="student-avatar-small" src="${otherParticipantAvatar}" onerror="this.src='/semsira.png'">
                     <div class="student-info">
                         <div class="student-name">${escapeHtml(otherParticipantName)}</div>
-                        <div class="student-class" style="font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${escapeHtml(lastMessage)}</div>
+                        <div class="student-class" style="font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${escapeHtml(chat.lastMessage || "Tiada mesej")}</div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 10px; color: #888;">${timeStr}</div>
-                        ${unreadCount > 0 ? `<div style="background: var(--primary); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 4px; min-width: 20px;">${unreadCount > 9 ? '9+' : unreadCount}</div>` : ''}
+                        <div style="font-size: 10px; color: #888;">${formatChatTime(chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date())}</div>
+                        ${(chat.unreadCount?.[userId] || 0) > 0 ? `<div style="background: var(--primary); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; margin-top: 4px; min-width: 20px;">${chat.unreadCount?.[userId] > 9 ? '9+' : chat.unreadCount?.[userId]}</div>` : ''}
                     </div>
                 `;
                 
-                // 保存最新的头像到 chatItem 的 dataset 中，供点击时使用
-                chatItem.dataset.otherUserId = otherParticipantId;
-                chatItem.dataset.otherName = otherParticipantName;
-                chatItem.dataset.otherAvatar = otherParticipantAvatar;
-                
-                chatItem.onclick = () => {
-                    openChatFromList(chat, otherParticipantId, otherParticipantName, otherParticipantAvatar);
-                };
-                
                 chatListDiv.appendChild(chatItem);
+                
+                // 关键：实时监听对方用户文档的变化（这样头像更新时会自动刷新）
+                const otherUserRef = doc(db, COLLECTION_NAME, otherParticipantId);
+                const userUnsubscribe = onSnapshot(otherUserRef, (userSnap) => {
+                    if (userSnap.exists()) {
+                        const otherData = userSnap.data();
+                        const latestName = otherData.name || otherParticipantName;
+                        const latestAvatar = otherData.avatarUrl || otherParticipantAvatar;
+                        const latestClass = otherData.className || "";
+                        
+                        // 更新聊天项中的显示
+                        const nameDiv = chatItem.querySelector('.student-name');
+                        if (nameDiv) nameDiv.innerText = escapeHtml(latestName);
+                        
+                        const avatarImg = chatItem.querySelector('.student-avatar-small');
+                        if (avatarImg) avatarImg.src = latestAvatar;
+                        
+                        // 更新 dataset 以便点击时使用
+                        chatItem.dataset.otherName = latestName;
+                        chatItem.dataset.otherAvatar = latestAvatar;
+                        chatItem.dataset.otherClass = latestClass;
+                        
+                        // 同时更新聊天室中的 participantAvatars（可选，让下次加载更快）
+                        if (latestAvatar !== otherParticipantAvatar) {
+                            const chatRef = doc(db, CHAT_COLLECTION, chat.chatId);
+                            const updatedAvatars = [...(chat.participantAvatars || [])];
+                            updatedAvatars[participantIndex] = latestAvatar;
+                            updateDoc(chatRef, { participantAvatars: updatedAvatars }).catch(e => console.log("Update avatar in chat failed:", e));
+                        }
+                    }
+                }, (error) => {
+                    console.log("监听用户文档失败:", error);
+                });
+                
+                // 存储监听器，以便在组件卸载时清理
+                userListeners.push(userUnsubscribe);
+                
+                // 点击打开聊天
+                chatItem.onclick = () => {
+                    const otherId = chatItem.dataset.otherUserId;
+                    const otherName = chatItem.dataset.otherName || otherParticipantName;
+                    const otherAvatar = chatItem.dataset.otherAvatar || otherParticipantAvatar;
+                    const otherClass = chatItem.dataset.otherClass || "";
+                    
+                    openChatFromList(chat, otherId, otherName, otherAvatar, otherClass);
+                };
             }
         }, (error) => {
             console.error("Load chat list error:", error);
         });
     }
-
     // 格式化聊天时间
     function formatChatTime(date) {
         const now = new Date();
