@@ -3119,6 +3119,22 @@
         }
     }
 
+    // 格式化聊天时间（放在 loadChatList 之前）
+    function formatChatTime(date) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (date >= today) {
+            return date.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+        } else if (date >= yesterday) {
+            return "Semalam";
+        } else {
+            return `${date.getDate()}/${date.getMonth()+1}`;
+        }
+    }
+    
     // 加载用户的聊天列表
     let chatListUnsubscribe = null;
     let userListeners = [];
@@ -3236,23 +3252,6 @@
         }, (error) => {
             console.error("Load chat list error:", error);
         });
-    }
- 
-
-    // 格式化聊天时间
-    function formatChatTime(date) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        if (date >= today) {
-            return date.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
-        } else if (date >= yesterday) {
-            return "Semalam";
-        } else {
-            return `${date.getDate()}/${date.getMonth()+1}`;
-        }
     }
 
     // 从聊天列表打开聊天
