@@ -1252,6 +1252,7 @@
                 <button id="fullMigrationBtn" style="width: 100%; padding: 10px; background: #FF3B30; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 完整迁移消息到IC格式</button>
                 <button id="debugMessagesBtn" style="width: 100%; padding: 10px; background: #8E8E93; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🐛 调试消息数据</button>
                 <button id="testLoadChatBtn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔍 测试加载聊天室</button>
+                <button id="migrateToMessagesBtn" style="width: 100%; padding: 10px; background: #5856D6; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">📦 迁移历史消息到messages</button>
             </div>
             
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
@@ -3911,6 +3912,64 @@
         });
         
         alert(`找到 ${snapshot.size} 个包含您的聊天室\n\n详情请查看控制台`);
+    });
+    document.getElementById('migrateToMessagesBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('migrateToMessagesBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ 迁移中...";
+        btn.disabled = true;
+        
+        try {
+            const chatsRef = collection(db, "chats");
+            const chatsSnapshot = await getDocs(chatsRef);
+            let migrated = 0;
+            
+            for (const chatDoc of chatsSnapshot.docs) {
+                const chat = chatDoc.data();
+                const chatId = chatDoc.id;
+                const lastMessage = chat.lastMessage;
+                const lastMessageTime = chat.lastMessageTime;
+                const participants = chat.participants || [];
+                
+                // 如果有 lastMessage 且不为空，创建一条消息记录
+                if (lastMessage && lastMessage !== "" && participants.length >= 2) {
+                    // 确定发送者（使用第一个参与者作为发送者）
+                    const senderId = participants[0];
+                    const senderName = chat.participantNames?.[0] || "Unknown";
+                    
+                    // 检查是否已经存在这条消息（避免重复）
+                    const existingQuery = query(
+                        collection(db, "messages"),
+                        where("chatId", "==", chatId),
+                        where("text", "==", lastMessage),
+                        limit(1)
+                    );
+                    const existing = await getDocs(existingQuery);
+                    
+                    if (existing.empty) {
+                        await addDoc(collection(db, "messages"), {
+                            chatId: chatId,
+                            senderId: senderId,
+                            senderName: senderName,
+                            text: lastMessage,
+                            timestamp: lastMessageTime || serverTimestamp(),
+                            read: false
+                        });
+                        migrated++;
+                        console.log(`✅ 迁移: ${chatId} -> "${lastMessage}"`);
+                    }
+                }
+            }
+            
+            alert(`迁移完成！\n创建了 ${migrated} 条消息记录\n\n刷新页面后即可查看。`);
+            if (migrated > 0) location.reload();
+        } catch(e) {
+            console.error("迁移失败:", e);
+            alert("错误: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     });
 </script>
 </body>
