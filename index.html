@@ -1025,6 +1025,8 @@
 <div id="profileSettingsModal" class="leave-modal">
     <div class="leave-modal-content">
         <h4>⚙️ Kemaskini Profil</h4>
+
+        <button id="fixChatBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:8px 12px; background:#007AFF; color:white; border-radius:20px; z-index:9999; font-size:12px;">🔧 修复聊天室</button>
         
         <label style="font-size:13px; color:#888;">Nama Penuh:</label>
         <input type="text" id="settings-name" placeholder="Nama Penuh">
@@ -3465,8 +3467,7 @@
         }
     }
 
-<button id="fixChatBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:8px 12px; background:#007AFF; color:white; border-radius:20px; z-index:9999; font-size:12px;">🔧 修复聊天室</button>
-<script type="module">
+
     document.getElementById('fixChatBtn')?.addEventListener('click', async () => {
         console.log("开始修复聊天室...");
         
