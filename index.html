@@ -1169,6 +1169,7 @@
         
         <div class="glass" style="padding:20px">
             <button id="fixUidChatsBtn" style="position:fixed; bottom:140px; right:10px; width:auto; padding:10px 15px; background:#FF9500; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔧 修复UID格式聊天室</button>
+            <button id="checkMyChatsBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:10px 15px; background:#007AFF; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔍 检查我的聊天室</button>
             <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
             <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
@@ -3501,6 +3502,35 @@
         
         alert(`修复了 ${fixed} 个聊天室！刷新页面后生效。`);
         if (fixed > 0) location.reload();
+    });
+    document.getElementById('checkMyChatsBtn')?.addEventListener('click', async () => {
+        const myIC = "070108020147";
+        const chatsRef = collection(db, "chats");
+        const snapshot = await getDocs(chatsRef);
+        let count = 0;
+        const myChats = [];
+        
+        snapshot.forEach(doc => {
+            const chat = doc.data();
+            const participantICs = chat.participantICs || [];
+            if (participantICs.includes(myIC)) {
+                count++;
+                myChats.push({
+                    id: doc.id,
+                    ics: participantICs.join(', '),
+                    names: chat.participantNames?.join(', ') || 'Unknown'
+                });
+            }
+        });
+        
+        console.log(`总共 ${count} 个聊天室包含您的IC`);
+        myChats.forEach(chat => {
+            console.log(`✅ ${chat.id}`);
+            console.log(`   ICs: ${chat.ics}`);
+            console.log(`   名字: ${chat.names}`);
+        });
+        
+        alert(`找到 ${count} 个包含您的聊天室\n\n详情请查看控制台(F12)`);
     });
     
 </script>
