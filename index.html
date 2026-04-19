@@ -1247,6 +1247,7 @@
                 <button id="fixUidChatsBtn" style="width: 100%; padding: 10px; background: #FF9500; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 8px; cursor: pointer;">🔧 修复UID格式聊天室</button>
                 <button id="checkMyChatsBtn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 8px; cursor: pointer;">🔍 检查我的聊天室</button>
                 <button id="mergeDuplicateChatsBtn" style="width: 100%; padding: 10px; background: #34C759; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer;">🔗 合并重复聊天室</button>
+                <button id="fixLastMessageBtn" style="width: 100%; padding: 10px; background: #AF52DE; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">📝 修复最后消息显示</button>
             </div>
             
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
@@ -3649,6 +3650,56 @@
             alert(`合并完成！删除了 ${merged} 个重复聊天室\n\n刷新页面后生效。`);
             if (merged > 0) location.reload();
         } catch(e) {
+            alert("错误: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+    document.getElementById('fixLastMessageBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('fixLastMessageBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ 处理中...";
+        btn.disabled = true;
+        
+        try {
+            const chatsRef = collection(db, "chats");
+            const chatsSnapshot = await getDocs(chatsRef);
+            let fixed = 0;
+            
+            for (const chatDoc of chatsSnapshot.docs) {
+                const chat = chatDoc.data();
+                const chatId = chatDoc.id;
+                
+                // 获取该聊天室的最后一条消息
+                const messagesRef = collection(db, "messages");
+                const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "desc"), limit(1));
+                const messagesSnap = await getDocs(q);
+                
+                let lastMessage = "";
+                let lastMessageTime = chat.createdAt || new Date();
+                
+                if (!messagesSnap.empty) {
+                    const lastMsg = messagesSnap.docs[0].data();
+                    lastMessage = lastMsg.text || "";
+                    lastMessageTime = lastMsg.timestamp?.toDate ? lastMsg.timestamp.toDate() : new Date();
+                }
+                
+                // 只有当 lastMessage 为空且确实有消息时才更新
+                if (chat.lastMessage !== lastMessage && lastMessage !== "") {
+                    await updateDoc(chatDoc.ref, {
+                        lastMessage: lastMessage,
+                        lastMessageTime: lastMessageTime
+                    });
+                    fixed++;
+                    console.log(`✅ 修复: ${chatId} -> "${lastMessage.substring(0, 30)}"`);
+                }
+            }
+            
+            alert(`修复了 ${fixed} 个聊天室的最后消息显示！\n\n刷新页面后生效。`);
+            if (fixed > 0) location.reload();
+        } catch(e) {
+            console.error("修复失败:", e);
             alert("错误: " + e.message);
         } finally {
             btn.innerText = originalText;
