@@ -1220,7 +1220,7 @@
                     <div class="legend-item"><span class="legend-icon future" style="background:#E5E5EA;"></span><span>Hari Akan Datang</span></div>
                 </div>
             </div>
-
+    
             <!-- 请假按钮 -->
             <button class="leave-btn" onclick="openLeaveModal()">
                 <i data-lucide="calendar-x" style="width: 18px; height: 18px;"></i> 📋 Mohon Cuti / Tidak Hadir
@@ -1234,10 +1234,21 @@
                     <span class="slider"></span>
                 </label>
             </div>
-
-            <button id="fixUidChatsBtn" style="position:fixed; bottom:140px; right:10px; width:auto; padding:10px 15px; background:#FF9500; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔧 修复UID格式聊天室</button>
-            <button id="checkMyChatsBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:10px 15px; background:#007AFF; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔍 检查我的聊天室</button>   
-            <button id="mergeDuplicateChatsBtn" style="position:fixed; bottom:140px; right:10px; width:auto; padding:10px 15px; background:#FF9500; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔧 合并重复聊天室</button>
+    
+            <!-- 开发者工具折叠面板 -->
+            <div class="setting-item" style="border-top: 1px solid var(--border); margin-top: 10px; padding-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span style="font-size: 14px; font-weight: 600;">🛠️ 开发者工具</span>
+                    <button id="devToggleBtn" style="width: auto; padding: 5px 12px; background: #8E8E93; color: white; border: none; border-radius: 20px; font-size: 12px; cursor: pointer;">▼ Buka</button>
+                </div>
+            </div>
+            
+            <div id="devPanel" style="display: none; margin-top: 10px;">
+                <button id="fixUidChatsBtn" style="width: 100%; padding: 10px; background: #FF9500; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 8px; cursor: pointer;">🔧 修复UID格式聊天室</button>
+                <button id="checkMyChatsBtn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 8px; cursor: pointer;">🔍 检查我的聊天室</button>
+                <button id="mergeDuplicateChatsBtn" style="width: 100%; padding: 10px; background: #34C759; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer;">🔗 合并重复聊天室</button>
+            </div>
+            
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
         </div>
     </div>
