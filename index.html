@@ -2474,7 +2474,7 @@
             console.error("迁移过程中出错:", e);
         }
     }
-    
+
     // 加载用户的聊天列表
     let chatListUnsubscribe = null;
     let userListeners = [];
@@ -2507,8 +2507,9 @@
             userListeners.forEach(unsub => { if(unsub) unsub(); });
             userListeners = [];
             
-            for (const doc of snapshot.docs) {
-                const chat = doc.data();
+            // 关键修复：使用 chatDoc 而不是 doc
+            for (const chatDoc of snapshot.docs) {
+                const chat = chatDoc.data();
                 const participantICs = chat.participantICs || [];
                 
                 // 找到对方的IC
