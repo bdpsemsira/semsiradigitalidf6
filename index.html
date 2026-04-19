@@ -3480,44 +3480,80 @@
             renderCalendar();
         }
     }
-
+    // 开发者面板切换功能
+    const devToggleBtn = document.getElementById('devToggleBtn');
+    const devPanel = document.getElementById('devPanel');
+    
+    if (devToggleBtn && devPanel) {
+        devToggleBtn.addEventListener('click', () => {
+            if (devPanel.style.display === 'none') {
+                devPanel.style.display = 'block';
+                devToggleBtn.innerHTML = '▲ Tutup';
+                devToggleBtn.style.background = '#FF3B30';
+            } else {
+                devPanel.style.display = 'none';
+                devToggleBtn.innerHTML = '▼ Buka';
+                devToggleBtn.style.background = '#8E8E93';
+            }
+        });
+    }
+    
+    // 修复UID格式聊天室
     document.getElementById('fixUidChatsBtn')?.addEventListener('click', async () => {
-        const chatsRef = collection(db, "chats");
-        const snapshot = await getDocs(chatsRef);
-        let fixed = 0;
+        const btn = document.getElementById('fixUidChatsBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ 处理中...";
+        btn.disabled = true;
         
-        for (const chatDoc of snapshot.docs) {
-            const chat = chatDoc.data();
-            const participantICs = chat.participantICs || [];
+        try {
+            const chatsRef = collection(db, "chats");
+            const snapshot = await getDocs(chatsRef);
+            let fixed = 0;
             
-            const isUidFormat = participantICs.some(ic => /[A-Za-z]/.test(ic));
-            
-            if (isUidFormat) {
-                const participants = chat.participants || [];
-                const newICs = [];
+            for (const chatDoc of snapshot.docs) {
+                const chat = chatDoc.data();
+                const participantICs = chat.participantICs || [];
+                const isUidFormat = participantICs.some(ic => /[A-Za-z]/.test(ic));
                 
-                for (const uid of participants) {
-                    const userSnap = await getDoc(doc(db, "studentInform", uid));
-                    if (userSnap.exists()) {
-                        newICs.push(userSnap.data().ic);
-                    } else {
-                        newICs.push("unknown");
+                if (isUidFormat) {
+                    const participants = chat.participants || [];
+                    const newICs = [];
+                    
+                    for (const uid of participants) {
+                        const userSnap = await getDoc(doc(db, "studentInform", uid));
+                        if (userSnap.exists()) {
+                            newICs.push(userSnap.data().ic);
+                        } else {
+                            newICs.push("unknown");
+                        }
+                    }
+                    
+                    if (newICs.length === 2) {
+                        await updateDoc(chatDoc.ref, { participantICs: newICs });
+                        fixed++;
+                        console.log(`✅ 修复: ${chatDoc.id}`);
                     }
                 }
-                
-                if (newICs.length === 2) {
-                    await updateDoc(chatDoc.ref, { participantICs: newICs });
-                    fixed++;
-                    console.log(`✅ 修复: ${chatDoc.id}`);
-                }
             }
+            
+            alert(`修复了 ${fixed} 个聊天室！刷新页面后生效。`);
+            if (fixed > 0) location.reload();
+        } catch(e) {
+            alert("错误: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+    
+    // 检查我的聊天室
+    document.getElementById('checkMyChatsBtn')?.addEventListener('click', async () => {
+        const myIC = window.currentUserData?.ic;
+        if (!myIC) {
+            alert("无法获取当前用户IC");
+            return;
         }
         
-        alert(`修复了 ${fixed} 个聊天室！刷新页面后生效。`);
-        if (fixed > 0) location.reload();
-    });
-    document.getElementById('checkMyChatsBtn')?.addEventListener('click', async () => {
-        const myIC = "070108020147";
         const chatsRef = collection(db, "chats");
         const snapshot = await getDocs(chatsRef);
         let count = 0;
@@ -3531,90 +3567,94 @@
                 myChats.push({
                     id: doc.id,
                     ics: participantICs.join(', '),
-                    names: chat.participantNames?.join(', ') || 'Unknown'
+                    names: chat.participantNames?.join(' ↔ ') || 'Unknown'
                 });
             }
         });
         
-        console.log(`总共 ${count} 个聊天室包含您的IC`);
+        console.log(`========== 包含您的聊天室 (${count}个) ==========`);
         myChats.forEach(chat => {
             console.log(`✅ ${chat.id}`);
             console.log(`   ICs: ${chat.ics}`);
             console.log(`   名字: ${chat.names}`);
         });
         
-        alert(`找到 ${count} 个包含您的聊天室\n\n详情请查看控制台(F12)`);
-    });
-    document.getElementById('mergeDuplicateChatsBtn')?.addEventListener('click', async () => {
-        console.log("开始合并重复聊天室...");
-        
-        // 获取所有聊天室
-        const chatsRef = collection(db, "chats");
-        const snapshot = await getDocs(chatsRef);
-        
-        // 按对方IC分组
-        const chatGroups = new Map(); // key: 对方IC, value: 聊天室列表
-        
-        for (const chatDoc of snapshot.docs) {
-            const chat = chatDoc.data();
-            const participantICs = chat.participantICs || [];
-            const currentUserIC = "070108020147";
-            
-            // 找到对方的IC
-            const otherIC = participantICs.find(ic => ic !== currentUserIC);
-            if (!otherIC || otherIC === "unknown") continue;
-            
-            if (!chatGroups.has(otherIC)) {
-                chatGroups.set(otherIC, []);
-            }
-            chatGroups.get(otherIC).push({
-                id: chatDoc.id,
-                ref: chatDoc.ref,
-                data: chat,
-                lastMessageTime: chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date(0)
-            });
-        }
-        
-        let merged = 0;
-        
-        for (const [otherIC, chats] of chatGroups) {
-            if (chats.length > 1) {
-                console.log(`对方IC ${otherIC} 有 ${chats.length} 个重复聊天室`);
-                
-                // 按最后消息时间排序，保留最新的
-                chats.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
-                const keepChat = chats[0];
-                const deleteChats = chats.slice(1);
-                
-                console.log(`  保留: ${keepChat.id}`);
-                
-                for (const delChat of deleteChats) {
-                    console.log(`  删除: ${delChat.id}`);
-                    
-                    // 更新消息的 chatId 到保留的聊天室
-                    const messagesRef = collection(db, "messages");
-                    const q = query(messagesRef, where("chatId", "==", delChat.id));
-                    const messagesSnap = await getDocs(q);
-                    
-                    let msgCount = 0;
-                    for (const msgDoc of messagesSnap.docs) {
-                        await updateDoc(msgDoc.ref, { chatId: keepChat.id });
-                        msgCount++;
-                    }
-                    console.log(`    迁移了 ${msgCount} 条消息`);
-                    
-                    // 删除重复的聊天室
-                    await deleteDoc(delChat.ref);
-                    merged++;
-                }
-            }
-        }
-        
-        console.log(`合并完成！删除了 ${merged} 个重复聊天室`);
-        alert(`合并完成！删除了 ${merged} 个重复聊天室\n\n刷新页面后生效。`);
-        if (merged > 0) location.reload();
+        alert(`找到 ${count} 个包含您的聊天室\n\n详情请查看控制台 (F12)`);
     });
     
+    // 合并重复聊天室
+    document.getElementById('mergeDuplicateChatsBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('mergeDuplicateChatsBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ 处理中...";
+        btn.disabled = true;
+        
+        try {
+            const currentUserIC = window.currentUserData?.ic;
+            if (!currentUserIC) {
+                alert("无法获取当前用户IC");
+                return;
+            }
+            
+            const chatsRef = collection(db, "chats");
+            const snapshot = await getDocs(chatsRef);
+            const chatGroups = new Map();
+            
+            for (const chatDoc of snapshot.docs) {
+                const chat = chatDoc.data();
+                const participantICs = chat.participantICs || [];
+                const otherIC = participantICs.find(ic => ic !== currentUserIC);
+                if (!otherIC || otherIC === "unknown") continue;
+                
+                if (!chatGroups.has(otherIC)) {
+                    chatGroups.set(otherIC, []);
+                }
+                chatGroups.get(otherIC).push({
+                    id: chatDoc.id,
+                    ref: chatDoc.ref,
+                    data: chat,
+                    lastMessageTime: chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date(0)
+                });
+            }
+            
+            let merged = 0;
+            
+            for (const [otherIC, chats] of chatGroups) {
+                if (chats.length > 1) {
+                    console.log(`对方IC ${otherIC} 有 ${chats.length} 个重复聊天室`);
+                    chats.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+                    const keepChat = chats[0];
+                    const deleteChats = chats.slice(1);
+                    
+                    console.log(`  保留: ${keepChat.id}`);
+                    
+                    for (const delChat of deleteChats) {
+                        console.log(`  删除: ${delChat.id}`);
+                        const messagesRef = collection(db, "messages");
+                        const q = query(messagesRef, where("chatId", "==", delChat.id));
+                        const messagesSnap = await getDocs(q);
+                        
+                        let msgCount = 0;
+                        for (const msgDoc of messagesSnap.docs) {
+                            await updateDoc(msgDoc.ref, { chatId: keepChat.id });
+                            msgCount++;
+                        }
+                        console.log(`    迁移了 ${msgCount} 条消息`);
+                        await deleteDoc(delChat.ref);
+                        merged++;
+                    }
+                }
+            }
+            
+            alert(`合并完成！删除了 ${merged} 个重复聊天室\n\n刷新页面后生效。`);
+            if (merged > 0) location.reload();
+        } catch(e) {
+            alert("错误: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
 </script>
 </body>
 </html>
