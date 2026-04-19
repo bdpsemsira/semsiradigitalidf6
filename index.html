@@ -1248,6 +1248,7 @@
                 <button id="checkMyChatsBtn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 8px; cursor: pointer;">🔍 检查我的聊天室</button>
                 <button id="mergeDuplicateChatsBtn" style="width: 100%; padding: 10px; background: #34C759; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer;">🔗 合并重复聊天室</button>
                 <button id="fixLastMessageBtn" style="width: 100%; padding: 10px; background: #AF52DE; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">📝 修复最后消息显示</button>
+                <button id="syncLastMessageBtn" style="width: 100%; padding: 10px; background: #5856D6; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 同步最后消息</button>
             </div>
             
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
@@ -3706,6 +3707,55 @@
             btn.disabled = false;
         }
     });
+    document.getElementById('syncLastMessageBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('syncLastMessageBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ 同步中...";
+        btn.disabled = true;
+        
+        try {
+            const chatsRef = collection(db, "chats");
+            const chatsSnapshot = await getDocs(chatsRef);
+            let fixed = 0;
+            let total = 0;
+            
+            for (const chatDoc of chatsSnapshot.docs) {
+                total++;
+                const chat = chatDoc.data();
+                const chatId = chatDoc.id;
+                
+                // 获取该聊天室的最后一条消息
+                const messagesRef = collection(db, "messages");
+                const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "desc"), limit(1));
+                const messagesSnap = await getDocs(q);
+                
+                if (!messagesSnap.empty) {
+                    const lastMsg = messagesSnap.docs[0].data();
+                    const lastMessageText = lastMsg.text || "";
+                    
+                    await updateDoc(chatDoc.ref, {
+                        lastMessage: lastMessageText,
+                        lastMessageTime: lastMsg.timestamp || serverTimestamp()
+                    });
+                    fixed++;
+                    console.log(`✅ 更新: ${chatId} -> "${lastMessageText.substring(0, 30)}"`);
+                } else {
+                    console.log(`⏳ 无消息: ${chatId}`);
+                }
+            }
+            
+            console.log(`共 ${total} 个聊天室，更新了 ${fixed} 个`);
+            alert(`同步完成！\n共 ${total} 个聊天室\n更新了 ${fixed} 个\n\n刷新页面后生效。`);
+            if (fixed > 0) location.reload();
+        } catch(e) {
+            console.error("同步失败:", e);
+            alert("错误: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+    
 </script>
 </body>
 </html>
