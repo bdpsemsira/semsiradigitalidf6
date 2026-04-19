@@ -2391,6 +2391,348 @@
         return div.innerHTML;
     }
 
+
+    // 格式化聊天时间（放在 loadChatList 之前）
+    function formatChatTime(date) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (date >= today) {
+            return date.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+        } else if (date >= yesterday) {
+            return "Semalam";
+        } else {
+            return `${date.getDate()}/${date.getMonth()+1}`;
+        }
+    }
+
+    // ========== 自动迁移：将现有聊天室和消息转换为基于IC的格式 ==========
+    async function migrateToICBasedChats() {
+        const userId = auth.currentUser.uid;
+        console.log("开始迁移聊天数据到基于IC的格式...");
+        
+        try {
+            // 1. 获取当前用户的IC
+            const userSnap = await getDoc(doc(db, COLLECTION_NAME, userId));
+            if (!userSnap.exists()) {
+                console.log("无法获取用户IC，跳过迁移");
+                return;
+            }
+            const myIC = userSnap.data().ic;
+            console.log("当前用户IC:", myIC);
+            
+            // 2. 获取所有聊天室
+            const chatsRef = collection(db, CHAT_COLLECTION);
+            const chatsSnapshot = await getDocs(chatsRef);
+            let migratedCount = 0;
+            
+            for (const chatDoc of chatsSnapshot.docs) {
+                const chatData = chatDoc.data();
+                
+                // 如果已经有 participantICs 字段，跳过
+                if (chatData.participantICs && chatData.participantICs.length > 0) {
+                    console.log("聊天室已有IC字段，跳过:", chatDoc.id);
+                    continue;
+                }
+                
+                const participants = chatData.participants || [];
+                const participantICs = [];
+                
+                // 获取每个参与者的IC
+                for (const uid of participants) {
+                    try {
+                        const userDoc = await getDoc(doc(db, COLLECTION_NAME, uid));
+                        if (userDoc.exists()) {
+                            participantICs.push(userDoc.data().ic);
+                        } else {
+                            console.log("用户文档不存在:", uid);
+                            participantICs.push("unknown");
+                        }
+                    } catch(e) {
+                        console.log("获取IC失败:", uid, e);
+                        participantICs.push("unknown");
+                    }
+                }
+                
+                if (participantICs.length === 2) {
+                    await updateDoc(chatDoc.ref, { 
+                        participantICs: participantICs 
+                    });
+                    migratedCount++;
+                    console.log(`✅ 迁移聊天室: ${chatDoc.id} -> ICs: ${participantICs.join(', ')}`);
+                }
+            }
+            
+            console.log(`聊天室迁移完成！共迁移 ${migratedCount} 个聊天室`);
+            
+        } catch(e) {
+            console.error("迁移过程中出错:", e);
+        }
+    }
+    
+    // 加载用户的聊天列表
+    let chatListUnsubscribe = null;
+    let userListeners = [];
+    
+    async function loadChatList() {
+        if (chatListUnsubscribe) {
+            chatListUnsubscribe();
+        }
+        userListeners.forEach(unsub => { if(unsub) unsub(); });
+        userListeners = [];
+        
+        const currentUserIC = window.currentUserData.ic;
+        console.log("当前用户IC:", currentUserIC);
+        
+        // 查询所有包含当前用户IC的聊天室
+        const chatsRef = collection(db, CHAT_COLLECTION);
+        const q = query(chatsRef, where("participantICs", "array-contains", currentUserIC), orderBy("lastMessageTime", "desc"));
+        
+        chatListUnsubscribe = onSnapshot(q, async (snapshot) => {
+            const chatListDiv = document.getElementById('chat-list');
+            if (!chatListDiv) return;
+            
+            chatListDiv.innerHTML = '';
+            
+            if (snapshot.empty) {
+                chatListDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Tiada chat terkini</div>';
+                return;
+            }
+            
+            userListeners.forEach(unsub => { if(unsub) unsub(); });
+            userListeners = [];
+            
+            for (const doc of snapshot.docs) {
+                const chat = doc.data();
+                const participantICs = chat.participantICs || [];
+                
+                // 找到对方的IC
+                const otherIC = participantICs.find(ic => ic !== currentUserIC);
+                
+                // 根据IC查找对方的UID和最新信息
+                let otherUid = null;
+                let otherName = "Unknown";
+                let otherAvatar = "/semsira.png";
+                let otherClass = "";
+                
+                try {
+                    // 通过IC查找对方的学生信息
+                    const studentQuery = query(collection(db, COLLECTION_NAME), where("ic", "==", otherIC));
+                    const studentSnap = await getDocs(studentQuery);
+                    if (!studentSnap.empty) {
+                        const studentData = studentSnap.docs[0].data();
+                        otherUid = studentSnap.docs[0].id;
+                        otherName = studentData.name || "Unknown";
+                        otherAvatar = studentData.avatarUrl || "/semsira.png";
+                        otherClass = studentData.className || "";
+                    }
+                } catch(e) {
+                    console.log("查找学生失败:", e);
+                }
+                
+                // 创建聊天项容器
+                const chatItem = document.createElement('div');
+                chatItem.className = 'student-search-item';
+                chatItem.style.cursor = 'pointer';
+                chatItem.dataset.chatId = chat.chatId;
+                chatItem.dataset.otherUid = otherUid;
+                chatItem.dataset.otherIc = otherIC;
+                chatItem.dataset.otherName = otherName;
+                chatItem.dataset.otherAvatar = otherAvatar;
+                
+                // 设置初始内容
+                chatItem.innerHTML = `
+                    <img class="student-avatar-small" src="${otherAvatar}" onerror="this.src='/semsira.png'">
+                    <div class="student-info">
+                        <div class="student-name">${escapeHtml(otherName)}</div>
+                        <div class="student-class" style="font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${escapeHtml(chat.lastMessage || "Tiada mesej")}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 10px; color: #888;">${formatChatTime(chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date())}</div>
+                    </div>
+                `;
+                
+                chatItem.onclick = () => {
+                    openChatFromList(chat, otherUid, otherName, otherAvatar);
+                };
+                
+                chatListDiv.appendChild(chatItem);
+                
+                // 实时监听对方用户文档的变化
+                if (otherUid) {
+                    const otherUserRef = doc(db, COLLECTION_NAME, otherUid);
+                    const userUnsubscribe = onSnapshot(otherUserRef, (userSnap) => {
+                        if (userSnap.exists() && chatItem.parentNode) {
+                            const otherData = userSnap.data();
+                            const latestName = otherData.name || otherName;
+                            const latestAvatar = otherData.avatarUrl || otherAvatar;
+                            
+                            const nameDiv = chatItem.querySelector('.student-name');
+                            if (nameDiv && nameDiv.innerText !== latestName) {
+                                nameDiv.innerText = escapeHtml(latestName);
+                            }
+                            
+                            const avatarImg = chatItem.querySelector('.student-avatar-small');
+                            if (avatarImg && avatarImg.src !== latestAvatar) {
+                                avatarImg.src = latestAvatar;
+                            }
+                            
+                            chatItem.dataset.otherName = latestName;
+                            chatItem.dataset.otherAvatar = latestAvatar;
+                        }
+                    });
+                    userListeners.push(userUnsubscribe);
+                }
+            }
+        }, (error) => {
+            console.error("Load chat list error:", error);
+        });
+    }
+
+    // 从聊天列表打开聊天
+    async function openChatFromList(chat, otherUserId, otherName, otherAvatar) {
+        // 获取对方完整信息（包括最新头像）
+        const otherUserRef = doc(db, COLLECTION_NAME, otherUserId);
+        const otherUserSnap = await getDoc(otherUserRef);
+        const otherUserData = otherUserSnap.exists() ? otherUserSnap.data() : {};
+        
+        // 获取最新的头像URL（优先从 Firestore 获取）
+        const latestAvatar = otherUserData.avatarUrl || otherAvatar || '/semsira.png';
+        
+        selectedChatUser = {
+            uid: otherUserId,
+            name: otherName,
+            className: otherUserData.className || "-",
+            avatar: latestAvatar,
+            dob: otherUserData.dob,
+            phone: otherUserData.phone
+        };
+        
+        currentChatId = chat.chatId;
+        
+        // 显示聊天界面
+        document.getElementById('chat-container').style.display = 'block';
+        document.getElementById('chat-name').innerText = otherName;
+        document.getElementById('chat-class').innerText = otherUserData.className || "-";
+        document.getElementById('chat-avatar').src = latestAvatar;
+        document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
+        
+        // 隐藏聊天列表容器
+        document.getElementById('chat-list-container').style.display = 'none';
+        // 隐藏搜索栏
+        const searchContainer = document.getElementById('chat-search-container');
+        if (searchContainer) {
+            searchContainer.style.display = 'none';
+        }
+        
+        // 清除搜索结果
+        document.getElementById('student-search-results').innerHTML = '';
+        document.getElementById('chat-search').value = '';
+        document.getElementById('chat-start-btn').disabled = true;
+        
+        // 加载消息
+        loadMessages(currentChatId);
+        
+        // 标记消息为已读
+        markMessagesAsRead(currentChatId);
+    }
+    
+    
+    function renderCalendar() {
+        const container = document.getElementById('calendarDaysContainer');
+        if (!container) return;
+        
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        
+        const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", 
+                            "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
+        const titleEl = document.getElementById('calendarMonthTitle');
+        if (titleEl) titleEl.innerText = `${monthNames[month]} ${year}`;
+        
+        const firstDayOfMonth = new Date(year, month, 1);
+        const startDayOfWeek = firstDayOfMonth.getDay();
+        let adjustedStart = (startDayOfWeek + 6) % 7;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        const now = new Date();
+        const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+        const todayDate = malaysiaTime.getUTCDate();
+        const todayMonth = malaysiaTime.getUTCMonth();
+        const todayYear = malaysiaTime.getUTCFullYear();
+        
+        let calendarHTML = '';
+        
+        for (let i = 0; i < adjustedStart; i++) {
+            calendarHTML += `<div class="calendar-day empty"></div>`;
+        }
+        
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month, day);
+            const dayOfWeek = dateObj.getDay();
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const attendance = currentAttendanceRecords[dateStr];
+            
+            let isFutureDate = false;
+            if (year > todayYear) {
+                isFutureDate = true;
+            } else if (year === todayYear && month > todayMonth) {
+                isFutureDate = true;
+            } else if (year === todayYear && month === todayMonth && day > todayDate) {
+                isFutureDate = true;
+            }
+            
+            let statusIcon = '';
+            let statusClass = '';
+            
+            if (isWeekend) {
+                statusIcon = '';
+                statusClass = '';
+            } else if (attendance) {
+                if (attendance.status === "Hadir") {
+                    statusIcon = '✅';
+                    statusClass = 'hadir';
+                } else if (attendance.status === "Lewat") {
+                    statusIcon = '✅';
+                    statusClass = 'lewat';
+                }
+            } else if (!isFutureDate) {
+                statusIcon = '❌';
+                statusClass = 'tidakhadir';
+            }
+            
+            const weekendClass = isWeekend ? 'weekend' : '';
+            
+            calendarHTML += `
+                <div class="calendar-day ${weekendClass}">
+                    <span>${day}</span>
+                    ${statusIcon ? `<div class="calendar-status ${statusClass}">${statusIcon}</div>` : '<div class="calendar-status" style="height: 22px;"></div>'}
+                </div>
+            `;
+        }
+        
+        container.innerHTML = calendarHTML;
+    }
+    
+    window.changeMonth = (delta) => {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+        if (window.currentUserData && window.currentUserData.ic) {
+            loadMonthlyAttendanceData(window.currentUserData.ic);
+        } else {
+            renderCalendar();
+        }
+    };
+    
+    window.renderCalendar = renderCalendar;
+    
+    const cachedIcFromStorage = localStorage.getItem('semsira_cached_ic');
+    if (cachedIcFromStorage) {
+        cachedIC = cachedIcFromStorage;
+    }
+    
     // ========== 离线优先的登录状态处理 ==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
@@ -3122,346 +3464,7 @@
         }
     }
 
-    // 格式化聊天时间（放在 loadChatList 之前）
-    function formatChatTime(date) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        if (date >= today) {
-            return date.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
-        } else if (date >= yesterday) {
-            return "Semalam";
-        } else {
-            return `${date.getDate()}/${date.getMonth()+1}`;
-        }
-    }
 
-    // ========== 自动迁移：将现有聊天室和消息转换为基于IC的格式 ==========
-    async function migrateToICBasedChats() {
-        const userId = auth.currentUser.uid;
-        console.log("开始迁移聊天数据到基于IC的格式...");
-        
-        try {
-            // 1. 获取当前用户的IC
-            const userSnap = await getDoc(doc(db, COLLECTION_NAME, userId));
-            if (!userSnap.exists()) {
-                console.log("无法获取用户IC，跳过迁移");
-                return;
-            }
-            const myIC = userSnap.data().ic;
-            console.log("当前用户IC:", myIC);
-            
-            // 2. 获取所有聊天室
-            const chatsRef = collection(db, CHAT_COLLECTION);
-            const chatsSnapshot = await getDocs(chatsRef);
-            let migratedCount = 0;
-            
-            for (const chatDoc of chatsSnapshot.docs) {
-                const chatData = chatDoc.data();
-                
-                // 如果已经有 participantICs 字段，跳过
-                if (chatData.participantICs && chatData.participantICs.length > 0) {
-                    console.log("聊天室已有IC字段，跳过:", chatDoc.id);
-                    continue;
-                }
-                
-                const participants = chatData.participants || [];
-                const participantICs = [];
-                
-                // 获取每个参与者的IC
-                for (const uid of participants) {
-                    try {
-                        const userDoc = await getDoc(doc(db, COLLECTION_NAME, uid));
-                        if (userDoc.exists()) {
-                            participantICs.push(userDoc.data().ic);
-                        } else {
-                            console.log("用户文档不存在:", uid);
-                            participantICs.push("unknown");
-                        }
-                    } catch(e) {
-                        console.log("获取IC失败:", uid, e);
-                        participantICs.push("unknown");
-                    }
-                }
-                
-                if (participantICs.length === 2) {
-                    await updateDoc(chatDoc.ref, { 
-                        participantICs: participantICs 
-                    });
-                    migratedCount++;
-                    console.log(`✅ 迁移聊天室: ${chatDoc.id} -> ICs: ${participantICs.join(', ')}`);
-                }
-            }
-            
-            console.log(`聊天室迁移完成！共迁移 ${migratedCount} 个聊天室`);
-            
-        } catch(e) {
-            console.error("迁移过程中出错:", e);
-        }
-    }
-    
-    // 加载用户的聊天列表
-    let chatListUnsubscribe = null;
-    let userListeners = [];
-    
-    async function loadChatList() {
-        if (chatListUnsubscribe) {
-            chatListUnsubscribe();
-        }
-        userListeners.forEach(unsub => { if(unsub) unsub(); });
-        userListeners = [];
-        
-        const currentUserIC = window.currentUserData.ic;
-        console.log("当前用户IC:", currentUserIC);
-        
-        // 查询所有包含当前用户IC的聊天室
-        const chatsRef = collection(db, CHAT_COLLECTION);
-        const q = query(chatsRef, where("participantICs", "array-contains", currentUserIC), orderBy("lastMessageTime", "desc"));
-        
-        chatListUnsubscribe = onSnapshot(q, async (snapshot) => {
-            const chatListDiv = document.getElementById('chat-list');
-            if (!chatListDiv) return;
-            
-            chatListDiv.innerHTML = '';
-            
-            if (snapshot.empty) {
-                chatListDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Tiada chat terkini</div>';
-                return;
-            }
-            
-            userListeners.forEach(unsub => { if(unsub) unsub(); });
-            userListeners = [];
-            
-            for (const doc of snapshot.docs) {
-                const chat = doc.data();
-                const participantICs = chat.participantICs || [];
-                
-                // 找到对方的IC
-                const otherIC = participantICs.find(ic => ic !== currentUserIC);
-                
-                // 根据IC查找对方的UID和最新信息
-                let otherUid = null;
-                let otherName = "Unknown";
-                let otherAvatar = "/semsira.png";
-                let otherClass = "";
-                
-                try {
-                    // 通过IC查找对方的学生信息
-                    const studentQuery = query(collection(db, COLLECTION_NAME), where("ic", "==", otherIC));
-                    const studentSnap = await getDocs(studentQuery);
-                    if (!studentSnap.empty) {
-                        const studentData = studentSnap.docs[0].data();
-                        otherUid = studentSnap.docs[0].id;
-                        otherName = studentData.name || "Unknown";
-                        otherAvatar = studentData.avatarUrl || "/semsira.png";
-                        otherClass = studentData.className || "";
-                    }
-                } catch(e) {
-                    console.log("查找学生失败:", e);
-                }
-                
-                // 创建聊天项容器
-                const chatItem = document.createElement('div');
-                chatItem.className = 'student-search-item';
-                chatItem.style.cursor = 'pointer';
-                chatItem.dataset.chatId = chat.chatId;
-                chatItem.dataset.otherUid = otherUid;
-                chatItem.dataset.otherIc = otherIC;
-                chatItem.dataset.otherName = otherName;
-                chatItem.dataset.otherAvatar = otherAvatar;
-                
-                // 设置初始内容
-                chatItem.innerHTML = `
-                    <img class="student-avatar-small" src="${otherAvatar}" onerror="this.src='/semsira.png'">
-                    <div class="student-info">
-                        <div class="student-name">${escapeHtml(otherName)}</div>
-                        <div class="student-class" style="font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${escapeHtml(chat.lastMessage || "Tiada mesej")}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 10px; color: #888;">${formatChatTime(chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date())}</div>
-                    </div>
-                `;
-                
-                chatItem.onclick = () => {
-                    openChatFromList(chat, otherUid, otherName, otherAvatar);
-                };
-                
-                chatListDiv.appendChild(chatItem);
-                
-                // 实时监听对方用户文档的变化
-                if (otherUid) {
-                    const otherUserRef = doc(db, COLLECTION_NAME, otherUid);
-                    const userUnsubscribe = onSnapshot(otherUserRef, (userSnap) => {
-                        if (userSnap.exists() && chatItem.parentNode) {
-                            const otherData = userSnap.data();
-                            const latestName = otherData.name || otherName;
-                            const latestAvatar = otherData.avatarUrl || otherAvatar;
-                            
-                            const nameDiv = chatItem.querySelector('.student-name');
-                            if (nameDiv && nameDiv.innerText !== latestName) {
-                                nameDiv.innerText = escapeHtml(latestName);
-                            }
-                            
-                            const avatarImg = chatItem.querySelector('.student-avatar-small');
-                            if (avatarImg && avatarImg.src !== latestAvatar) {
-                                avatarImg.src = latestAvatar;
-                            }
-                            
-                            chatItem.dataset.otherName = latestName;
-                            chatItem.dataset.otherAvatar = latestAvatar;
-                        }
-                    });
-                    userListeners.push(userUnsubscribe);
-                }
-            }
-        }, (error) => {
-            console.error("Load chat list error:", error);
-        });
-    }
-
-    // 从聊天列表打开聊天
-    async function openChatFromList(chat, otherUserId, otherName, otherAvatar) {
-        // 获取对方完整信息（包括最新头像）
-        const otherUserRef = doc(db, COLLECTION_NAME, otherUserId);
-        const otherUserSnap = await getDoc(otherUserRef);
-        const otherUserData = otherUserSnap.exists() ? otherUserSnap.data() : {};
-        
-        // 获取最新的头像URL（优先从 Firestore 获取）
-        const latestAvatar = otherUserData.avatarUrl || otherAvatar || '/semsira.png';
-        
-        selectedChatUser = {
-            uid: otherUserId,
-            name: otherName,
-            className: otherUserData.className || "-",
-            avatar: latestAvatar,
-            dob: otherUserData.dob,
-            phone: otherUserData.phone
-        };
-        
-        currentChatId = chat.chatId;
-        
-        // 显示聊天界面
-        document.getElementById('chat-container').style.display = 'block';
-        document.getElementById('chat-name').innerText = otherName;
-        document.getElementById('chat-class').innerText = otherUserData.className || "-";
-        document.getElementById('chat-avatar').src = latestAvatar;
-        document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
-        
-        // 隐藏聊天列表容器
-        document.getElementById('chat-list-container').style.display = 'none';
-        // 隐藏搜索栏
-        const searchContainer = document.getElementById('chat-search-container');
-        if (searchContainer) {
-            searchContainer.style.display = 'none';
-        }
-        
-        // 清除搜索结果
-        document.getElementById('student-search-results').innerHTML = '';
-        document.getElementById('chat-search').value = '';
-        document.getElementById('chat-start-btn').disabled = true;
-        
-        // 加载消息
-        loadMessages(currentChatId);
-        
-        // 标记消息为已读
-        markMessagesAsRead(currentChatId);
-    }
-    
-    
-    function renderCalendar() {
-        const container = document.getElementById('calendarDaysContainer');
-        if (!container) return;
-        
-        const year = currentCalendarDate.getFullYear();
-        const month = currentCalendarDate.getMonth();
-        
-        const monthNames = ["Januari", "Februari", "Mac", "April", "Mei", "Jun", 
-                            "Julai", "Ogos", "September", "Oktober", "November", "Disember"];
-        const titleEl = document.getElementById('calendarMonthTitle');
-        if (titleEl) titleEl.innerText = `${monthNames[month]} ${year}`;
-        
-        const firstDayOfMonth = new Date(year, month, 1);
-        const startDayOfWeek = firstDayOfMonth.getDay();
-        let adjustedStart = (startDayOfWeek + 6) % 7;
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
-        const now = new Date();
-        const malaysiaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-        const todayDate = malaysiaTime.getUTCDate();
-        const todayMonth = malaysiaTime.getUTCMonth();
-        const todayYear = malaysiaTime.getUTCFullYear();
-        
-        let calendarHTML = '';
-        
-        for (let i = 0; i < adjustedStart; i++) {
-            calendarHTML += `<div class="calendar-day empty"></div>`;
-        }
-        
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateObj = new Date(year, month, day);
-            const dayOfWeek = dateObj.getDay();
-            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const attendance = currentAttendanceRecords[dateStr];
-            
-            let isFutureDate = false;
-            if (year > todayYear) {
-                isFutureDate = true;
-            } else if (year === todayYear && month > todayMonth) {
-                isFutureDate = true;
-            } else if (year === todayYear && month === todayMonth && day > todayDate) {
-                isFutureDate = true;
-            }
-            
-            let statusIcon = '';
-            let statusClass = '';
-            
-            if (isWeekend) {
-                statusIcon = '';
-                statusClass = '';
-            } else if (attendance) {
-                if (attendance.status === "Hadir") {
-                    statusIcon = '✅';
-                    statusClass = 'hadir';
-                } else if (attendance.status === "Lewat") {
-                    statusIcon = '✅';
-                    statusClass = 'lewat';
-                }
-            } else if (!isFutureDate) {
-                statusIcon = '❌';
-                statusClass = 'tidakhadir';
-            }
-            
-            const weekendClass = isWeekend ? 'weekend' : '';
-            
-            calendarHTML += `
-                <div class="calendar-day ${weekendClass}">
-                    <span>${day}</span>
-                    ${statusIcon ? `<div class="calendar-status ${statusClass}">${statusIcon}</div>` : '<div class="calendar-status" style="height: 22px;"></div>'}
-                </div>
-            `;
-        }
-        
-        container.innerHTML = calendarHTML;
-    }
-    
-    window.changeMonth = (delta) => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
-        if (window.currentUserData && window.currentUserData.ic) {
-            loadMonthlyAttendanceData(window.currentUserData.ic);
-        } else {
-            renderCalendar();
-        }
-    };
-    
-    window.renderCalendar = renderCalendar;
-    
-    const cachedIcFromStorage = localStorage.getItem('semsira_cached_ic');
-    if (cachedIcFromStorage) {
-        cachedIC = cachedIcFromStorage;
-    }
     
 </script>
 </body>
