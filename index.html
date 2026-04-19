@@ -2816,7 +2816,7 @@
             await setupOneSignalForUser(user, userData);
             await loadAllStudents();
             
-            setTimeout(() => {
+            setTimeout(async () => {  // <-- 关键修复：添加 async
                 document.getElementById('page-login').classList.remove('active');
                 document.getElementById('page-register').classList.remove('active');
                 document.getElementById('main-app').style.display = 'block';
@@ -2838,7 +2838,7 @@
                         posterSlider.innerHTML = '<div class="glass" style="display:flex; align-items:center; justify-content:center; height:100%;">📱 Mod Offline</div>';
                     }
                 }
-
+    
                 setupAccountPage();
                 listenToAttendance(userData.ic);
                 loadMonthlyAttendanceData(userData.ic);
@@ -2875,6 +2875,7 @@
             }
         }
     });
+    
  
     function startNotificationChecker() {
         if (notificationCheckInterval) clearInterval(notificationCheckInterval);
