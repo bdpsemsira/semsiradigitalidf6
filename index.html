@@ -2612,21 +2612,55 @@
             console.error("Load chat list error:", error);
         });
     }
-
     // 从聊天列表打开聊天
     async function openChatFromList(chat, otherUserId, otherName, otherAvatar) {
+        console.log("打开聊天:", chat.chatId, otherUserId, otherName);
+        
+        // 如果 otherUserId 为空，尝试通过 IC 查找
+        let finalOtherUid = otherUserId;
+        let finalOtherName = otherName;
+        let finalOtherAvatar = otherAvatar;
+        
+        if (!finalOtherUid) {
+            // 通过 IC 查找对方的 UID
+            const participantICs = chat.participantICs || [];
+            const currentUserIC = window.currentUserData?.ic;
+            const otherIC = participantICs.find(ic => ic !== currentUserIC);
+            
+            if (otherIC && otherIC !== "unknown") {
+                try {
+                    const studentQuery = query(collection(db, COLLECTION_NAME), where("ic", "==", otherIC));
+                    const studentSnap = await getDocs(studentQuery);
+                    if (!studentSnap.empty) {
+                        finalOtherUid = studentSnap.docs[0].id;
+                        finalOtherName = studentSnap.docs[0].data().name || otherName;
+                        finalOtherAvatar = studentSnap.docs[0].data().avatarUrl || otherAvatar;
+                        console.log("通过IC找到对方UID:", finalOtherUid);
+                    }
+                } catch(e) {
+                    console.log("查找对方UID失败:", e);
+                }
+            }
+        }
+        
+        if (!finalOtherUid) {
+            toast("❌ 无法获取对方信息");
+            return;
+        }
+        
         // 获取对方完整信息（包括最新头像）
-        const otherUserRef = doc(db, COLLECTION_NAME, otherUserId);
+        const otherUserRef = doc(db, COLLECTION_NAME, finalOtherUid);
         const otherUserSnap = await getDoc(otherUserRef);
         const otherUserData = otherUserSnap.exists() ? otherUserSnap.data() : {};
         
         // 获取最新的头像URL（优先从 Firestore 获取）
-        const latestAvatar = otherUserData.avatarUrl || otherAvatar || '/semsira.png';
+        const latestAvatar = otherUserData.avatarUrl || finalOtherAvatar || '/semsira.png';
+        const latestClassName = otherUserData.className || "-";
         
         selectedChatUser = {
-            uid: otherUserId,
-            name: otherName,
-            className: otherUserData.className || "-",
+            uid: finalOtherUid,
+            name: finalOtherName,
+            className: latestClassName,
             avatar: latestAvatar,
             dob: otherUserData.dob,
             phone: otherUserData.phone
@@ -2636,21 +2670,22 @@
         
         // 显示聊天界面
         document.getElementById('chat-container').style.display = 'block';
-        document.getElementById('chat-name').innerText = otherName;
-        document.getElementById('chat-class').innerText = otherUserData.className || "-";
+        document.getElementById('chat-name').innerText = finalOtherName;
+        document.getElementById('chat-class').innerText = latestClassName;
         document.getElementById('chat-avatar').src = latestAvatar;
         document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
         
         // 隐藏聊天列表容器
-        document.getElementById('chat-list-container').style.display = 'none';
+        const chatListContainer = document.getElementById('chat-list-container');
+        if (chatListContainer) chatListContainer.style.display = 'none';
+        
         // 隐藏搜索栏
         const searchContainer = document.getElementById('chat-search-container');
-        if (searchContainer) {
-            searchContainer.style.display = 'none';
-        }
+        if (searchContainer) searchContainer.style.display = 'none';
         
         // 清除搜索结果
-        document.getElementById('student-search-results').innerHTML = '';
+        const resultsDiv = document.getElementById('student-search-results');
+        if (resultsDiv) resultsDiv.innerHTML = '';
         document.getElementById('chat-search').value = '';
         document.getElementById('chat-start-btn').disabled = true;
         
@@ -2660,8 +2695,7 @@
         // 标记消息为已读
         markMessagesAsRead(currentChatId);
     }
-    
-    
+
     function renderCalendar() {
         const container = document.getElementById('calendarDaysContainer');
         if (!container) return;
