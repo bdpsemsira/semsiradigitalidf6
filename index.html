@@ -1168,6 +1168,7 @@
         </div>
         
         <div class="glass" style="padding:20px">
+            <button id="fixAllChatsBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:10px 15px; background:#34C759; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold; box-shadow:0 2px 10px rgba(0,0,0,0.2);">🔧 修复所有聊天室IC</button>
             <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
             <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
@@ -3465,6 +3466,56 @@
             renderCalendar();
         }
     }
+    document.getElementById('fixAllChatsBtn')?.addEventListener('click', async () => {
+        console.log("开始修复所有聊天室...");
+        
+        const chatsRef = collection(db, "chats");
+        const snapshot = await getDocs(chatsRef);
+        let fixed = 0;
+        let total = 0;
+        
+        for (const chatDoc of snapshot.docs) {
+            total++;
+            const chat = chatDoc.data();
+            const participants = chat.participants || [];
+            
+            // 检查是否已有 participantICs
+            if (chat.participantICs && chat.participantICs.length === 2) {
+                console.log(`跳过: ${chatDoc.id} (已有IC)`);
+                continue;
+            }
+            
+            const participantICs = [];
+            
+            for (const uid of participants) {
+                try {
+                    const userSnap = await getDoc(doc(db, "studentInform", uid));
+                    if (userSnap.exists()) {
+                        participantICs.push(userSnap.data().ic);
+                    } else {
+                        console.log(`用户不存在: ${uid}`);
+                        participantICs.push("unknown");
+                    }
+                } catch(e) {
+                    console.log(`获取IC失败: ${uid}`);
+                    participantICs.push("unknown");
+                }
+            }
+            
+            if (participantICs.length === 2) {
+                await updateDoc(chatDoc.ref, { participantICs: participantICs });
+                fixed++;
+                console.log(`✅ 修复: ${chatDoc.id} -> ICs: ${participantICs.join(', ')}`);
+            }
+        }
+        
+        console.log(`完成！共 ${total} 个聊天室，修复了 ${fixed} 个`);
+        alert(`修复完成！\n总聊天室: ${total}\n新修复: ${fixed}\n\n刷新页面后查看效果。`);
+        
+        if (fixed > 0) {
+            location.reload();
+        }
+    });
 </script>
 </body>
 </html>
