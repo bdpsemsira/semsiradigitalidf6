@@ -1251,6 +1251,7 @@
                 <button id="syncLastMessageBtn" style="width: 100%; padding: 10px; background: #5856D6; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 同步最后消息</button>
                 <button id="fullMigrationBtn" style="width: 100%; padding: 10px; background: #FF3B30; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 完整迁移消息到IC格式</button>
                 <button id="debugMessagesBtn" style="width: 100%; padding: 10px; background: #8E8E93; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🐛 调试消息数据</button>
+                <button id="testLoadChatBtn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔍 测试加载聊天室</button>
             </div>
             
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
@@ -3892,6 +3893,24 @@
             console.error("调试失败:", e);
             alert("错误: " + e.message);
         }
+    });
+    document.getElementById('testLoadChatBtn')?.addEventListener('click', async () => {
+        const currentUserIC = window.currentUserData?.ic;
+        console.log("当前用户IC:", currentUserIC);
+        
+        const chatsRef = collection(db, "chats");
+        const q = query(chatsRef, where("participantICs", "array-contains", currentUserIC), orderBy("lastMessageTime", "desc"));
+        const snapshot = await getDocs(q);
+        
+        console.log(`查询结果: ${snapshot.size} 个聊天室`);
+        snapshot.forEach(doc => {
+            const chat = doc.data();
+            console.log(`- ${doc.id}`);
+            console.log(`  lastMessage: "${chat.lastMessage}"`);
+            console.log(`  participantICs: ${chat.participantICs}`);
+        });
+        
+        alert(`找到 ${snapshot.size} 个包含您的聊天室\n\n详情请查看控制台`);
     });
 </script>
 </body>
