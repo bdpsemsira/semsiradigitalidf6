@@ -1249,6 +1249,7 @@
                 <button id="mergeDuplicateChatsBtn" style="width: 100%; padding: 10px; background: #34C759; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer;">🔗 合并重复聊天室</button>
                 <button id="fixLastMessageBtn" style="width: 100%; padding: 10px; background: #AF52DE; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">📝 修复最后消息显示</button>
                 <button id="syncLastMessageBtn" style="width: 100%; padding: 10px; background: #5856D6; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 同步最后消息</button>
+                <button id="fullMigrationBtn" style="width: 100%; padding: 10px; background: #FF3B30; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 完整迁移消息到IC格式</button>
             </div>
             
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
@@ -3755,7 +3756,93 @@
             btn.disabled = false;
         }
     });
-    
+    document.getElementById('fullMigrationBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('fullMigrationBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ 迁移中...";
+        btn.disabled = true;
+        
+        try {
+            const currentUserIC = window.currentUserData?.ic;
+            if (!currentUserIC) {
+                alert("无法获取当前用户IC");
+                return;
+            }
+            
+            // 1. 获取所有消息
+            const messagesRef = collection(db, "messages");
+            const messagesSnapshot = await getDocs(messagesRef);
+            console.log(`找到 ${messagesSnapshot.size} 条消息`);
+            
+            let migrated = 0;
+            let updatedChats = new Set();
+            
+            for (const msgDoc of messagesSnapshot.docs) {
+                const msg = msgDoc.data();
+                const oldChatId = msg.chatId;
+                
+                // 检查是否是 UID 格式（包含字母）
+                if (oldChatId && /[A-Za-z]/.test(oldChatId)) {
+                    // 从消息中获取发送者和接收者的 UID
+                    const senderId = msg.senderId;
+                    const parts = oldChatId.split('_');
+                    const receiverId = parts[0] === senderId ? parts[1] : parts[0];
+                    
+                    // 获取双方的 IC
+                    const senderSnap = await getDoc(doc(db, "studentInform", senderId));
+                    const receiverSnap = await getDoc(doc(db, "studentInform", receiverId));
+                    
+                    if (senderSnap.exists() && receiverSnap.exists()) {
+                        const senderIC = senderSnap.data().ic;
+                        const receiverIC = receiverSnap.data().ic;
+                        const sortedICs = [senderIC, receiverIC].sort();
+                        const newChatId = sortedICs.join('_');
+                        
+                        // 更新消息的 chatId
+                        await updateDoc(msgDoc.ref, { chatId: newChatId });
+                        migrated++;
+                        updatedChats.add(newChatId);
+                        console.log(`✅ 迁移消息: ${oldChatId} -> ${newChatId}`);
+                    }
+                }
+            }
+            
+            console.log(`迁移了 ${migrated} 条消息`);
+            
+            // 2. 更新受影响聊天室的 lastMessage
+            let updatedLastMsg = 0;
+            for (const chatId of updatedChats) {
+                const chatRef = doc(db, "chats", chatId);
+                const messagesQ = query(
+                    collection(db, "messages"), 
+                    where("chatId", "==", chatId), 
+                    orderBy("timestamp", "desc"), 
+                    limit(1)
+                );
+                const lastMsgSnap = await getDocs(messagesQ);
+                
+                if (!lastMsgSnap.empty) {
+                    const lastMsg = lastMsgSnap.docs[0].data();
+                    await updateDoc(chatRef, {
+                        lastMessage: lastMsg.text || "",
+                        lastMessageTime: lastMsg.timestamp || serverTimestamp()
+                    });
+                    updatedLastMsg++;
+                    console.log(`✅ 更新最后消息: ${chatId}`);
+                }
+            }
+            
+            alert(`迁移完成！\n消息迁移: ${migrated} 条\n聊天室更新: ${updatedLastMsg} 个\n\n刷新页面后生效。`);
+            location.reload();
+            
+        } catch(e) {
+            console.error("迁移失败:", e);
+            alert("错误: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
 </script>
 </body>
 </html>
