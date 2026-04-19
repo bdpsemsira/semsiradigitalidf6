@@ -1025,8 +1025,6 @@
 <div id="profileSettingsModal" class="leave-modal">
     <div class="leave-modal-content">
         <h4>⚙️ Kemaskini Profil</h4>
-
-        <button id="fixChatBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:8px 12px; background:#007AFF; color:white; border-radius:20px; z-index:9999; font-size:12px;">🔧 修复聊天室</button>
         
         <label style="font-size:13px; color:#888;">Nama Penuh:</label>
         <input type="text" id="settings-name" placeholder="Nama Penuh">
@@ -2002,13 +2000,14 @@
             console.error("Error loading students:", e);
         }
     }
-    
+
     // ========== 搜索学生 ==========
     window.searchStudents = function() {
         const searchTerm = document.getElementById('chat-search').value.toLowerCase().trim();
         const resultsDiv = document.getElementById('student-search-results');
         const startBtn = document.getElementById('chat-start-btn');
         
+        // 如果没有搜索词，只清空搜索结果，不清空聊天列表
         if (!searchTerm) {
             resultsDiv.innerHTML = '';
             startBtn.disabled = true;
@@ -2124,8 +2123,8 @@
             document.getElementById('chat-class').innerText = selectedChatUser.className;
             document.getElementById('chat-avatar').src = selectedChatUser.avatar;
             document.getElementById('chat-avatar').onerror = function() { this.src = '/semsira.png'; };
-            
-            // 隐藏聊天列表容器
+
+            // 暂时隐藏聊天列表容器（进入聊天后隐藏）
             document.getElementById('chat-list-container').style.display = 'none';
             // 隐藏搜索栏
             const searchContainer = document.getElementById('chat-search-container');
@@ -3466,70 +3465,6 @@
             renderCalendar();
         }
     }
-
-
-    document.getElementById('fixChatBtn')?.addEventListener('click', async () => {
-        console.log("开始修复聊天室...");
-        
-        // 获取所有消息的唯一 chatId
-        const messagesRef = collection(db, "messages");
-        const messagesSnapshot = await getDocs(messagesRef);
-        const uniqueChatIds = new Set();
-        messagesSnapshot.forEach(msgDoc => {
-            const msg = msgDoc.data();
-            if (msg.chatId) uniqueChatIds.add(msg.chatId);
-        });
-        console.log(`找到 ${uniqueChatIds.size} 个唯一的 chatId`);
-        
-        // 获取现有的 chats
-        const chatsRef = collection(db, "chats");
-        const existingChats = new Set();
-        const chatsSnapshot = await getDocs(chatsRef);
-        chatsSnapshot.forEach(chatDoc => existingChats.add(chatDoc.id));
-        
-        // 找出缺失的
-        const missingChatIds = [];
-        for (const chatId of uniqueChatIds) {
-            if (!existingChats.has(chatId)) missingChatIds.push(chatId);
-        }
-        console.log(`需要创建 ${missingChatIds.length} 个聊天室`);
-        
-        let created = 0;
-        for (const chatId of missingChatIds) {
-            const parts = chatId.split('_');
-            if (parts.length === 2) {
-                const p1 = parts[0], p2 = parts[1];
-                let name1 = "Unknown", name2 = "Unknown", ic1 = "unknown", ic2 = "unknown", av1 = "/semsira.png", av2 = "/semsira.png";
-                
-                try {
-                    const u1 = await getDoc(doc(db, "studentInform", p1));
-                    if (u1.exists()) { name1 = u1.data().name; ic1 = u1.data().ic; av1 = u1.data().avatarUrl || "/semsira.png"; }
-                } catch(e) {}
-                try {
-                    const u2 = await getDoc(doc(db, "studentInform", p2));
-                    if (u2.exists()) { name2 = u2.data().name; ic2 = u2.data().ic; av2 = u2.data().avatarUrl || "/semsira.png"; }
-                } catch(e) {}
-                
-                let lastMsg = "", lastTime = new Date();
-                try {
-                    const q = query(collection(db, "messages"), where("chatId", "==", chatId), orderBy("timestamp", "desc"), limit(1));
-                    const snap = await getDocs(q);
-                    if (!snap.empty) { lastMsg = snap.docs[0].data().text; const ts = snap.docs[0].data().timestamp; lastTime = ts?.toDate ? ts.toDate() : new Date(); }
-                } catch(e) {}
-                
-                await setDoc(doc(db, "chats", chatId), {
-                    chatId, participants: [p1, p2], participantICs: [ic1, ic2],
-                    participantNames: [name1, name2], participantAvatars: [av1, av2],
-                    lastMessage: lastMsg, lastMessageTime: lastTime, createdAt: new Date(),
-                    unreadCount: { [p1]: 0, [p2]: 0 }
-                });
-                created++;
-                console.log(`✅ 创建: ${chatId}`);
-            }
-        }
-        alert(`完成！创建了 ${created} 个聊天室，刷新页面即可看到。`);
-        location.reload();
-    });
 </script>
 </body>
 </html>
