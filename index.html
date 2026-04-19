@@ -1250,6 +1250,7 @@
                 <button id="fixLastMessageBtn" style="width: 100%; padding: 10px; background: #AF52DE; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">📝 修复最后消息显示</button>
                 <button id="syncLastMessageBtn" style="width: 100%; padding: 10px; background: #5856D6; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 同步最后消息</button>
                 <button id="fullMigrationBtn" style="width: 100%; padding: 10px; background: #FF3B30; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🔄 完整迁移消息到IC格式</button>
+                <button id="debugMessagesBtn" style="width: 100%; padding: 10px; background: #8E8E93; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-top: 8px; cursor: pointer;">🐛 调试消息数据</button>
             </div>
             
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
@@ -3841,6 +3842,55 @@
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;
+        }
+    });
+    document.getElementById('debugMessagesBtn')?.addEventListener('click', async () => {
+        try {
+            // 查看所有消息的 chatId
+            const messagesRef = collection(db, "messages");
+            const messagesSnapshot = await getDocs(messagesRef);
+            
+            console.log("========== 消息集合 ==========");
+            const chatIds = new Set();
+            messagesSnapshot.forEach(doc => {
+                const msg = doc.data();
+                chatIds.add(msg.chatId);
+                console.log(`消息ID: ${doc.id}, chatId: ${msg.chatId}, 内容: ${msg.text}`);
+            });
+            console.log(`共有 ${messagesSnapshot.size} 条消息`);
+            console.log(`唯一的 chatId: ${Array.from(chatIds).join(', ')}`);
+            
+            // 查看所有聊天室的 chatId
+            const chatsRef = collection(db, "chats");
+            const chatsSnapshot = await getDocs(chatsRef);
+            
+            console.log("========== 聊天室集合 ==========");
+            const chatIdsInChats = new Set();
+            chatsSnapshot.forEach(doc => {
+                const chat = doc.data();
+                chatIdsInChats.add(doc.id);
+                console.log(`聊天室ID: ${doc.id}, lastMessage: "${chat.lastMessage}"`);
+            });
+            console.log(`聊天室 chatId: ${Array.from(chatIdsInChats).join(', ')}`);
+            
+            // 找出匹配的
+            console.log("========== 匹配分析 ==========");
+            let matchCount = 0;
+            for (const msgChatId of chatIds) {
+                if (chatIdsInChats.has(msgChatId)) {
+                    matchCount++;
+                    console.log(`✅ 匹配: ${msgChatId}`);
+                } else {
+                    console.log(`❌ 不匹配: ${msgChatId}`);
+                }
+            }
+            console.log(`匹配率: ${matchCount}/${chatIds.size}`);
+            
+            alert(`调试完成！\n消息: ${messagesSnapshot.size} 条\n聊天室: ${chatsSnapshot.size} 个\n匹配: ${matchCount} 个\n\n详情请查看控制台(F12)`);
+            
+        } catch(e) {
+            console.error("调试失败:", e);
+            alert("错误: " + e.message);
         }
     });
 </script>
