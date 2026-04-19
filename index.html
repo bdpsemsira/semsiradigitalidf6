@@ -2496,10 +2496,13 @@
                         posterSlider.innerHTML = '<div class="glass" style="display:flex; align-items:center; justify-content:center; height:100%;">📱 Mod Offline</div>';
                     }
                 }
-                
+
                 setupAccountPage();
                 listenToAttendance(userData.ic);
                 loadMonthlyAttendanceData(userData.ic);
+                
+                // ========== 自动迁移旧数据到基于IC的格式 ==========
+                await migrateToICBasedChats();
                 
                 // 加载聊天列表
                 loadChatList();
@@ -3134,6 +3137,77 @@
             return `${date.getDate()}/${date.getMonth()+1}`;
         }
     }
+
+    // ========== 自动迁移：将现有聊天室和消息转换为基于IC的格式 ==========
+    async function migrateToICBasedChats() {
+        const userId = auth.currentUser.uid;
+        console.log("开始迁移聊天数据到基于IC的格式...");
+        
+        try {
+            // 1. 获取当前用户的IC
+            const userSnap = await getDoc(doc(db, COLLECTION_NAME, userId));
+            if (!userSnap.exists()) {
+                console.log("无法获取用户IC，跳过迁移");
+                return;
+            }
+            const myIC = userSnap.data().ic;
+            console.log("当前用户IC:", myIC);
+            
+            // 2. 获取所有聊天室
+            const chatsRef = collection(db, CHAT_COLLECTION);
+            const chatsSnapshot = await getDocs(chatsRef);
+            let migratedCount = 0;
+            
+            for (const chatDoc of chatsSnapshot.docs) {
+                const chatData = chatDoc.data();
+                
+                // 如果已经有 participantICs 字段，跳过
+                if (chatData.participantICs && chatData.participantICs.length > 0) {
+                    console.log("聊天室已有IC字段，跳过:", chatDoc.id);
+                    continue;
+                }
+                
+                const participants = chatData.participants || [];
+                const participantICs = [];
+                
+                // 获取每个参与者的IC
+                for (const uid of participants) {
+                    try {
+                        const userDoc = await getDoc(doc(db, COLLECTION_NAME, uid));
+                        if (userDoc.exists()) {
+                            participantICs.push(userDoc.data().ic);
+                        } else {
+                            console.log("用户文档不存在:", uid);
+                            participantICs.push("unknown");
+                        }
+                    } catch(e) {
+                        console.log("获取IC失败:", uid, e);
+                        participantICs.push("unknown");
+                    }
+                }
+                
+                if (participantICs.length === 2) {
+                    await updateDoc(chatDoc.ref, { 
+                        participantICs: participantICs 
+                    });
+                    migratedCount++;
+                    console.log(`✅ 迁移聊天室: ${chatDoc.id} -> ICs: ${participantICs.join(', ')}`);
+                }
+            }
+            
+            console.log(`聊天室迁移完成！共迁移 ${migratedCount} 个聊天室`);
+            
+            // 3. 迁移消息中的 chatId（如果需要）
+            // 注意：消息中的 chatId 保持不变，因为聊天室ID已经是基于UID的
+            // 新消息会使用新的IC-based chatId，旧消息仍然可以查询
+            
+        } catch(e) {
+            console.error("迁移过程中出错:", e);
+        }
+    }
+    
+    // 在 loadChatList() 之前调用迁移
+    await migrateToICBasedChats();
     
     // 加载用户的聊天列表
     let chatListUnsubscribe = null;
