@@ -1168,8 +1168,6 @@
         </div>
         
         <div class="glass" style="padding:20px">
-            <button id="fixUidChatsBtn" style="position:fixed; bottom:140px; right:10px; width:auto; padding:10px 15px; background:#FF9500; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔧 修复UID格式聊天室</button>
-            <button id="checkMyChatsBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:10px 15px; background:#007AFF; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔍 检查我的聊天室</button>
             <div class="profile-label"><span>No. Matrik:</span> <b id="prof-id">-</b></div>
             <div class="profile-label"><span>Nama:</span> <b id="prof-name">-</b></div>
             <div class="profile-label"><span>IC:</span> <b id="prof-ic">-</b></div>
@@ -1236,7 +1234,10 @@
                     <span class="slider"></span>
                 </label>
             </div>
-            
+
+            <button id="fixUidChatsBtn" style="position:fixed; bottom:140px; right:10px; width:auto; padding:10px 15px; background:#FF9500; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔧 修复UID格式聊天室</button>
+            <button id="checkMyChatsBtn" style="position:fixed; bottom:80px; right:10px; width:auto; padding:10px 15px; background:#007AFF; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔍 检查我的聊天室</button>   
+            <button id="mergeDuplicateChatsBtn" style="position:fixed; bottom:140px; right:10px; width:auto; padding:10px 15px; background:#FF9500; color:white; border-radius:25px; z-index:10000; font-size:13px; font-weight:bold;">🔧 合并重复聊天室</button>
             <button onclick="handleLogout()" style="background:#FF3B30; margin-top:20px">Log Keluar</button>
         </div>
     </div>
@@ -3532,6 +3533,75 @@
         });
         
         alert(`找到 ${count} 个包含您的聊天室\n\n详情请查看控制台(F12)`);
+    });
+    document.getElementById('mergeDuplicateChatsBtn')?.addEventListener('click', async () => {
+        console.log("开始合并重复聊天室...");
+        
+        // 获取所有聊天室
+        const chatsRef = collection(db, "chats");
+        const snapshot = await getDocs(chatsRef);
+        
+        // 按对方IC分组
+        const chatGroups = new Map(); // key: 对方IC, value: 聊天室列表
+        
+        for (const chatDoc of snapshot.docs) {
+            const chat = chatDoc.data();
+            const participantICs = chat.participantICs || [];
+            const currentUserIC = "070108020147";
+            
+            // 找到对方的IC
+            const otherIC = participantICs.find(ic => ic !== currentUserIC);
+            if (!otherIC || otherIC === "unknown") continue;
+            
+            if (!chatGroups.has(otherIC)) {
+                chatGroups.set(otherIC, []);
+            }
+            chatGroups.get(otherIC).push({
+                id: chatDoc.id,
+                ref: chatDoc.ref,
+                data: chat,
+                lastMessageTime: chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date(0)
+            });
+        }
+        
+        let merged = 0;
+        
+        for (const [otherIC, chats] of chatGroups) {
+            if (chats.length > 1) {
+                console.log(`对方IC ${otherIC} 有 ${chats.length} 个重复聊天室`);
+                
+                // 按最后消息时间排序，保留最新的
+                chats.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+                const keepChat = chats[0];
+                const deleteChats = chats.slice(1);
+                
+                console.log(`  保留: ${keepChat.id}`);
+                
+                for (const delChat of deleteChats) {
+                    console.log(`  删除: ${delChat.id}`);
+                    
+                    // 更新消息的 chatId 到保留的聊天室
+                    const messagesRef = collection(db, "messages");
+                    const q = query(messagesRef, where("chatId", "==", delChat.id));
+                    const messagesSnap = await getDocs(q);
+                    
+                    let msgCount = 0;
+                    for (const msgDoc of messagesSnap.docs) {
+                        await updateDoc(msgDoc.ref, { chatId: keepChat.id });
+                        msgCount++;
+                    }
+                    console.log(`    迁移了 ${msgCount} 条消息`);
+                    
+                    // 删除重复的聊天室
+                    await deleteDoc(delChat.ref);
+                    merged++;
+                }
+            }
+        }
+        
+        console.log(`合并完成！删除了 ${merged} 个重复聊天室`);
+        alert(`合并完成！删除了 ${merged} 个重复聊天室\n\n刷新页面后生效。`);
+        if (merged > 0) location.reload();
     });
     
 </script>
