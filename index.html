@@ -13,7 +13,7 @@
     
     <link rel="manifest" href="/manifest.json">
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <!-- ========== OneSignal SDK ========== -->
@@ -2063,6 +2063,7 @@
     
     // ========== QR Generator - Fixed for both mobile and desktop ==========
 // ========== QR Generator - Fixed for both mobile and desktop ==========
+// ========== QR Generator - Simplified & Reliable ==========
     let qr;
     let qrInitialized = false;
     
@@ -2076,7 +2077,7 @@
         // Clear container first
         qrContainer.innerHTML = '';
         
-        // ===== 关键修复：使用 window.QRCode 而不是 QRCode =====
+        // Check if QRCode library is loaded - use window.QRCode
         if (typeof window.QRCode === 'undefined') {
             console.warn("QRCode library not loaded yet, retrying in 500ms...");
             setTimeout(startQRGenerator, 500);
@@ -2084,16 +2085,17 @@
         }
         
         try {
-            if (!qr || !qrInitialized) {
-                qr = new window.QRCode(qrContainer, {
-                    width: 200,
-                    height: 200
-                });
-                qrInitialized = true;
-                console.log("QRCode initialized successfully");
-            }
+            // Create a new QRCode instance
+            qr = new window.QRCode(qrContainer, {
+                width: 200,
+                height: 200,
+                correctLevel: window.QRCode.CorrectLevel.H
+            });
+            qrInitialized = true;
+            console.log("QRCode initialized successfully");
         } catch(e) {
             console.error("QRCode init error:", e);
+            // Try without correctLevel
             try {
                 qr = new window.QRCode(qrContainer, {
                     width: 200,
@@ -2102,6 +2104,8 @@
                 qrInitialized = true;
             } catch(e2) {
                 console.error("QRCode re-init error:", e2);
+                // Fallback: show error message
+                qrContainer.innerHTML = '<div style="color:red;padding:20px;">⚠️ Gagal memuatkan QR</div>';
                 return;
             }
         }
@@ -2147,6 +2151,7 @@
                         timerEl.innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
                     }
                 } else {
+                    // Re-initialize
                     qrInitialized = false;
                     qr = null;
                     startQRGenerator();
@@ -2159,7 +2164,8 @@
             }
         };
         
-        updateQR();
+        // Initial update with delay to ensure QR is ready
+        setTimeout(updateQR, 100);
         
         if(qrUpdateInterval) {
             clearInterval(qrUpdateInterval);
