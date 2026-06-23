@@ -2062,8 +2062,7 @@
     };
     
     // ========== QR Generator - Fixed for both mobile and desktop ==========
-// ========== QR Generator - Fixed for both mobile and desktop ==========
-// ========== QR Generator - Simplified & Reliable ==========
+// ========== QR Generator - Fixed ==========
     let qr;
     let qrInitialized = false;
     
@@ -2076,8 +2075,10 @@
         
         // Clear container first
         qrContainer.innerHTML = '';
+        qrContainer.style.minHeight = '200px';
+        qrContainer.style.display = 'inline-block';
         
-        // Check if QRCode library is loaded - use window.QRCode
+        // Check if QRCode library is loaded
         if (typeof window.QRCode === 'undefined') {
             console.warn("QRCode library not loaded yet, retrying in 500ms...");
             setTimeout(startQRGenerator, 500);
@@ -2085,11 +2086,16 @@
         }
         
         try {
-            // Create a new QRCode instance
+            // Destroy old instance if exists
+            if (qr && typeof qr.clear === 'function') {
+                qr.clear();
+            }
+            
+            // Create new QRCode instance
             qr = new window.QRCode(qrContainer, {
                 width: 200,
                 height: 200,
-                correctLevel: window.QRCode.CorrectLevel.H
+                correctLevel: window.QRCode.CorrectLevel ? window.QRCode.CorrectLevel.H : 2
             });
             qrInitialized = true;
             console.log("QRCode initialized successfully");
@@ -2104,7 +2110,6 @@
                 qrInitialized = true;
             } catch(e2) {
                 console.error("QRCode re-init error:", e2);
-                // Fallback: show error message
                 qrContainer.innerHTML = '<div style="color:red;padding:20px;">⚠️ Gagal memuatkan QR</div>';
                 return;
             }
@@ -2150,6 +2155,8 @@
                     if (timerEl) {
                         timerEl.innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
                     }
+                    // QR berjaya, pastikan container kelihatan
+                    qrContainer.style.display = 'inline-block';
                 } else {
                     // Re-initialize
                     qrInitialized = false;
@@ -2160,12 +2167,14 @@
                 console.error("QR makeCode error:", e);
                 qrInitialized = false;
                 qr = null;
+                // Sembunyikan container kosong
+                qrContainer.style.display = 'none';
                 setTimeout(startQRGenerator, 1000);
             }
         };
         
-        // Initial update with delay to ensure QR is ready
-        setTimeout(updateQR, 100);
+        // Initial update with delay
+        setTimeout(updateQR, 200);
         
         if(qrUpdateInterval) {
             clearInterval(qrUpdateInterval);
@@ -2174,7 +2183,7 @@
         
         qrUpdateInterval = setInterval(updateQR, 10000);
     }
-
+  
     // ========== Offline-first login state handling ==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
