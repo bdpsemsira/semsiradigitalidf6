@@ -2064,7 +2064,7 @@
     // ========== QR Generator - Fixed for both mobile and desktop ==========
     let qr;
     let qrInitialized = false;
-
+    
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
         if (!qrContainer) {
@@ -2077,13 +2077,12 @@
         
         // Check if QRCode library is loaded
         if (typeof QRCode === 'undefined') {
-            console.warn("QRCode library not loaded yet, retrying...");
+            console.warn("QRCode library not loaded yet, retrying in 500ms...");
             setTimeout(startQRGenerator, 500);
             return;
         }
         
         try {
-            // Initialize QR code with simpler options
             if (!qr || !qrInitialized) {
                 qr = new QRCode(qrContainer, {
                     width: 200,
@@ -2094,7 +2093,6 @@
             }
         } catch(e) {
             console.error("QRCode init error:", e);
-            // Try simpler initialization
             try {
                 qr = new QRCode(qrContainer, {
                     width: 200,
@@ -2148,32 +2146,29 @@
                         timerEl.innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
                     }
                 } else {
-                    // Re-initialize if qr is not working
                     qrInitialized = false;
                     qr = null;
                     startQRGenerator();
                 }
             } catch(e) {
                 console.error("QR makeCode error:", e);
-                // Try to reinitialize
                 qrInitialized = false;
                 qr = null;
                 setTimeout(startQRGenerator, 1000);
             }
         };
         
-        // Initial update
         updateQR();
         
-        // Clear existing interval
         if(qrUpdateInterval) {
             clearInterval(qrUpdateInterval);
             qrUpdateInterval = null;
         }
         
-        // Set interval for 10 seconds
         qrUpdateInterval = setInterval(updateQR, 10000);
     }
+  
+        
 
     // ========== Offline-first login state handling ==========
     onAuthStateChanged(auth, async (user) => {
