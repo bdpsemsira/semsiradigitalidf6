@@ -2062,13 +2062,11 @@
     };
     
     // ========== QR Generator - Fixed for both mobile and desktop ==========
+// ========== QR Generator - Fixed for both mobile and desktop ==========
     let qr;
     let qrInitialized = false;
     
     function startQRGenerator() {
-
-        const QRCode = window.QRCode;  // 把 window.QRCode 赋值给局部变量
-        
         const qrContainer = document.getElementById('qrcode');
         if (!qrContainer) {
             console.warn("QR container not found");
@@ -2078,8 +2076,8 @@
         // Clear container first
         qrContainer.innerHTML = '';
         
-        // Check if QRCode library is loaded
-        if (typeof QRCode === 'undefined') {
+        // ===== 关键修复：使用 window.QRCode 而不是 QRCode =====
+        if (typeof window.QRCode === 'undefined') {
             console.warn("QRCode library not loaded yet, retrying in 500ms...");
             setTimeout(startQRGenerator, 500);
             return;
@@ -2087,7 +2085,7 @@
         
         try {
             if (!qr || !qrInitialized) {
-                qr = new QRCode(qrContainer, {
+                qr = new window.QRCode(qrContainer, {
                     width: 200,
                     height: 200
                 });
@@ -2097,7 +2095,7 @@
         } catch(e) {
             console.error("QRCode init error:", e);
             try {
-                qr = new QRCode(qrContainer, {
+                qr = new window.QRCode(qrContainer, {
                     width: 200,
                     height: 200
                 });
@@ -2170,8 +2168,6 @@
         
         qrUpdateInterval = setInterval(updateQR, 10000);
     }
-  
-        
 
     // ========== Offline-first login state handling ==========
     onAuthStateChanged(auth, async (user) => {
