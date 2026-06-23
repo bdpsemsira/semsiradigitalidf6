@@ -2066,6 +2066,9 @@
     let qrInitialized = false;
     
     function startQRGenerator() {
+
+        const QRCode = window.QRCode;  // 把 window.QRCode 赋值给局部变量
+        
         const qrContainer = document.getElementById('qrcode');
         if (!qrContainer) {
             console.warn("QR container not found");
