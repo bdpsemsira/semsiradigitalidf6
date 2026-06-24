@@ -2063,8 +2063,8 @@
     
     // ========== QR Generator - Fixed for both mobile and desktop ==========
 // ========== QR Generator - Fixed ==========
-    let qr;
-    let qrInitialized = false;
+// ========== QR Generator - Single QR Only ==========
+    let qr = null;
     
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
@@ -2073,7 +2073,7 @@
             return;
         }
         
-        // Clear container first
+        // Clear container - remove ALL children
         qrContainer.innerHTML = '';
         qrContainer.style.minHeight = '200px';
         qrContainer.style.display = 'inline-block';
@@ -2086,33 +2086,17 @@
         }
         
         try {
-            // Destroy old instance if exists
-            if (qr && typeof qr.clear === 'function') {
-                qr.clear();
-            }
-            
-            // Create new QRCode instance
+            // Create QRCode instance - this creates ONE element
             qr = new window.QRCode(qrContainer, {
                 width: 200,
                 height: 200,
                 correctLevel: window.QRCode.CorrectLevel ? window.QRCode.CorrectLevel.H : 2
             });
-            qrInitialized = true;
             console.log("QRCode initialized successfully");
         } catch(e) {
             console.error("QRCode init error:", e);
-            // Try without correctLevel
-            try {
-                qr = new window.QRCode(qrContainer, {
-                    width: 200,
-                    height: 200
-                });
-                qrInitialized = true;
-            } catch(e2) {
-                console.error("QRCode re-init error:", e2);
-                qrContainer.innerHTML = '<div style="color:red;padding:20px;">⚠️ Gagal memuatkan QR</div>';
-                return;
-            }
+            qrContainer.innerHTML = '<div style="color:red;padding:20px;">⚠️ Gagal memuatkan QR</div>';
+            return;
         }
         
         const updateQR = () => {
@@ -2150,31 +2134,27 @@
             
             try {
                 if (qr && typeof qr.makeCode === 'function') {
+                    // Clear existing content inside QR before generating new one
+                    // But keep the QR container's children (the canvas/img)
                     qr.makeCode(qrData);
                     const timerEl = document.getElementById('qr-timer');
                     if (timerEl) {
                         timerEl.innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
                     }
-                    // QR berjaya, pastikan container kelihatan
-                    qrContainer.style.display = 'inline-block';
                 } else {
-                    // Re-initialize
-                    qrInitialized = false;
+                    // Re-initialize if qr is not working
                     qr = null;
                     startQRGenerator();
                 }
             } catch(e) {
                 console.error("QR makeCode error:", e);
-                qrInitialized = false;
                 qr = null;
-                // Sembunyikan container kosong
-                qrContainer.style.display = 'none';
                 setTimeout(startQRGenerator, 1000);
             }
         };
         
-        // Initial update with delay
-        setTimeout(updateQR, 200);
+        // Update QR after a short delay
+        setTimeout(updateQR, 100);
         
         if(qrUpdateInterval) {
             clearInterval(qrUpdateInterval);
@@ -2183,6 +2163,7 @@
         
         qrUpdateInterval = setInterval(updateQR, 10000);
     }
+ 
   
     // ========== Offline-first login state handling ==========
     onAuthStateChanged(auth, async (user) => {
