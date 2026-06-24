@@ -2071,7 +2071,7 @@
             return;
         }
         
-        // ⭐ 关键：清空容器，移除所有旧的 QR 码
+        // 清空容器
         qrContainer.innerHTML = '';
         
         // 检查 QRCode 库是否加载
@@ -2092,7 +2092,6 @@
             ic = localStorage.getItem('semsira_cached_ic');
         }
         if (!ic) {
-            console.warn("No IC available");
             qrContainer.innerHTML = '<div style="color:#888;padding:20px;">Menunggu data...</div>';
             return;
         }
@@ -2109,23 +2108,35 @@
         const qrData = `${ic}|${ts}`;
         
         try {
-            // ⭐ 每次都重新创建 QRCode 实例
-            qr = new window.QRCode(qrContainer, {
+            // ✅ 创建 canvas 元素，直接传给 QRCode
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto';
+            canvas.style.backgroundColor = 'white';
+            canvas.style.borderRadius = '10px';
+            
+            // 用 canvas 初始化 QRCode
+            const qr = new window.QRCode(canvas, {
                 width: 200,
                 height: 200
             });
             qr.makeCode(qrData);
             
+            // 将 canvas 添加到容器
+            qrContainer.appendChild(canvas);
+            
             document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
-            console.log("QR generated:", qrData);
+            console.log("QR generated successfully:", qrData);
             
         } catch(e) {
             console.error("QR generation error:", e);
-            qrContainer.innerHTML = '<div style="color:red;padding:20px;">⚠️ Gagal menjana QR</div>';
+            // 显示具体错误信息，方便调试
+            qrContainer.innerHTML = `<div style="color:red;padding:20px;">⚠️ Gagal menjana QR: ${e.message}</div>`;
         }
     }
-        
- 
+
  
   
     // ========== Offline-first login state handling ==========
