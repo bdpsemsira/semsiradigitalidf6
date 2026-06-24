@@ -2108,20 +2108,8 @@
         const qrData = `${ic}|${ts}`;
         
         try {
-            // ✅ 先创建 canvas 并添加到容器
-            const canvas = document.createElement('canvas');
-            canvas.width = 200;
-            canvas.height = 200;
-            canvas.style.display = 'block';
-            canvas.style.margin = '0 auto';
-            canvas.style.backgroundColor = 'white';
-            canvas.style.borderRadius = '10px';
-            
-            // 添加到容器（必须先添加）
-            qrContainer.appendChild(canvas);
-            
-            // 然后用 QRCode 在 canvas 上绘制
-            const qr = new window.QRCode(canvas, {
+            // ✅ 直接传入容器 div，让库自己创建元素
+            const qr = new window.QRCode(qrContainer, {
                 width: 200,
                 height: 200
             });
@@ -2130,14 +2118,25 @@
             document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
             console.log("QR generated successfully:", qrData);
             
-            // 调试：检查 canvas 是否真的存在
-            console.log("Canvas in container:", qrContainer.querySelector('canvas'));
+            // ✅ 清理多余的空 div（如果有）
+            setTimeout(() => {
+                const children = qrContainer.children;
+                if (children.length > 1) {
+                    // 保留最后一个（通常是 img 或 canvas），删除前面的空 div
+                    for (let i = 0; i < children.length - 1; i++) {
+                        if (children[i].tagName === 'DIV' && children[i].innerHTML.trim() === '') {
+                            children[i].remove();
+                        }
+                    }
+                }
+            }, 100);
             
         } catch(e) {
             console.error("QR generation error:", e);
             qrContainer.innerHTML = `<div style="color:red;padding:20px;">⚠️ Gagal menjana QR: ${e.message}</div>`;
         }
     }
+   
   
   
     // ========== Offline-first login state handling ==========
