@@ -13,7 +13,7 @@
     
     <link rel="manifest" href="/manifest.json">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <!-- ========== OneSignal SDK ========== -->
@@ -2108,7 +2108,7 @@
         const qrData = `${ic}|${ts}`;
         
         try {
-            // ✅ 创建 canvas 元素，直接传给 QRCode
+            // ✅ 先创建 canvas 并添加到容器
             const canvas = document.createElement('canvas');
             canvas.width = 200;
             canvas.height = 200;
@@ -2117,27 +2117,28 @@
             canvas.style.backgroundColor = 'white';
             canvas.style.borderRadius = '10px';
             
-            // 用 canvas 初始化 QRCode
+            // 添加到容器（必须先添加）
+            qrContainer.appendChild(canvas);
+            
+            // 然后用 QRCode 在 canvas 上绘制
             const qr = new window.QRCode(canvas, {
                 width: 200,
                 height: 200
             });
             qr.makeCode(qrData);
             
-            // 将 canvas 添加到容器
-            qrContainer.appendChild(canvas);
-            
             document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
             console.log("QR generated successfully:", qrData);
             
+            // 调试：检查 canvas 是否真的存在
+            console.log("Canvas in container:", qrContainer.querySelector('canvas'));
+            
         } catch(e) {
             console.error("QR generation error:", e);
-            // 显示具体错误信息，方便调试
             qrContainer.innerHTML = `<div style="color:red;padding:20px;">⚠️ Gagal menjana QR: ${e.message}</div>`;
         }
     }
-
- 
+  
   
     // ========== Offline-first login state handling ==========
     onAuthStateChanged(auth, async (user) => {
