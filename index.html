@@ -2064,8 +2064,6 @@
     // ========== QR Generator - Fixed for both mobile and desktop ==========
 // ========== QR Generator - Fixed ==========
 // ========== QR Generator - Single QR Only ==========
-    let qr = null;
-    
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
         if (!qrContainer) {
@@ -2073,96 +2071,61 @@
             return;
         }
         
-        // Clear container - remove ALL children
+        // ⭐ 关键：清空容器，移除所有旧的 QR 码
         qrContainer.innerHTML = '';
-        qrContainer.style.minHeight = '200px';
-        qrContainer.style.display = 'inline-block';
         
-        // Check if QRCode library is loaded
+        // 检查 QRCode 库是否加载
         if (typeof window.QRCode === 'undefined') {
-            console.warn("QRCode library not loaded yet, retrying in 500ms...");
+            console.warn("QRCode library not loaded, retrying...");
             setTimeout(startQRGenerator, 500);
             return;
         }
         
-        try {
-            // Create QRCode instance - this creates ONE element
-            qr = new window.QRCode(qrContainer, {
-                width: 200,
-                height: 200,
-                correctLevel: window.QRCode.CorrectLevel ? window.QRCode.CorrectLevel.H : 2
-            });
-            console.log("QRCode initialized successfully");
-        } catch(e) {
-            console.error("QRCode init error:", e);
-            qrContainer.innerHTML = '<div style="color:red;padding:20px;">⚠️ Gagal memuatkan QR</div>';
+        // 获取 IC
+        let ic = cachedIC;
+        if (!ic && window.currentUserData && window.currentUserData.ic) {
+            ic = window.currentUserData.ic;
+            cachedIC = ic;
+            localStorage.setItem('semsira_cached_ic', ic);
+        }
+        if (!ic) {
+            ic = localStorage.getItem('semsira_cached_ic');
+        }
+        if (!ic) {
+            console.warn("No IC available");
+            qrContainer.innerHTML = '<div style="color:#888;padding:20px;">Menunggu data...</div>';
             return;
         }
         
-        const updateQR = () => {
-            if (isAttendedToday) { 
-                if(qrUpdateInterval) {
-                    clearInterval(qrUpdateInterval);
-                    qrUpdateInterval = null;
-                }
-                return; 
-            }
-            
-            let ic = cachedIC;
-            if (!ic && window.currentUserData && window.currentUserData.ic) {
-                ic = window.currentUserData.ic;
-                cachedIC = ic;
-                localStorage.setItem('semsira_cached_ic', ic);
-            }
-            if (!ic) {
-                ic = localStorage.getItem('semsira_cached_ic');
-            }
-            if (!ic) {
-                console.warn("No IC available for QR generation");
-                return;
-            }
-            
-            const now = new Date();
-            const ts = now.getFullYear() + 
-                       String(now.getMonth() + 1).padStart(2, '0') + 
-                       String(now.getDate()).padStart(2, '0') + 
-                       String(now.getHours()).padStart(2, '0') + 
-                       String(now.getMinutes()).padStart(2, '0') + 
-                       String(now.getSeconds()).padStart(2, '0');
-            
-            const qrData = `${ic}|${ts}`;
-            
-            try {
-                if (qr && typeof qr.makeCode === 'function') {
-                    // Clear existing content inside QR before generating new one
-                    // But keep the QR container's children (the canvas/img)
-                    qr.makeCode(qrData);
-                    const timerEl = document.getElementById('qr-timer');
-                    if (timerEl) {
-                        timerEl.innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
-                    }
-                } else {
-                    // Re-initialize if qr is not working
-                    qr = null;
-                    startQRGenerator();
-                }
-            } catch(e) {
-                console.error("QR makeCode error:", e);
-                qr = null;
-                setTimeout(startQRGenerator, 1000);
-            }
-        };
+        // 生成时间戳
+        const now = new Date();
+        const ts = now.getFullYear() +
+                   String(now.getMonth() + 1).padStart(2, '0') +
+                   String(now.getDate()).padStart(2, '0') +
+                   String(now.getHours()).padStart(2, '0') +
+                   String(now.getMinutes()).padStart(2, '0') +
+                   String(now.getSeconds()).padStart(2, '0');
         
-        // Update QR after a short delay
-        setTimeout(updateQR, 100);
+        const qrData = `${ic}|${ts}`;
         
-        if(qrUpdateInterval) {
-            clearInterval(qrUpdateInterval);
-            qrUpdateInterval = null;
+        try {
+            // ⭐ 每次都重新创建 QRCode 实例
+            qr = new window.QRCode(qrContainer, {
+                width: 200,
+                height: 200
+            });
+            qr.makeCode(qrData);
+            
+            document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
+            console.log("QR generated:", qrData);
+            
+        } catch(e) {
+            console.error("QR generation error:", e);
+            qrContainer.innerHTML = '<div style="color:red;padding:20px;">⚠️ Gagal menjana QR</div>';
         }
-        
-        qrUpdateInterval = setInterval(updateQR, 10000);
     }
+        
+ 
  
   
     // ========== Offline-first login state handling ==========
