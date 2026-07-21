@@ -1938,7 +1938,6 @@
         setTimeout(() => div.remove(), 2500);
     }
     
-
     // ========== 显示用户详情面板 ==========
     function showUserDetail(user) {
         if (!user) return;
@@ -1961,9 +1960,6 @@
         div.textContent = text;
         return div.innerHTML;
     }
-
-
-
 
     function renderCalendar() {
         const container = document.getElementById('calendarDaysContainer');
@@ -2010,55 +2006,56 @@
                 isFutureDate = true;
             }
             
-            let statusIcon = '';
+            // 确定状态
             let statusClass = '';
+            let statusIcon = '';
+            let isWeekendWithAttendance = false;
             
-            if (isWeekend) {
-                statusIcon = '';
-                statusClass = '';
-            } else if (attendance) {
+            // 检查是否有出席记录
+            if (attendance) {
                 if (attendance.status === "Hadir") {
+                    statusClass = 'status-hadir';
                     statusIcon = '✅';
-                    statusClass = 'hadir';
                 } else if (attendance.status === "Lewat") {
+                    statusClass = 'status-lewat';
                     statusIcon = '✅';
-                    statusClass = 'lewat';
                 }
+            } else if (isWeekend) {
+                // 周末没有出席记录
+                statusClass = 'weekend';
             } else if (!isFutureDate) {
+                // 过去日期没有出席记录 = 不 Hadir
+                statusClass = 'status-tidakhadir';
                 statusIcon = '❌';
-                statusClass = 'tidakhadir';
+            } else {
+                // 未来日期
+                statusClass = 'future-date';
+                statusIcon = '·';
             }
             
-            const weekendClass = isWeekend ? 'weekend' : '';
+            // 如果是周末但有出席记录，覆盖周末样式
+            if (isWeekend && attendance) {
+                // 使用出席状态的样式
+                if (attendance.status === "Hadir") {
+                    statusClass = 'status-hadir';
+                    statusIcon = '✅';
+                } else if (attendance.status === "Lewat") {
+                    statusClass = 'status-lewat';
+                    statusIcon = '✅';
+                }
+            }
             
             calendarHTML += `
-                <div class="calendar-day ${weekendClass}">
-                    <span>${day}</span>
-                    ${statusIcon ? `<div class="calendar-status ${statusClass}">${statusIcon}</div>` : '<div class="calendar-status" style="height: 22px;"></div>'}
+                <div class="calendar-day ${statusClass}">
+                    <span style="font-weight: bold; font-size: 14px;">${day}</span>
+                    ${statusIcon ? `<div style="font-size: 12px; margin-top: 2px;">${statusIcon}</div>` : '<div style="height: 18px;"></div>'}
                 </div>
             `;
         }
         
         container.innerHTML = calendarHTML;
     }
-    
-    window.changeMonth = (delta) => {
-        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
-        if (window.currentUserData && window.currentUserData.ic) {
-            loadMonthlyAttendanceData(window.currentUserData.ic);
-        } else {
-            renderCalendar();
-        }
-    };
-    
-    window.renderCalendar = renderCalendar;
-    
-    const cachedIcFromStorage = localStorage.getItem('semsira_cached_ic');
-    if (cachedIcFromStorage) {
-        cachedIC = cachedIcFromStorage;
-    }
-    
-    // ========== 离线优先的登录状态处理 ==========
+
     // ========== 简化的登录状态处理（无离线缓存）==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
