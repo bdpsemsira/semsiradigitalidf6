@@ -2079,10 +2079,10 @@
             if (attendance) {
                 if (attendance.status === "Hadir") {
                     statusClass = 'status-hadir';
-                    statusIcon = '✅';
+                    statusIcon = '';
                 } else if (attendance.status === "Lewat") {
                     statusClass = 'status-lewat';
-                    statusIcon = '✅';
+                    statusIcon = '';
                 }
             } else if (isWeekend) {
                 // 周末没有出席记录
@@ -2090,7 +2090,7 @@
             } else if (!isFutureDate) {
                 // 过去日期没有出席记录 = 不 Hadir
                 statusClass = 'status-tidakhadir';
-                statusIcon = '❌';
+                statusIcon = '';
             } else {
                 // 未来日期
                 statusClass = 'future-date';
@@ -2102,10 +2102,10 @@
                 // 使用出席状态的样式
                 if (attendance.status === "Hadir") {
                     statusClass = 'status-hadir';
-                    statusIcon = '✅';
+                    statusIcon = '';
                 } else if (attendance.status === "Lewat") {
                     statusClass = 'status-lewat';
-                    statusIcon = '✅';
+                    statusIcon = '';
                 }
             }
             
