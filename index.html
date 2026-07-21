@@ -2062,8 +2062,6 @@
     };
     
     // ========== QR Generator - Fixed for both mobile and desktop ==========
-// ========== QR Generator - Fixed ==========
-// ========== QR Generator - Single QR Only ==========
     function startQRGenerator() {
         const qrContainer = document.getElementById('qrcode');
         if (!qrContainer) {
@@ -2071,7 +2069,12 @@
             return;
         }
         
-        // 清空容器
+        // ===== 关键：彻底清理容器 =====
+        // 方法1：移除所有子节点
+        while (qrContainer.firstChild) {
+            qrContainer.removeChild(qrContainer.firstChild);
+        }
+        // 方法2：清空HTML（双重保险）
         qrContainer.innerHTML = '';
         
         // 检查 QRCode 库是否加载
@@ -2108,8 +2111,13 @@
         const qrData = `${ic}|${ts}`;
         
         try {
-            // ✅ 直接传入容器 div，让库自己创建元素
-            const qr = new window.QRCode(qrContainer, {
+            // 创建专用的子容器（最佳实践）
+            const qrInner = document.createElement('div');
+            qrInner.id = 'qr-inner-container';
+            qrContainer.appendChild(qrInner);
+            
+            // 在子容器中生成QR码
+            const qr = new window.QRCode(qrInner, {
                 width: 200,
                 height: 200
             });
@@ -2117,19 +2125,6 @@
             
             document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
             console.log("QR generated successfully:", qrData);
-            
-            // ✅ 清理多余的空 div（如果有）
-            setTimeout(() => {
-                const children = qrContainer.children;
-                if (children.length > 1) {
-                    // 保留最后一个（通常是 img 或 canvas），删除前面的空 div
-                    for (let i = 0; i < children.length - 1; i++) {
-                        if (children[i].tagName === 'DIV' && children[i].innerHTML.trim() === '') {
-                            children[i].remove();
-                        }
-                    }
-                }
-            }, 100);
             
         } catch(e) {
             console.error("QR generation error:", e);
