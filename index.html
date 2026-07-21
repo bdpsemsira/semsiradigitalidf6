@@ -13,7 +13,7 @@
     
     <link rel="manifest" href="/manifest.json">
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <!-- ========== OneSignal SDK ========== -->
@@ -59,10 +59,6 @@
             --notification-bg: #0A84FF;
         }
 
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg);
@@ -73,7 +69,6 @@
             user-select: none;
             -webkit-user-select: none;
             transition: background-color 0.3s ease;
-            -webkit-text-size-adjust: 100%;
         }
 
         #watermark-layer {
@@ -164,18 +159,12 @@
             border-radius: 10px; border: 1px solid var(--border);
             box-sizing: border-box; font-size: 16px;
             background: var(--card); color: var(--text);
-            -webkit-appearance: none;
-            appearance: none;
         }
 
         button {
             width: 100%; padding: 14px; background-color: var(--primary);
             color: white; border: none; border-radius: 12px;
             font-weight: 600; font-size: 16px; margin-top: 10px;
-            -webkit-appearance: none;
-            appearance: none;
-            cursor: pointer;
-            touch-action: manipulation;
         }
 
         .nav-bar {
@@ -183,29 +172,9 @@
             display: flex; justify-content: space-around; align-items: center;
             background: var(--nav-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             border-top: 1px solid var(--border); z-index: 1000;
-            padding-bottom: env(safe-area-inset-bottom);
         }
 
-        .nav-item { 
-            text-align: center; 
-            color: #8E8E93; 
-            font-size: 11px; 
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            padding: 4px 12px;
-            min-width: 60px;
-            touch-action: manipulation;
-        }
-        
-        .nav-item svg {
-            width: 24px;
-            height: 24px;
-            stroke-width: 2;
-        }
-        
+        .nav-item { text-align: center; color: #8E8E93; font-size: 12px; cursor: pointer; }
         .nav-item.active-nav { color: var(--primary); }
 
         #poster-slider {
@@ -246,7 +215,6 @@
         
         .switch {
             position: relative; display: inline-block; width: 50px; height: 28px;
-            flex-shrink: 0;
         }
         
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -274,22 +242,31 @@
             position: relative;
             min-width: 200px;
             min-height: 200px;
-            text-align: center;
         }
         
         #qrcode canvas,
         #qrcode img {
             background-color: white !important;
             border-radius: 10px;
-            display: block !important;
-            margin: 0 auto !important;
-            max-width: 100% !important;
-            height: auto !important;
         }
 
-        /* QR overlay - hidden by default, now show QR directly */
         #qr-unlock-overlay {
-            display: none !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--card);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            cursor: pointer;
+            border: 2px dashed var(--primary);
+            box-sizing: border-box;
+            backdrop-filter: blur(5px);
         }
 
         .profile-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
@@ -459,7 +436,6 @@
             color: white;
             font-size: 14px;
             cursor: pointer;
-            touch-action: manipulation;
         }
         
         .calendar-nav button:active {
@@ -517,41 +493,21 @@
             opacity: 0.4;
         }
         
-        /* Calendar status - now using bright colors instead of symbols */
-        .calendar-day.hadir {
-            background: #34C759 !important;
-            color: white !important;
-            font-weight: bold;
-        }
-        
-        .calendar-day.tidakhadir {
-            background: #FF3B30 !important;
-            color: white !important;
-            font-weight: bold;
-        }
-        
-        .calendar-day.lewat {
-            background: #FF9500 !important;
-            color: white !important;
-            font-weight: bold;
-        }
-        
         .calendar-status {
-            font-size: 10px;
+            font-size: 14px;
             margin-top: 2px;
-            font-weight: bold;
         }
         
         .calendar-status.hadir {
-            color: white;
+            color: var(--calendar-hadir);
         }
         
         .calendar-status.lewat {
-            color: white;
+            color: var(--calendar-lewat);
         }
         
         .calendar-status.tidakhadir {
-            color: white;
+            color: var(--calendar-tidakhadir);
         }
         
         .calendar-legend {
@@ -575,12 +531,11 @@
             height: 18px;
             border-radius: 5px;
             display: inline-block;
-            flex-shrink: 0;
         }
         
-        .legend-icon.hadir { background: #34C759; }
-        .legend-icon.lewat { background: #FF9500; }
-        .legend-icon.tidakhadir { background: #FF3B30; }
+        .legend-icon.hadir { background: var(--calendar-hadir); }
+        .legend-icon.lewat { background: var(--calendar-lewat); }
+        .legend-icon.tidakhadir { background: var(--calendar-tidakhadir); }
         .legend-icon.weekend { background: var(--calendar-weekend); border: 1px solid var(--border); }
         .legend-icon.future { background: #E5E5EA; border: 1px dashed #999; }
         
@@ -638,40 +593,13 @@
             100% { transform: scale(1); }
         }
         
-        /* Search box styles */
-        .search-container {
-            margin-bottom: 15px;
-        }
-        
-        .search-container input {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: var(--card);
-            color: var(--text);
-            font-size: 15px;
-            box-sizing: border-box;
-        }
-        
-        .search-container input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        
-        .search-highlight {
-            background-color: #FFEB3B;
-            padding: 0 2px;
-            border-radius: 2px;
-        }
-        
         @media (max-width: 500px) {
             .calendar-day {
                 font-size: 10px;
                 padding: 3px 1px;
             }
             .calendar-status {
-                font-size: 10px;
+                font-size: 12px;
             }
             .calendar-weekdays {
                 font-size: 10px;
@@ -710,25 +638,6 @@
                 font-size: 12px;
                 padding: 10px 12px;
             }
-            .nav-item {
-                font-size: 10px;
-                min-width: 50px;
-                padding: 4px 8px;
-            }
-            .nav-item svg {
-                width: 22px;
-                height: 22px;
-            }
-            #qrcode {
-                padding: 15px;
-                min-width: 150px;
-                min-height: 150px;
-            }
-            #qrcode canvas,
-            #qrcode img {
-                width: 150px !important;
-                height: 150px !important;
-            }
         }
         
         @media (max-width: 380px) {
@@ -736,29 +645,10 @@
                 font-size: 9px;
             }
             .calendar-status {
-                font-size: 9px;
+                font-size: 10px;
             }
             .calendar-weekdays {
                 font-size: 9px;
-            }
-            .nav-item {
-                font-size: 9px;
-                min-width: 40px;
-                padding: 2px 4px;
-            }
-            .nav-item svg {
-                width: 20px;
-                height: 20px;
-            }
-            #qrcode {
-                padding: 10px;
-                min-width: 120px;
-                min-height: 120px;
-            }
-            #qrcode canvas,
-            #qrcode img {
-                width: 120px !important;
-                height: 120px !important;
             }
         }
 
@@ -794,8 +684,6 @@
             border-radius: 20px;
             padding: 20px;
             border: 1px solid var(--border);
-            max-height: 90vh;
-            overflow-y: auto;
         }
         
         .leave-modal-content h4 {
@@ -859,9 +747,6 @@
             font-size: 14px;
             z-index: 40000;
             white-space: nowrap;
-            max-width: 90%;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         /* ========== 强制 IMBAS 页面始终亮色模式 ========== */
@@ -884,6 +769,10 @@
             background: white !important;
             color: #000000 !important;
         }
+        
+        #tab-imbas #qr-unlock-overlay {
+            background: rgba(255, 255, 255, 0.98) !important;
+        }
 
         #tab-imbas p,
         #tab-imbas h3,
@@ -902,6 +791,97 @@
         
         #tab-imbas .status-text.status-tidak-hadir {
             color: #FF3B30 !important;
+        }
+        
+        /* Chat 页面样式 */
+        .chat-message {
+            display: flex;
+            margin-bottom: 15px;
+            animation: messageSlideIn 0.3s ease;
+        }
+        
+        @keyframes messageSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chat-message.sent {
+            justify-content: flex-end;
+        }
+        
+        .chat-message.received {
+            justify-content: flex-start;
+        }
+        
+        .message-bubble {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        
+        .chat-message.sent .message-bubble {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-message.received .message-bubble {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-time {
+            font-size: 10px;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+        
+        .chat-message.sent .message-time {
+            text-align: right;
+        }
+        
+        .student-search-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .student-search-item:hover {
+            background: var(--card);
+        }
+        
+        .student-search-item.selected {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .student-avatar-small {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .student-info {
+            flex: 1;
+        }
+        
+        .student-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        .student-class {
+            font-size: 12px;
+            opacity: 0.7;
         }
         
         /* 用户详情面板 */
@@ -1003,7 +983,6 @@
             <option>6 UMMU KALTHOM</option><option>6 ZAINAB</option><option>6 AL FARABI</option>
             <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option><option>6 AL MAWARDI</option>
             <option>6 AL RAZI</option><option>6 IBNU KHALDUN</option><option>6 IBNU RUSYD</option>
-            <option>6 IBNU SINA</option>
         </select>
         <input type="text" id="reg-dob" placeholder="Tarikh Lahir" readonly>
         <input type="text" id="reg-gender" placeholder="Jantina" readonly>
@@ -1067,7 +1046,6 @@
             <option>6 AL GHAZALI</option><option>6 AL KHWARIZMI</option><option>6 AL KHINDI</option>
             <option>6 AL MAWARDI</option><option>6 AL RAZI</option><option>6 IBNU KHALDUN</option>
             <option>6 IBNU RUSYD</option>
-            <option>6 IBNU SINA</option>
         </select>
         
         <label style="font-size:13px; color:#888;">Pilih Avatar:</label>
@@ -1099,12 +1077,6 @@
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
             <h3>UTAMA</h3>
         </div>
-        
-        <!-- Search Box -->
-        <div class="search-container">
-            <input type="text" id="home-search" placeholder="🔍 Cari pengumuman..." onkeyup="searchAnnouncements()">
-        </div>
-        
         <div id="poster-slider" class="glass"></div>
         <div id="notification-prompt-area"></div>
         <h4>Pengumuman</h4>
@@ -1118,8 +1090,12 @@
         </div>
         <p id="scan-instruction">Sila tunjukkan kod QR ini kepada guru bertugas.</p>
         
-        <div id="qrcode" style="text-align:center;">
-            <!-- QR will be displayed here -->
+        <div id="qrcode">
+            <div id="qr-unlock-overlay" onclick="startSystem()">
+                <i data-lucide="touch-app" style="color:var(--primary); width: 40px; height:40px; margin-bottom:10px;"></i>
+                <div style="font-weight:bold; font-size:14px; color:var(--primary)">KETUK UNTUK IMBAS</div>
+                <div style="font-size:10px; color:#888; margin-top:5px;">Klik untuk aktifkan kod QR & bunyi</div>
+            </div>
         </div>
 
         <p id="qr-timer" style="font-size:12px; color:#888"></p>
@@ -1131,6 +1107,50 @@
         </div>
     </div>
 
+    <!-- CHAT 页面 -->
+    <div id="tab-chat" class="page">
+        <div class="header-container">
+            <img src="/semsira.png" alt="Logo" class="app-header-logo">
+            <h3>CHAT</h3>
+        </div>
+        
+        <!-- 聊天列表 -->
+        <div id="chat-list-container" class="glass" style="margin-bottom: 15px; max-height: 350px; overflow-y: auto;">
+            <div style="padding: 12px; font-weight: bold; border-bottom: 1px solid var(--border);">💬 Chat Terkini</div>
+            <div id="chat-list" style="min-height: 50px;">
+                <div style="text-align: center; padding: 20px; color: #888;">Memuatkan...</div>
+            </div>
+        </div>
+        
+        <!-- 搜索栏 -->
+        <div class="glass" style="padding: 15px; margin-bottom: 15px;" id="chat-search-container">
+            <input type="text" id="chat-search" placeholder="🔍 Cari nama pelajar..." onkeyup="searchStudents()">
+            <div id="student-search-results" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
+            <button id="chat-start-btn" onclick="startChat()" style="margin-top: 10px;" disabled>💬 Mula Chat</button>
+        </div>
+        
+        <!-- 聊天区域 -->
+        <div id="chat-container" style="display: none;">
+            <div class="glass" style="padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
+                <img id="chat-avatar" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; cursor: pointer;" onclick="showChatUserDetail()">
+                <div style="flex: 1;">
+                    <div id="chat-name" style="font-weight: bold;"></div>
+                    <div id="chat-class" style="font-size: 12px; color: #888;"></div>
+                </div>
+                <div style="cursor: pointer;" onclick="closeChat()">✕</div>
+            </div>
+            
+            <div id="chat-messages" style="height: 400px; overflow-y: auto; padding: 10px; background: var(--card); border-radius: 15px; margin-bottom: 10px;">
+                <div style="text-align: center; color: #888; padding: 20px;">Pilih pelajar untuk memulakan chat</div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="chat-input" placeholder="Taip mesej..." style="flex: 1;" onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" style="width: auto; padding: 12px 20px;">📤 Hantar</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- AKAUN 页面 -->
     <div id="tab-akaun" class="page">
         <div class="header-container">
@@ -1141,9 +1161,10 @@
             </div>
         </div>
         
-        <!-- 头像区域 - removed "Tukar Avatar" text -->
+        <!-- 头像区域 -->
         <div style="text-align: center; margin-bottom: 20px;">
             <img id="profile-avatar" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
+            <div style="margin-top: 8px; font-size: 12px; color: var(--primary);" onclick="openProfileSettings()">📸 Tukar Avatar</div>
         </div>
         
         <div class="glass" style="padding:20px">
@@ -1213,7 +1234,7 @@
                     <span class="slider"></span>
                 </label>
             </div>
-    
+            
             <div id="devPanel" style="display: none; margin-top: 10px;">
                 <button id="fixUidChatsBtn" style="width: 100%; padding: 10px; background: #FF9500; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 8px; cursor: pointer;">🔧 修复UID格式聊天室</button>
                 <button id="checkMyChatsBtn" style="width: 100%; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; margin-bottom: 8px; cursor: pointer;">🔍 检查我的聊天室</button>
@@ -1297,7 +1318,7 @@
 
     let currentTabId = 'tab-home';
     
-    // Chat related variables - kept for compatibility
+    // Chat 相关变量
     let allStudents = [];
     let selectedChatUser = null;
     let messagesUnsubscribe = null;
@@ -1306,11 +1327,11 @@
     window.history.pushState({ tab: 'tab-home' }, '');
     window.addEventListener('popstate', handleBackButton);
 
-    // ========== Page switching function ==========
+    // ========== 页面切换函数 ==========
     window.switchTab = function(id, el) {
         console.log("Switching to tab:", id);
         
-        const pages = ['tab-home', 'tab-imbas', 'tab-akaun'];
+        const pages = ['tab-home', 'tab-imbas', 'tab-chat', 'tab-akaun'];
         for (let i = 0; i < pages.length; i++) {
             const page = document.getElementById(pages[i]);
             if (page) {
@@ -1341,12 +1362,11 @@
             window.history.pushState({ tab: id }, '');
         } catch(e) {}
         
-        // Re-render icons when switching tabs
-        setTimeout(() => {
-            if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                lucide.createIcons();
-            }
-        }, 100);
+        // 离开聊天页面时断开监听
+        if (id !== 'tab-chat' && messagesUnsubscribe) {
+            messagesUnsubscribe();
+            messagesUnsubscribe = null;
+        }
     };
 
     function handleBackButton(event) {
@@ -1361,6 +1381,7 @@
         let activePageId = 'tab-home';
         if (document.getElementById('tab-home').classList.contains('active')) activePageId = 'tab-home';
         else if (document.getElementById('tab-imbas').classList.contains('active')) activePageId = 'tab-imbas';
+        else if (document.getElementById('tab-chat').classList.contains('active')) activePageId = 'tab-chat';
         else if (document.getElementById('tab-akaun').classList.contains('active')) activePageId = 'tab-akaun';
         
         if (activePageId === 'tab-home') {
@@ -1456,8 +1477,18 @@
         return true;
     }
 
-    // Start QR generator automatically without requiring tap
-    window.startSystem = function() {
+    window.startSystem = () => {
+        const sound = document.getElementById('beep-sound');
+        sound.play().then(() => {
+            sound.pause(); 
+            sound.currentTime = 0;
+            isAudioUnlocked = true;
+            console.log("Audio Unlocked!");
+        }).catch(e => console.error("Audio failed:", e));
+
+        const overlay = document.getElementById('qr-unlock-overlay');
+        if(overlay) overlay.style.display = 'none';
+
         startQRGenerator();
     };
 
@@ -1821,8 +1852,7 @@
             '6 AL FARABI': 'Al Farabi', '6 AL GHAZALI': 'Al Ghazali',
             '6 AL KHWARIZMI': 'Al Khawarizmi', '6 AL KHINDI': 'Al Khindi',
             '6 AL MAWARDI': 'Al Mawardi', '6 AL RAZI': 'Al Razi',
-            '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd',
-            '6 IBNU SINA': 'Ibnu Sina'
+            '6 IBNU KHALDUN': 'Ibnu Khaldun', '6 IBNU RUSYD': 'Ibnu Rusyd'
         };
         
         const teacherClassName = classMapping[className] || className;
@@ -1951,6 +1981,33 @@
         document.body.appendChild(div);
         setTimeout(() => div.remove(), 2500);
     }
+    
+
+    // ========== 显示用户详情面板 ==========
+    function showUserDetail(user) {
+        if (!user) return;
+        
+        document.getElementById('detail-name').innerText = user.name;
+        document.getElementById('detail-class').innerText = user.className;
+        document.getElementById('detail-dob').innerHTML = `Tarikh Lahir: ${user.dob || 'Tidak diketahui'}`;
+        document.getElementById('detail-avatar').src = user.avatar || '/semsira.png';
+        document.getElementById('detail-avatar').onerror = function() { this.src = '/semsira.png'; };
+        
+        document.getElementById('userDetailPanel').classList.add('active');
+    }
+    
+    window.closeUserDetail = function() {
+        document.getElementById('userDetailPanel').classList.remove('active');
+    };
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+
+
 
     function renderCalendar() {
         const container = document.getElementById('calendarDaysContainer');
@@ -1997,29 +2054,31 @@
                 isFutureDate = true;
             }
             
+            let statusIcon = '';
             let statusClass = '';
-            let statusText = '';
             
             if (isWeekend) {
-                statusClass = 'weekend';
-                statusText = '';
+                statusIcon = '';
+                statusClass = '';
             } else if (attendance) {
                 if (attendance.status === "Hadir") {
+                    statusIcon = '✅';
                     statusClass = 'hadir';
-                    statusText = 'Hadir';
                 } else if (attendance.status === "Lewat") {
+                    statusIcon = '✅';
                     statusClass = 'lewat';
-                    statusText = 'Lewat';
                 }
             } else if (!isFutureDate) {
+                statusIcon = '❌';
                 statusClass = 'tidakhadir';
-                statusText = 'Tidak';
             }
             
+            const weekendClass = isWeekend ? 'weekend' : '';
+            
             calendarHTML += `
-                <div class="calendar-day ${statusClass}">
+                <div class="calendar-day ${weekendClass}">
                     <span>${day}</span>
-                    ${statusText ? `<div class="calendar-status ${statusClass}">${statusText}</div>` : '<div class="calendar-status" style="height: 16px;"></div>'}
+                    ${statusIcon ? `<div class="calendar-status ${statusClass}">${statusIcon}</div>` : '<div class="calendar-status" style="height: 22px;"></div>'}
                 </div>
             `;
         }
@@ -2043,98 +2102,7 @@
         cachedIC = cachedIcFromStorage;
     }
     
-    // ========== Search announcements ==========
-    window.searchAnnouncements = function() {
-        const searchTerm = document.getElementById('home-search').value.toLowerCase().trim();
-        const posts = document.querySelectorAll('.post-card');
-        
-        posts.forEach(post => {
-            const title = post.querySelector('b')?.textContent?.toLowerCase() || '';
-            const content = post.querySelector('div')?.textContent?.toLowerCase() || '';
-            const fullText = title + ' ' + content;
-            
-            if (!searchTerm || fullText.includes(searchTerm)) {
-                post.style.display = 'block';
-            } else {
-                post.style.display = 'none';
-            }
-        });
-    };
-    
-    // ========== QR Generator - Fixed for both mobile and desktop ==========
-    function startQRGenerator() {
-        const qrContainer = document.getElementById('qrcode');
-        if (!qrContainer) {
-            console.warn("QR container not found");
-            return;
-        }
-        
-        // ===== 关键：彻底清理容器 =====
-        // 方法1：移除所有子节点
-        while (qrContainer.firstChild) {
-            qrContainer.removeChild(qrContainer.firstChild);
-        }
-        // 方法2：清空HTML（双重保险）
-        qrContainer.innerHTML = '';
-        
-        // 检查 QRCode 库是否加载
-        if (typeof window.QRCode === 'undefined') {
-            console.warn("QRCode library not loaded, retrying...");
-            setTimeout(startQRGenerator, 500);
-            return;
-        }
-        
-        // 获取 IC
-        let ic = cachedIC;
-        if (!ic && window.currentUserData && window.currentUserData.ic) {
-            ic = window.currentUserData.ic;
-            cachedIC = ic;
-            localStorage.setItem('semsira_cached_ic', ic);
-        }
-        if (!ic) {
-            ic = localStorage.getItem('semsira_cached_ic');
-        }
-        if (!ic) {
-            qrContainer.innerHTML = '<div style="color:#888;padding:20px;">Menunggu data...</div>';
-            return;
-        }
-        
-        // 生成时间戳
-        const now = new Date();
-        const ts = now.getFullYear() +
-                   String(now.getMonth() + 1).padStart(2, '0') +
-                   String(now.getDate()).padStart(2, '0') +
-                   String(now.getHours()).padStart(2, '0') +
-                   String(now.getMinutes()).padStart(2, '0') +
-                   String(now.getSeconds()).padStart(2, '0');
-        
-        const qrData = `${ic}|${ts}`;
-        
-        try {
-            // 创建专用的子容器（最佳实践）
-            const qrInner = document.createElement('div');
-            qrInner.id = 'qr-inner-container';
-            qrContainer.appendChild(qrInner);
-            
-            // 在子容器中生成QR码
-            const qr = new window.QRCode(qrInner, {
-                width: 200,
-                height: 200
-            });
-            qr.makeCode(qrData);
-            
-            document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
-            console.log("QR generated successfully:", qrData);
-            
-        } catch(e) {
-            console.error("QR generation error:", e);
-            qrContainer.innerHTML = `<div style="color:red;padding:20px;">⚠️ Gagal menjana QR: ${e.message}</div>`;
-        }
-    }
-   
-  
-  
-    // ========== Offline-first login state handling ==========
+    // ========== 离线优先的登录状态处理 ==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
         const splash = document.getElementById('splash-screen');
@@ -2152,16 +2120,18 @@
                 if (snap.exists()) {
                     userData = snap.data();
                     
-                    // Check if account has been deleted
+                    // ========== 新增：检查账号是否已被管理员删除 ==========
                     if (userData.isDeleted === true) {
                         console.log("Account has been deleted by admin");
                         toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
+                        // 清除本地缓存
                         localStorage.removeItem('semsira_cached_user_' + user.uid);
                         localStorage.removeItem('semsira_cached_ic');
                         await signOut(auth);
                         loadingOverlay.style.display = 'none';
                         return;
                     }
+                    // ====================================================
                     
                     localStorage.setItem('semsira_cached_user_' + user.uid, JSON.stringify(userData));
                     cachedIC = userData.ic;
@@ -2175,6 +2145,7 @@
                 if (cachedUserData) {
                     userData = JSON.parse(cachedUserData);
                     
+                    // ========== 新增：检查缓存中的数据是否已被删除 ==========
                     if (userData.isDeleted === true) {
                         console.log("Cached account has been deleted");
                         toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
@@ -2184,6 +2155,7 @@
                         loadingOverlay.style.display = 'none';
                         return;
                     }
+                    // ====================================================
                     
                     cachedIC = userData.ic;
                 } else {
@@ -2194,7 +2166,7 @@
                 }
             }
             
-            // Double check
+            // ========== 双重保险：再次检查 ==========
             if (userData && userData.isDeleted === true) {
                 toast("❌ Akaun anda telah dipadamkan.");
                 localStorage.removeItem('semsira_cached_user_' + user.uid);
@@ -2202,6 +2174,7 @@
                 loadingOverlay.style.display = 'none';
                 return;
             }
+            // ====================================
             
             if (!(await verifyDevice(user, userData))) { 
                 loadingOverlay.style.display = 'none'; 
@@ -2210,22 +2183,14 @@
             window.currentUserData = userData;
             
             await setupOneSignalForUser(user, userData);
+            await loadAllStudents();
             
-            setTimeout(async () => {
+            setTimeout(async () => {  // <-- 关键修复：添加 async
                 document.getElementById('page-login').classList.remove('active');
                 document.getElementById('page-register').classList.remove('active');
                 document.getElementById('main-app').style.display = 'block';
                 loadingOverlay.style.display = 'none';
                 applyWatermark(`${userData.name} (${userData.ic})`);
-                
-                // Initialize Lucide icons
-                try {
-                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                        lucide.createIcons();
-                    }
-                } catch(e) {
-                    console.log("Lucide icons init error:", e);
-                }
                 
                 enhancedRequestNotificationPermission();
                 
@@ -2247,10 +2212,17 @@
                 listenToAttendance(userData.ic);
                 loadMonthlyAttendanceData(userData.ic);
                 
-                // Start QR generator automatically after everything is ready
-                setTimeout(() => {
-                    startQRGenerator();
-                }, 500);
+                // ========== 自动迁移旧数据到基于IC的格式 ==========
+                await migrateToICBasedChats();
+                
+                // 加载聊天列表
+                loadChatList();
+               
+                try {
+                    lucide.createIcons();
+                } catch(e) {
+                    console.log("Lucide icons offline");
+                }
                 
                 window.history.pushState({ tab: 'tab-home' }, '');
             }, 500);
@@ -2261,6 +2233,7 @@
             document.getElementById('page-register').classList.remove('active');
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
             if(messagesUnsubscribe) messagesUnsubscribe();
+            if(chatListUnsubscribe) chatListUnsubscribe();
             
             if (window.OneSignal && window.oneSignalReady) {
                 try {
@@ -2339,8 +2312,11 @@
                 const data = snapshot.docs[0].data();
                 isAttendedToday = true;
                 if(qrUpdateInterval) { clearInterval(qrUpdateInterval); qrUpdateInterval = null; }
+                const overlay = document.getElementById('qr-unlock-overlay');
+                if(overlay) overlay.style.display = 'none';
                 const status = data.status;
                 statusEl.innerText = status.toUpperCase();
+                // 修改：根据状态设置不同的颜色
                 if (status.toLowerCase() === "hadir") {
                     statusEl.className = "status-text status-hadir";
                 } else if (status.toLowerCase() === "lewat") {
@@ -2363,10 +2339,6 @@
                 timeEl.innerText = "-- : -- : --";
                 qrcEl.style.opacity = "1";
                 instEl.innerText = "Sila tunjukkan kod QR ini kepada guru bertugas.";
-                // Restart QR if not attended
-                if (!qrUpdateInterval) {
-                    startQRGenerator();
-                }
             }
         }, (error) => {
             console.warn("Attendance listener offline, keeping local state");
@@ -2423,6 +2395,49 @@
         }
     }
 
+    let qr;
+    function startQRGenerator() {
+        const qrContainer = document.getElementById('qrcode');
+        if (!qr) { 
+            qr = new QRCode(qrContainer, { width: 200, height: 200 }); 
+        }
+        const updateQR = () => {
+            if (isAttendedToday) { 
+                if(qrUpdateInterval) clearInterval(qrUpdateInterval); 
+                return; 
+            }
+            
+            let ic = cachedIC;
+            if (!ic && window.currentUserData && window.currentUserData.ic) {
+                ic = window.currentUserData.ic;
+                cachedIC = ic;
+                localStorage.setItem('semsira_cached_ic', ic);
+            }
+            if (!ic) {
+                ic = localStorage.getItem('semsira_cached_ic');
+            }
+            if (!ic) {
+                console.warn("No IC available for QR generation");
+                return;
+            }
+            
+            const now = new Date();
+            const ts = now.getFullYear() + 
+                       String(now.getMonth() + 1).padStart(2, '0') + 
+                       String(now.getDate()).padStart(2, '0') + 
+                       String(now.getHours()).padStart(2, '0') + 
+                       String(now.getMinutes()).padStart(2, '0') + 
+                       String(now.getSeconds()).padStart(2, '0');
+            
+            const qrData = `${ic}|${ts}`;
+            qr.makeCode(qrData);
+            document.getElementById('qr-timer').innerText = "Dikemaskini: " + now.toLocaleTimeString('ms-MY');
+        };
+        updateQR(); 
+        if(qrUpdateInterval) clearInterval(qrUpdateInterval); 
+        qrUpdateInterval = setInterval(updateQR, 5000);
+    }
+
     function setupAccountPage() {
         const d = window.currentUserData;
         document.getElementById('prof-id').innerText = d.studentId || "-";
@@ -2432,7 +2447,7 @@
         document.getElementById('prof-phone').innerText = d.phone || "-";
         document.getElementById('prof-vehicle').innerText = d.vehicleNo || "Tiada";
         
-        // Get avatar from Firestore or localStorage
+        // 优先从 Firestore 数据读取头像，其次从 localStorage
         const avatarUrl = d.avatarUrl || localStorage.getItem('semsira_avatar_' + auth.currentUser.uid);
         if (avatarUrl) {
             document.getElementById('profile-avatar').src = avatarUrl;
@@ -2440,6 +2455,7 @@
             getDefaultAvatar().then(defaultAvatar => {
                 if (defaultAvatar) {
                     document.getElementById('profile-avatar').src = defaultAvatar;
+                    // 保存到 Firestore
                     updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), { avatarUrl: defaultAvatar }).catch(e => console.log(e));
                 } else {
                     document.getElementById('profile-avatar').src = "/semsira.png";
@@ -2472,6 +2488,7 @@
         try {
             const newSemester = await getSemesterForClass(updates.className);
             
+            // 准备更新数据 - 包含头像URL
             const updateData = {
                 name: updates.name,
                 phone: updates.phone,
@@ -2481,11 +2498,13 @@
                 vehicleNo: updates.vehicleNo || ""
             };
             
+            // 如果用户选择了头像，保存到 Firestore
             if (avatarUrl) {
                 updateData.avatarUrl = avatarUrl;
                 localStorage.setItem('semsira_avatar_' + auth.currentUser.uid, avatarUrl);
                 document.getElementById('profile-avatar').src = avatarUrl;
             } else {
+                // 如果没有选择头像，使用默认头像
                 const defaultAvatar = await getDefaultAvatar();
                 if (defaultAvatar) {
                     updateData.avatarUrl = defaultAvatar;
@@ -2496,10 +2515,12 @@
             
             await updateDoc(doc(db, COLLECTION_NAME, auth.currentUser.uid), updateData);
             
+            // 更新本地数据
             Object.assign(window.currentUserData, updates);
             window.currentUserData.semester = newSemester;
             if (avatarUrl) window.currentUserData.avatarUrl = avatarUrl;
             
+            // 更新缓存
             localStorage.setItem('semsira_cached_user_' + auth.currentUser.uid, JSON.stringify(window.currentUserData));
             if (window.currentUserData.ic) {
                 cachedIC = window.currentUserData.ic;
@@ -2535,6 +2556,7 @@
     async function loadAvatarsFromIssues() {
         const repo = "bdpsemsira/bdpsemsira.github.io";
         try {
+            // 添加 per_page=100 确保获取所有 issues
             const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&per_page=100&t=${Date.now()}`);
             if (!res.ok) {
                 console.error("GitHub API error:", res.status);
@@ -2542,9 +2564,15 @@
             }
             const issues = await res.json();
             
+            // 调试：打印所有 issues 标题
+            console.log("All issues:", issues.map(i => i.title));
+            
+            // 筛选以 "AVATAR - " 开头的 issues（注意空格）
             const avatars = issues.filter(issue => 
                 issue.title && issue.title.startsWith("AVATAR - ")
             );
+            
+            console.log("Found avatars:", avatars.length);
             
             const avatarContainer = document.getElementById('avatar-options');
             if (avatarContainer && avatars.length > 0) {
@@ -2554,6 +2582,7 @@
                     const titleParts = avatar.title.split(" - ");
                     const avatarName = titleParts[1] || "Unknown";
                     
+                    // 提取图片URL - 支持多种格式
                     let imgUrl = null;
                     const imgMatchMarkdown = avatar.body.match(/!\[.*?\]\((.*?)\)/);
                     const imgMatchHtml = avatar.body.match(/src="(.*?)"/);
@@ -2744,6 +2773,7 @@
     };
 
     function bindImageClickEvents() {
+        // 只绑定公告列表中的图片
         const annList = document.getElementById('announcements-list');
         if (annList) {
             const images = annList.querySelectorAll('img');
@@ -2803,465 +2833,7 @@
             renderCalendar();
         }
     }
-    
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 
-    // Fix UID format chats
-    document.getElementById('fixUidChatsBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('fixUidChatsBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ 处理中...";
-        btn.disabled = true;
-        
-        try {
-            const chatsRef = collection(db, "chats");
-            const snapshot = await getDocs(chatsRef);
-            let fixed = 0;
-            
-            for (const chatDoc of snapshot.docs) {
-                const chat = chatDoc.data();
-                const participantICs = chat.participantICs || [];
-                const isUidFormat = participantICs.some(ic => /[A-Za-z]/.test(ic));
-                
-                if (isUidFormat) {
-                    const participants = chat.participants || [];
-                    const newICs = [];
-                    
-                    for (const uid of participants) {
-                        const userSnap = await getDoc(doc(db, "studentInform", uid));
-                        if (userSnap.exists()) {
-                            newICs.push(userSnap.data().ic);
-                        } else {
-                            newICs.push("unknown");
-                        }
-                    }
-                    
-                    if (newICs.length === 2) {
-                        await updateDoc(chatDoc.ref, { participantICs: newICs });
-                        fixed++;
-                        console.log(`✅ 修复: ${chatDoc.id}`);
-                    }
-                }
-            }
-            
-            alert(`修复了 ${fixed} 个聊天室！刷新页面后生效。`);
-            if (fixed > 0) location.reload();
-        } catch(e) {
-            alert("错误: " + e.message);
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
-    
-    // Check my chats
-    document.getElementById('checkMyChatsBtn')?.addEventListener('click', async () => {
-        const myIC = window.currentUserData?.ic;
-        if (!myIC) {
-            alert("无法获取当前用户IC");
-            return;
-        }
-        
-        const chatsRef = collection(db, "chats");
-        const snapshot = await getDocs(chatsRef);
-        let count = 0;
-        const myChats = [];
-        
-        snapshot.forEach(doc => {
-            const chat = doc.data();
-            const participantICs = chat.participantICs || [];
-            if (participantICs.includes(myIC)) {
-                count++;
-                myChats.push({
-                    id: doc.id,
-                    ics: participantICs.join(', '),
-                    names: chat.participantNames?.join(' ↔ ') || 'Unknown'
-                });
-            }
-        });
-        
-        console.log(`========== 包含您的聊天室 (${count}个) ==========`);
-        myChats.forEach(chat => {
-            console.log(`✅ ${chat.id}`);
-            console.log(`   ICs: ${chat.ics}`);
-            console.log(`   名字: ${chat.names}`);
-        });
-        
-        alert(`找到 ${count} 个包含您的聊天室\n\n详情请查看控制台 (F12)`);
-    });
-    
-    // Merge duplicate chats
-    document.getElementById('mergeDuplicateChatsBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('mergeDuplicateChatsBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ 处理中...";
-        btn.disabled = true;
-        
-        try {
-            const currentUserIC = window.currentUserData?.ic;
-            if (!currentUserIC) {
-                alert("无法获取当前用户IC");
-                return;
-            }
-            
-            const chatsRef = collection(db, "chats");
-            const snapshot = await getDocs(chatsRef);
-            const chatGroups = new Map();
-            
-            for (const chatDoc of snapshot.docs) {
-                const chat = chatDoc.data();
-                const participantICs = chat.participantICs || [];
-                const otherIC = participantICs.find(ic => ic !== currentUserIC);
-                if (!otherIC || otherIC === "unknown") continue;
-                
-                if (!chatGroups.has(otherIC)) {
-                    chatGroups.set(otherIC, []);
-                }
-                chatGroups.get(otherIC).push({
-                    id: chatDoc.id,
-                    ref: chatDoc.ref,
-                    data: chat,
-                    lastMessageTime: chat.lastMessageTime?.toDate ? chat.lastMessageTime.toDate() : new Date(0)
-                });
-            }
-            
-            let merged = 0;
-            
-            for (const [otherIC, chats] of chatGroups) {
-                if (chats.length > 1) {
-                    console.log(`对方IC ${otherIC} 有 ${chats.length} 个重复聊天室`);
-                    chats.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
-                    const keepChat = chats[0];
-                    const deleteChats = chats.slice(1);
-                    
-                    console.log(`  保留: ${keepChat.id}`);
-                    
-                    for (const delChat of deleteChats) {
-                        console.log(`  删除: ${delChat.id}`);
-                        const messagesRef = collection(db, "messages");
-                        const q = query(messagesRef, where("chatId", "==", delChat.id));
-                        const messagesSnap = await getDocs(q);
-                        
-                        let msgCount = 0;
-                        for (const msgDoc of messagesSnap.docs) {
-                            await updateDoc(msgDoc.ref, { chatId: keepChat.id });
-                            msgCount++;
-                        }
-                        console.log(`    迁移了 ${msgCount} 条消息`);
-                        await deleteDoc(delChat.ref);
-                        merged++;
-                    }
-                }
-            }
-            
-            alert(`合并完成！删除了 ${merged} 个重复聊天室\n\n刷新页面后生效。`);
-            if (merged > 0) location.reload();
-        } catch(e) {
-            alert("错误: " + e.message);
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
-    document.getElementById('fixLastMessageBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('fixLastMessageBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ 处理中...";
-        btn.disabled = true;
-        
-        try {
-            const chatsRef = collection(db, "chats");
-            const chatsSnapshot = await getDocs(chatsRef);
-            let fixed = 0;
-            
-            for (const chatDoc of chatsSnapshot.docs) {
-                const chat = chatDoc.data();
-                const chatId = chatDoc.id;
-                
-                const messagesRef = collection(db, "messages");
-                const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "desc"), limit(1));
-                const messagesSnap = await getDocs(q);
-                
-                let lastMessage = "";
-                let lastMessageTime = chat.createdAt || new Date();
-                
-                if (!messagesSnap.empty) {
-                    const lastMsg = messagesSnap.docs[0].data();
-                    lastMessage = lastMsg.text || "";
-                    lastMessageTime = lastMsg.timestamp?.toDate ? lastMsg.timestamp.toDate() : new Date();
-                }
-                
-                if (chat.lastMessage !== lastMessage && lastMessage !== "") {
-                    await updateDoc(chatDoc.ref, {
-                        lastMessage: lastMessage,
-                        lastMessageTime: lastMessageTime
-                    });
-                    fixed++;
-                    console.log(`✅ 修复: ${chatId} -> "${lastMessage.substring(0, 30)}"`);
-                }
-            }
-            
-            alert(`修复了 ${fixed} 个聊天室的最后消息显示！\n\n刷新页面后生效。`);
-            if (fixed > 0) location.reload();
-        } catch(e) {
-            console.error("修复失败:", e);
-            alert("错误: " + e.message);
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
-    document.getElementById('syncLastMessageBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('syncLastMessageBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ 同步中...";
-        btn.disabled = true;
-        
-        try {
-            const chatsRef = collection(db, "chats");
-            const chatsSnapshot = await getDocs(chatsRef);
-            let fixed = 0;
-            let total = 0;
-            
-            for (const chatDoc of chatsSnapshot.docs) {
-                total++;
-                const chat = chatDoc.data();
-                const chatId = chatDoc.id;
-                
-                const messagesRef = collection(db, "messages");
-                const q = query(messagesRef, where("chatId", "==", chatId), orderBy("timestamp", "desc"), limit(1));
-                const messagesSnap = await getDocs(q);
-                
-                if (!messagesSnap.empty) {
-                    const lastMsg = messagesSnap.docs[0].data();
-                    const lastMessageText = lastMsg.text || "";
-                    
-                    await updateDoc(chatDoc.ref, {
-                        lastMessage: lastMessageText,
-                        lastMessageTime: lastMsg.timestamp || serverTimestamp()
-                    });
-                    fixed++;
-                    console.log(`✅ 更新: ${chatId} -> "${lastMessageText.substring(0, 30)}"`);
-                } else {
-                    console.log(`⏳ 无消息: ${chatId}`);
-                }
-            }
-            
-            console.log(`共 ${total} 个聊天室，更新了 ${fixed} 个`);
-            alert(`同步完成！\n共 ${total} 个聊天室\n更新了 ${fixed} 个\n\n刷新页面后生效。`);
-            if (fixed > 0) location.reload();
-        } catch(e) {
-            console.error("同步失败:", e);
-            alert("错误: " + e.message);
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
-    document.getElementById('fullMigrationBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('fullMigrationBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ 迁移中...";
-        btn.disabled = true;
-        
-        try {
-            const currentUserIC = window.currentUserData?.ic;
-            if (!currentUserIC) {
-                alert("无法获取当前用户IC");
-                return;
-            }
-            
-            const messagesRef = collection(db, "messages");
-            const messagesSnapshot = await getDocs(messagesRef);
-            console.log(`找到 ${messagesSnapshot.size} 条消息`);
-            
-            let migrated = 0;
-            let updatedChats = new Set();
-            
-            for (const msgDoc of messagesSnapshot.docs) {
-                const msg = msgDoc.data();
-                const oldChatId = msg.chatId;
-                
-                if (oldChatId && /[A-Za-z]/.test(oldChatId)) {
-                    const senderId = msg.senderId;
-                    const parts = oldChatId.split('_');
-                    const receiverId = parts[0] === senderId ? parts[1] : parts[0];
-                    
-                    const senderSnap = await getDoc(doc(db, "studentInform", senderId));
-                    const receiverSnap = await getDoc(doc(db, "studentInform", receiverId));
-                    
-                    if (senderSnap.exists() && receiverSnap.exists()) {
-                        const senderIC = senderSnap.data().ic;
-                        const receiverIC = receiverSnap.data().ic;
-                        const sortedICs = [senderIC, receiverIC].sort();
-                        const newChatId = sortedICs.join('_');
-                        
-                        await updateDoc(msgDoc.ref, { chatId: newChatId });
-                        migrated++;
-                        updatedChats.add(newChatId);
-                        console.log(`✅ 迁移消息: ${oldChatId} -> ${newChatId}`);
-                    }
-                }
-            }
-            
-            console.log(`迁移了 ${migrated} 条消息`);
-            
-            let updatedLastMsg = 0;
-            for (const chatId of updatedChats) {
-                const chatRef = doc(db, "chats", chatId);
-                const messagesQ = query(
-                    collection(db, "messages"), 
-                    where("chatId", "==", chatId), 
-                    orderBy("timestamp", "desc"), 
-                    limit(1)
-                );
-                const lastMsgSnap = await getDocs(messagesQ);
-                
-                if (!lastMsgSnap.empty) {
-                    const lastMsg = lastMsgSnap.docs[0].data();
-                    await updateDoc(chatRef, {
-                        lastMessage: lastMsg.text || "",
-                        lastMessageTime: lastMsg.timestamp || serverTimestamp()
-                    });
-                    updatedLastMsg++;
-                    console.log(`✅ 更新最后消息: ${chatId}`);
-                }
-            }
-            
-            alert(`迁移完成！\n消息迁移: ${migrated} 条\n聊天室更新: ${updatedLastMsg} 个\n\n刷新页面后生效。`);
-            location.reload();
-            
-        } catch(e) {
-            console.error("迁移失败:", e);
-            alert("错误: " + e.message);
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
-    document.getElementById('debugMessagesBtn')?.addEventListener('click', async () => {
-        try {
-            const messagesRef = collection(db, "messages");
-            const messagesSnapshot = await getDocs(messagesRef);
-            
-            console.log("========== 消息集合 ==========");
-            const chatIds = new Set();
-            messagesSnapshot.forEach(doc => {
-                const msg = doc.data();
-                chatIds.add(msg.chatId);
-                console.log(`消息ID: ${doc.id}, chatId: ${msg.chatId}, 内容: ${msg.text}`);
-            });
-            console.log(`共有 ${messagesSnapshot.size} 条消息`);
-            console.log(`唯一的 chatId: ${Array.from(chatIds).join(', ')}`);
-            
-            const chatsRef = collection(db, "chats");
-            const chatsSnapshot = await getDocs(chatsRef);
-            
-            console.log("========== 聊天室集合 ==========");
-            const chatIdsInChats = new Set();
-            chatsSnapshot.forEach(doc => {
-                const chat = doc.data();
-                chatIdsInChats.add(doc.id);
-                console.log(`聊天室ID: ${doc.id}, lastMessage: "${chat.lastMessage}"`);
-            });
-            console.log(`聊天室 chatId: ${Array.from(chatIdsInChats).join(', ')}`);
-            
-            console.log("========== 匹配分析 ==========");
-            let matchCount = 0;
-            for (const msgChatId of chatIds) {
-                if (chatIdsInChats.has(msgChatId)) {
-                    matchCount++;
-                    console.log(`✅ 匹配: ${msgChatId}`);
-                } else {
-                    console.log(`❌ 不匹配: ${msgChatId}`);
-                }
-            }
-            console.log(`匹配率: ${matchCount}/${chatIds.size}`);
-            
-            alert(`调试完成！\n消息: ${messagesSnapshot.size} 条\n聊天室: ${chatsSnapshot.size} 个\n匹配: ${matchCount} 个\n\n详情请查看控制台(F12)`);
-            
-        } catch(e) {
-            console.error("调试失败:", e);
-            alert("错误: " + e.message);
-        }
-    });
-    document.getElementById('testLoadChatBtn')?.addEventListener('click', async () => {
-        const currentUserIC = window.currentUserData?.ic;
-        console.log("当前用户IC:", currentUserIC);
-        
-        const chatsRef = collection(db, "chats");
-        const q = query(chatsRef, where("participantICs", "array-contains", currentUserIC), orderBy("lastMessageTime", "desc"));
-        const snapshot = await getDocs(q);
-        
-        console.log(`查询结果: ${snapshot.size} 个聊天室`);
-        snapshot.forEach(doc => {
-            const chat = doc.data();
-            console.log(`- ${doc.id}`);
-            console.log(`  lastMessage: "${chat.lastMessage}"`);
-            console.log(`  participantICs: ${chat.participantICs}`);
-        });
-        
-        alert(`找到 ${snapshot.size} 个包含您的聊天室\n\n详情请查看控制台`);
-    });
-    document.getElementById('migrateToMessagesBtn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('migrateToMessagesBtn');
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ 迁移中...";
-        btn.disabled = true;
-        
-        try {
-            const chatsRef = collection(db, "chats");
-            const chatsSnapshot = await getDocs(chatsRef);
-            let migrated = 0;
-            
-            for (const chatDoc of chatsSnapshot.docs) {
-                const chat = chatDoc.data();
-                const chatId = chatDoc.id;
-                const lastMessage = chat.lastMessage;
-                const lastMessageTime = chat.lastMessageTime;
-                const participants = chat.participants || [];
-                
-                if (lastMessage && lastMessage !== "" && participants.length >= 2) {
-                    const senderId = participants[0];
-                    const senderName = chat.participantNames?.[0] || "Unknown";
-                    
-                    const existingQuery = query(
-                        collection(db, "messages"),
-                        where("chatId", "==", chatId),
-                        where("text", "==", lastMessage),
-                        limit(1)
-                    );
-                    const existing = await getDocs(existingQuery);
-                    
-                    if (existing.empty) {
-                        await addDoc(collection(db, "messages"), {
-                            chatId: chatId,
-                            senderId: senderId,
-                            senderName: senderName,
-                            text: lastMessage,
-                            timestamp: lastMessageTime || serverTimestamp(),
-                            read: false
-                        });
-                        migrated++;
-                        console.log(`✅ 迁移: ${chatId} -> "${lastMessage}"`);
-                    }
-                }
-            }
-            
-            alert(`迁移完成！\n创建了 ${migrated} 条消息记录\n\n刷新页面后即可查看。`);
-            if (migrated > 0) location.reload();
-        } catch(e) {
-            console.error("迁移失败:", e);
-            alert("错误: " + e.message);
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
 </script>
 </body>
 </html>
