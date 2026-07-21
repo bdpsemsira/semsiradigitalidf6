@@ -2466,6 +2466,18 @@
             });
         }
     }
+
+    window.changeMonth = (delta) => {
+        // 更新当前显示的月份
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+        
+        // 重新加载该月份的数据
+        if (window.currentUserData && window.currentUserData.ic) {
+            loadMonthlyAttendanceData(window.currentUserData.ic);
+        } else {
+            renderCalendar();
+        }
+    };
     
     window.updateProfile = async () => {
         toast("⚠️ Sila gunakan butang ⚙️ di penjuru kanan untuk kemaskini profil");
