@@ -2059,6 +2059,7 @@
     }
     
     // ========== 离线优先的登录状态处理 ==========
+    // ========== 简化的登录状态处理（无离线缓存）==========
     onAuthStateChanged(auth, async (user) => {
         const loadingOverlay = document.getElementById('loading-overlay');
         const splash = document.getElementById('splash-screen');
@@ -2067,113 +2068,86 @@
         if (user) {
             loadingOverlay.style.display = 'flex';
             
-            const cachedUserData = localStorage.getItem('semsira_cached_user_' + user.uid);
-            let userData = null;
-            let isOffline = false;
-            
             try {
+                // 直接从Firestore获取用户数据
                 const snap = await getDoc(doc(db, COLLECTION_NAME, user.uid));
-                if (snap.exists()) {
-                    userData = snap.data();
-                    
-                    // ========== 新增：检查账号是否已被管理员删除 ==========
-                    if (userData.isDeleted === true) {
-                        console.log("Account has been deleted by admin");
-                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
-                        // 清除本地缓存
-                        localStorage.removeItem('semsira_cached_user_' + user.uid);
-                        localStorage.removeItem('semsira_cached_ic');
-                        await signOut(auth);
-                        loadingOverlay.style.display = 'none';
-                        return;
-                    }
-                    // ====================================================
-                    
-                    localStorage.setItem('semsira_cached_user_' + user.uid, JSON.stringify(userData));
-                    cachedIC = userData.ic;
-                    localStorage.setItem('semsira_cached_ic', userData.ic);
-                } else {
+                
+                if (!snap.exists()) {
                     throw new Error("User data not found");
                 }
-            } catch (e) {
-                console.warn("Offline or error, using cached data:", e);
-                isOffline = true;
-                if (cachedUserData) {
-                    userData = JSON.parse(cachedUserData);
-                    
-                    // ========== 新增：检查缓存中的数据是否已被删除 ==========
-                    if (userData.isDeleted === true) {
-                        console.log("Cached account has been deleted");
-                        toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
-                        localStorage.removeItem('semsira_cached_user_' + user.uid);
-                        localStorage.removeItem('semsira_cached_ic');
-                        await signOut(auth);
-                        loadingOverlay.style.display = 'none';
-                        return;
-                    }
-                    // ====================================================
-                    
-                    cachedIC = userData.ic;
-                } else {
+                
+                const userData = snap.data();
+                
+                // 检查账号是否已被管理员删除
+                if (userData.isDeleted === true) {
+                    console.log("Account has been deleted by admin");
+                    toast("❌ Akaun anda telah dipadamkan oleh pentadbir. Sila hubungi guru.");
+                    await signOut(auth);
                     loadingOverlay.style.display = 'none';
-                    alert("Gagal memuatkan data. Sila pastikan sambungan internet dan cuba lagi.");
-                    handleLogout();
                     return;
                 }
-            }
-            
-            // ========== 双重保险：再次检查 ==========
-            if (userData && userData.isDeleted === true) {
-                toast("❌ Akaun anda telah dipadamkan.");
-                localStorage.removeItem('semsira_cached_user_' + user.uid);
-                await signOut(auth);
-                loadingOverlay.style.display = 'none';
-                return;
-            }
-            // ====================================
-            
-            if (!(await verifyDevice(user, userData))) { 
-                loadingOverlay.style.display = 'none'; 
-                return; 
-            }
-            window.currentUserData = userData;
-            
-            await setupOneSignalForUser(user, userData);
-            await loadAllStudents();
-            
-            setTimeout(async () => {  // <-- 关键修复：添加 async
+                
+                // 保存IC到缓存（仅用于QR码生成）
+                cachedIC = userData.ic;
+                localStorage.setItem('semsira_cached_ic', userData.ic);
+                
+                // 验证设备
+                if (!(await verifyDevice(user, userData))) { 
+                    loadingOverlay.style.display = 'none'; 
+                    return; 
+                }
+                
+                window.currentUserData = userData;
+                
+                // 设置OneSignal
+                await setupOneSignalForUser(user, userData);
+                
+                // 加载所有学生数据（如果需要）
+                try {
+                    await loadAllStudents();
+                } catch(e) {
+                    console.warn("加载学生数据失败:", e);
+                }
+                
+                // 显示主界面
                 document.getElementById('page-login').classList.remove('active');
                 document.getElementById('page-register').classList.remove('active');
                 document.getElementById('main-app').style.display = 'block';
                 loadingOverlay.style.display = 'none';
+                
+                // 应用水印
                 applyWatermark(`${userData.name} (${userData.ic})`);
                 
+                // 请求通知权限
                 enhancedRequestNotificationPermission();
                 
-                if (!isOffline) {
-                    startNotificationChecker();
-                    loadHomeData();
-                } else {
-                    const announcementsList = document.getElementById('announcements-list');
-                    if (announcementsList) {
-                        announcementsList.innerHTML = '<div class="glass" style="padding:15px; text-align:center;">📱 Mod Offline - Pengumuman tidak tersedia</div>';
-                    }
-                    const posterSlider = document.getElementById('poster-slider');
-                    if (posterSlider) {
-                        posterSlider.innerHTML = '<div class="glass" style="display:flex; align-items:center; justify-content:center; height:100%;">📱 Mod Offline</div>';
-                    }
-                }
-    
+                // 加载首页数据
+                startNotificationChecker();
+                loadHomeData();
+                
+                // 设置账户页面
                 setupAccountPage();
+                
+                // 监听考勤
                 listenToAttendance(userData.ic);
+                
+                // 加载月度考勤数据
                 loadMonthlyAttendanceData(userData.ic);
                 
-                // ========== 自动迁移旧数据到基于IC的格式 ==========
-                await migrateToICBasedChats();
+                // 尝试加载聊天功能（如果存在）
+                try {
+                    // 如果有聊天迁移功能
+                    if (typeof migrateToICBasedChats === 'function') {
+                        await migrateToICBasedChats();
+                    }
+                    if (typeof loadChatList === 'function') {
+                        loadChatList();
+                    }
+                } catch(e) {
+                    console.warn("聊天功能加载失败:", e);
+                }
                 
-                // 加载聊天列表
-                loadChatList();
-               
+                // 加载图标
                 try {
                     lucide.createIcons();
                 } catch(e) {
@@ -2181,16 +2155,29 @@
                 }
                 
                 window.history.pushState({ tab: 'tab-home' }, '');
-            }, 500);
+                
+            } catch (error) {
+                console.error("Login error:", error);
+                loadingOverlay.style.display = 'none';
+                toast("❌ Gagal memuatkan data. Sila semak sambungan internet.");
+                
+                // 如果出错，退出登录
+                await signOut(auth);
+            }
+            
         } else {
+            // 用户未登录
             loadingOverlay.style.display = 'none';
             document.getElementById('main-app').style.display = 'none';
             document.getElementById('page-login').classList.add('active');
             document.getElementById('page-register').classList.remove('active');
+            
+            // 清理监听器
             if(notificationCheckInterval) clearInterval(notificationCheckInterval);
             if(messagesUnsubscribe) messagesUnsubscribe();
             if(chatListUnsubscribe) chatListUnsubscribe();
             
+            // OneSignal退出
             if (window.OneSignal && window.oneSignalReady) {
                 try {
                     window.OneSignal.Deferred?.push(async function(OneSignal) {
@@ -2200,7 +2187,6 @@
             }
         }
     });
-    
  
     function startNotificationChecker() {
         if (notificationCheckInterval) clearInterval(notificationCheckInterval);
