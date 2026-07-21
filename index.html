@@ -519,6 +519,70 @@
             font-size: 11px;
             flex-wrap: wrap;
         }
+
+        /* ========== 日历颜色样式 - 整个格子着色 ========== */
+        .calendar-day.status-hadir {
+            background: #34C759 !important;
+            color: white !important;
+            border-color: #34C759 !important;
+        }
+        
+        .calendar-day.status-lewat {
+            background: #FF9500 !important;
+            color: white !important;
+            border-color: #FF9500 !important;
+        }
+        
+        .calendar-day.status-tidakhadir {
+            background: #FF3B30 !important;
+            color: white !important;
+            border-color: #FF3B30 !important;
+        }
+        
+        /* 周末样式 - 淡灰色 */
+        .calendar-day.weekend {
+            background: #E5E5EA !important;
+            color: #666 !important;
+            border-color: #ddd !important;
+            opacity: 0.8;
+        }
+        
+        /* 未来日期样式 - 浅灰色虚线 */
+        .calendar-day.future-date {
+            background: #E5E5EA !important;
+            color: #999 !important;
+            border-color: #ddd !important;
+            border-style: dashed !important;
+        }
+        
+        /* 空白天 */
+        .calendar-day.empty {
+            background: transparent !important;
+            border: 1px dashed var(--border) !important;
+            opacity: 0.4;
+        }
+        
+        /* 周末但有出席记录 - 覆盖周末样式 */
+        .calendar-day.weekend.status-hadir {
+            background: #34C759 !important;
+            color: white !important;
+            border-color: #34C759 !important;
+            opacity: 1 !important;
+        }
+        
+        .calendar-day.weekend.status-lewat {
+            background: #FF9500 !important;
+            color: white !important;
+            border-color: #FF9500 !important;
+            opacity: 1 !important;
+        }
+        
+        .calendar-day.weekend.status-tidakhadir {
+            background: #FF3B30 !important;
+            color: white !important;
+            border-color: #FF3B30 !important;
+            opacity: 1 !important;
+        }
         
         .legend-item {
             display: flex;
