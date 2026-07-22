@@ -800,7 +800,7 @@
         if (vibrationEnabled && 'vibrate' in navigator) navigator.vibrate(200);
     }
     
-    // 核心扫码逻辑
+    // ========== 核心扫码逻辑 (支持静态二维码自动补全时间戳) ==========
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         
@@ -818,44 +818,118 @@
         
         showResult("Memproses", "Sila tunggu sebentar...", "wait");
         try {
-            const parts = decodedText.split('|');
-            if (parts.length < 2) throw new Error("Format QR Tidak Sah");
-            const scannedIC = parts[0];
-            const qrTimeStr = parts[1];
-            if (qrTimeStr.length !== 14 || Math.abs(new Date() - new Date(qrTimeStr.substring(0,4), parseInt(qrTimeStr.substring(4,6))-1, qrTimeStr.substring(6,8), qrTimeStr.substring(8,10), qrTimeStr.substring(10,12), qrTimeStr.substring(12,14))) > 30000) throw new Error("Kod Luput (Sila refresh QR)");
+            // 解析QR：支持两种格式
+            // 格式1: IC|timestamp (14位)  例如 070108020147|20260722153000
+            // 格式2: 纯IC (无timestamp)   例如 070108020147
+            let scannedIC = '';
+            let qrTimeStr = '';
+            let isStaticQR = false;
             
+            if (decodedText.includes('|')) {
+                const parts = decodedText.split('|');
+                scannedIC = parts[0].trim();
+                qrTimeStr = parts[1]?.trim() || '';
+            } else {
+                // 静态二维码：只有IC，没有时间戳
+                scannedIC = decodedText.trim();
+                isStaticQR = true;
+            }
+            
+            // 如果没有时间戳，或者时间戳长度不为14，视为静态二维码，使用当前时间
+            if (!qrTimeStr || qrTimeStr.length !== 14) {
+                isStaticQR = true;
+                const now = new Date();
+                // 生成当前时间戳 YYYYMMDDHHmmss
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                qrTimeStr = `${year}${month}${day}${hours}${minutes}${seconds}`;
+                console.log(`[静态QR] 自动补全时间戳: ${qrTimeStr}`);
+            }
+            
+            // 验证时间戳是否过期 (仅对动态QR进行30秒校验，静态QR使用当前时间已通过)
+            if (!isStaticQR) {
+                const qrDate = new Date(
+                    parseInt(qrTimeStr.substring(0,4)),
+                    parseInt(qrTimeStr.substring(4,6))-1,
+                    parseInt(qrTimeStr.substring(6,8)),
+                    parseInt(qrTimeStr.substring(8,10)),
+                    parseInt(qrTimeStr.substring(10,12)),
+                    parseInt(qrTimeStr.substring(12,14))
+                );
+                if (Math.abs(new Date() - qrDate) > 30000) {
+                    throw new Error("Kod Luput (Sila refresh QR)");
+                }
+            }
+            
+            // 获取迟到/缺席时间设置
             const timeSnap = await getDoc(doc(db, "systemSettings", "attendance_time"));
             let late = "07:30", absent = "08:30";
-            if (timeSnap.exists()) { late = timeSnap.data().lateTime; absent = timeSnap.data().absentTime; }
+            if (timeSnap.exists()) {
+                late = timeSnap.data().lateTime || "07:30";
+                absent = timeSnap.data().absentTime || "08:30";
+            }
+            
             const now = new Date();
             const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-            if (timeStr > absent) throw new Error(`Masa tamat (${absent}).`);
-            const today = now.toLocaleDateString('en-CA');
-            const check = await getDocs(query(collection(db, "attendanceLogs"), where("ic", "==", scannedIC), where("date", "==", today)));
-            if (!check.empty) throw new Error("Dah scan hari ini.");
+            if (timeStr > absent) {
+                throw new Error(`Masa tamat (${absent}).`);
+            }
             
+            const today = now.toLocaleDateString('en-CA');
+            
+            // 检查今日是否已签到
+            const check = await getDocs(query(collection(db, "attendanceLogs"), 
+                where("ic", "==", scannedIC), 
+                where("date", "==", today)
+            ));
+            if (!check.empty) {
+                throw new Error("Dah scan hari ini.");
+            }
+            
+            // 查找学生信息
             const studentSnap = await getDocs(query(collection(db, "studentInform"), where("ic", "==", scannedIC)));
-            if (studentSnap.empty) throw new Error("Pelajar tidak berdaftar.");
+            if (studentSnap.empty) {
+                throw new Error("Pelajar tidak berdaftar.");
+            }
             const student = studentSnap.docs[0].data();
             const status = timeStr > late ? "Lewat" : "Hadir";
-            const expireDate = new Date(); expireDate.setDate(now.getDate() + 35);
+            const expireDate = new Date(); 
+            expireDate.setDate(now.getDate() + 35);
+            
+            // 写入考勤记录
             await addDoc(collection(db, "attendanceLogs"), {
-                name: student.name, ic: student.ic, className: student.className, status: status,
-                date: today, timeFull: now.toLocaleString('ms-MY'), timestamp: serverTimestamp(), expireAt: expireDate
+                name: student.name,
+                ic: student.ic,
+                className: student.className,
+                status: status,
+                date: today,
+                timeFull: now.toLocaleString('ms-MY'),
+                timestamp: serverTimestamp(),
+                expireAt: expireDate
             });
             
             const formattedTime = now.toLocaleTimeString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
             showSuccessPanel(student.name, student.className, formattedTime);
             showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", formattedTime);
-            setTimeout(() => { if(!document.querySelector('.success-panel')) resetResult(); }, 3500);
+            setTimeout(() => { 
+                if(!document.querySelector('.success-panel')) resetResult(); 
+            }, 3500);
+            
         } catch (err) {
-            // 错误时也播放beep并弹出3秒自动关闭的错误面板
             playBeepAndVibrate();
             showNotificationPanel("Imbasan Gagal", err.message, true);
             showResult("Gagal", err.message, "error");
             setTimeout(resetResult, 2500);
         } finally {
-            setTimeout(() => { if(isProcessing && !document.querySelector('.success-panel')) isProcessing = false; }, 800);
+            setTimeout(() => { 
+                if(isProcessing && !document.querySelector('.success-panel')) {
+                    isProcessing = false;
+                }
+            }, 800);
         }
     }
     
