@@ -520,6 +520,255 @@
             flex-wrap: wrap;
         }
 
+        /* ========== 学生搜索样式 ========== */
+        .search-container {
+            position: relative;
+            margin-right: 8px;
+        }
+        
+        .search-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 8px;
+            margin: 0;
+            width: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        
+        .search-btn:active {
+            background: rgba(0, 122, 255, 0.1);
+            transform: scale(0.95);
+        }
+        
+        .search-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 20000;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 60px;
+        }
+        
+        .search-modal-overlay.active {
+            display: flex;
+        }
+        
+        .search-modal-content {
+            width: 90%;
+            max-width: 400px;
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .search-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 0 12px;
+            background: var(--bg);
+        }
+        
+        .search-input-wrapper:focus-within {
+            border-color: var(--primary);
+        }
+        
+        .search-input-wrapper input {
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 12px 0;
+            margin: 0;
+            flex: 1;
+            font-size: 16px;
+            color: var(--text);
+        }
+        
+        .search-input-wrapper .clear-btn {
+            background: none;
+            border: none;
+            color: #8E8E93;
+            cursor: pointer;
+            padding: 4px;
+            width: auto;
+            display: none;
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .search-input-wrapper .clear-btn.visible {
+            display: block;
+        }
+        
+        .search-results {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 12px;
+            max-height: 300px;
+        }
+        
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-item:active {
+            background: rgba(0, 122, 255, 0.1);
+        }
+        
+        .search-result-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--bg);
+        }
+        
+        .search-result-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .search-result-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        .search-result-class {
+            font-size: 12px;
+            color: #8E8E93;
+        }
+        
+        .search-no-result {
+            text-align: center;
+            padding: 30px 0;
+            color: #8E8E93;
+            font-size: 14px;
+        }
+        
+        .search-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #8E8E93;
+        }
+        
+        /* 用户详情面板 - 更新样式 */
+        .user-detail-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            border-radius: 20px 20px 0 0;
+            padding: 24px 20px 30px;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            z-index: 25000;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .user-detail-panel.active {
+            transform: translateY(0);
+        }
+        
+        .detail-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 12px;
+            display: block;
+            border: 3px solid var(--primary);
+        }
+        
+        .detail-handle {
+            width: 40px;
+            height: 4px;
+            background: #C7C7CC;
+            border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+        
+        .detail-name {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin: 4px 0;
+        }
+        
+        .detail-class {
+            text-align: center;
+            color: var(--primary);
+            font-weight: 500;
+            margin: 4px 0;
+        }
+        
+        .detail-ic {
+            text-align: center;
+            font-size: 13px;
+            color: #8E8E93;
+            margin: 4px 0;
+        }
+        
+        .detail-phone {
+            text-align: center;
+            font-size: 14px;
+            margin: 8px 0;
+        }
+        
+        .detail-close-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        
+        .detail-close-btn:active {
+            transform: scale(0.98);
+        }
+        
         /* ========== 日历颜色样式 - 整个格子着色 ========== */
         .calendar-day.status-hadir {
             background: #34C759 !important;
@@ -1176,8 +1425,40 @@
         <div class="header-container">
             <img src="/semsira.png" alt="Logo" class="app-header-logo">
             <h3>AKAUN</h3>
-            <div style="margin-left: auto; cursor: pointer;" onclick="openProfileSettings()">
+            <div class="search-container">
+                <button class="search-btn" onclick="openSearchModal()">
+                    <i data-lucide="search" style="width: 24px; height: 24px;"></i>
+                </button>
+            </div>
+            <div style="cursor: pointer;" onclick="openProfileSettings()">
                 <i data-lucide="more-vertical"></i>
+            </div>
+        </div>
+
+        <!-- ========== 搜索模态框 ========== -->
+        <div id="searchModal" class="search-modal-overlay" onclick="closeSearchModal(event)">
+            <div class="search-modal-content" onclick="event.stopPropagation()">
+                <div class="search-input-wrapper">
+                    <i data-lucide="search" style="width: 20px; height: 20px; color: #8E8E93;"></i>
+                    <input type="text" id="searchInput" placeholder="Cari nama pelajar..." oninput="handleSearch(this.value)">
+                    <button class="clear-btn" id="clearSearchBtn" onclick="clearSearch()">✕</button>
+                </div>
+                <div class="search-results" id="searchResults">
+                    <div class="search-no-result">📚 Taip nama pelajar untuk mencari</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== 用户详情面板 ========== -->
+        <div id="userDetailPanel" class="user-detail-panel">
+            <div class="detail-handle"></div>
+            <div style="text-align: center;">
+                <img id="detail-avatar" class="detail-avatar" src="/semsira.png">
+                <div class="detail-name" id="detail-name">-</div>
+                <div class="detail-class" id="detail-class">-</div>
+                <div class="detail-ic" id="detail-ic">🆔 -</div>
+                <div class="detail-phone" id="detail-phone">📞 -</div>
+                <button class="detail-close-btn" onclick="closeUserDetail()">Tutup</button>
             </div>
         </div>
         
@@ -2787,6 +3068,170 @@
         }
     };
 
+    // ========== 学生搜索功能 ==========
+    let allStudentsList = [];
+    let isSearchLoading = false;
+    
+    // 加载所有学生数据
+    async function loadAllStudents() {
+        try {
+            const q = query(collection(db, COLLECTION_NAME));
+            const snapshot = await getDocs(q);
+            allStudentsList = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                // 只加载有名字的学生
+                if (data.name && data.name.trim()) {
+                    allStudentsList.push({
+                        id: doc.id,
+                        name: data.name,
+                        className: data.className || 'Tiada kelas',
+                        ic: data.ic || '-',
+                        phone: data.phone || '-',
+                        avatar: data.avatarUrl || '/semsira.png',
+                        dob: data.dob || '-'
+                    });
+                }
+            });
+            console.log('Loaded students:', allStudentsList.length);
+        } catch (e) {
+            console.error('Error loading students:', e);
+        }
+    }
+    
+    // 打开搜索模态框
+    window.openSearchModal = function() {
+        const modal = document.getElementById('searchModal');
+        const input = document.getElementById('searchInput');
+        modal.classList.add('active');
+        setTimeout(() => input.focus(), 100);
+        // 加载图标
+        try { lucide.createIcons(); } catch(e) {}
+    };
+    
+    // 关闭搜索模态框
+    window.closeSearchModal = function(event) {
+        if (!event || event.target === event.currentTarget) {
+            const modal = document.getElementById('searchModal');
+            modal.classList.remove('active');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '<div class="search-no-result">📚 Taip nama pelajar untuk mencari</div>';
+            document.getElementById('clearSearchBtn').classList.remove('visible');
+        }
+    };
+    
+    // 清空搜索
+    window.clearSearch = function() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '<div class="search-no-result">📚 Taip nama pelajar untuk mencari</div>';
+        document.getElementById('clearSearchBtn').classList.remove('visible');
+    };
+    
+    // 处理搜索
+    window.handleSearch = function(query) {
+        const resultsContainer = document.getElementById('searchResults');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        
+        if (query.trim().length === 0) {
+            resultsContainer.innerHTML = '<div class="search-no-result">📚 Taip nama pelajar untuk mencari</div>';
+            clearBtn.classList.remove('visible');
+            return;
+        }
+        
+        clearBtn.classList.add('visible');
+        
+        // 搜索匹配 - 不区分大小写
+        const searchTerm = query.trim().toLowerCase();
+        const matches = allStudentsList.filter(student => 
+            student.name.toLowerCase().includes(searchTerm)
+        );
+        
+        if (matches.length === 0) {
+            resultsContainer.innerHTML = `<div class="search-no-result">😕 Tiada pelajar bernama "${query.trim()}"</div>`;
+            return;
+        }
+        
+        // 显示结果
+        let html = '';
+        matches.forEach(student => {
+            html += `
+                <div class="search-result-item" onclick="selectStudent('${student.id}')">
+                    <img class="search-result-avatar" src="${student.avatar}" onerror="this.src='/semsira.png'">
+                    <div class="search-result-info">
+                        <div class="search-result-name">${escapeHtml(student.name)}</div>
+                        <div class="search-result-class">${escapeHtml(student.className)}</div>
+                    </div>
+                </div>
+            `;
+        });
+        resultsContainer.innerHTML = html;
+    };
+    
+    // 选择学生
+    window.selectStudent = function(studentId) {
+        const student = allStudentsList.find(s => s.id === studentId);
+        if (!student) {
+            toast('❌ Pelajar tidak ditemui');
+            return;
+        }
+        
+        // 关闭搜索模态框
+        document.getElementById('searchModal').classList.remove('active');
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '<div class="search-no-result">📚 Taip nama pelajar untuk mencari</div>';
+        document.getElementById('clearSearchBtn').classList.remove('visible');
+        
+        // 显示用户详情
+        showUserDetail(student);
+    };
+    
+    // 显示用户详情面板（更新版本）
+    window.showUserDetail = function(student) {
+        if (!student) return;
+        
+        document.getElementById('detail-name').textContent = student.name || '-';
+        document.getElementById('detail-class').textContent = student.className || 'Tiada kelas';
+        document.getElementById('detail-ic').textContent = `🆔 ${student.ic || '-'}`;
+        document.getElementById('detail-phone').textContent = `📞 ${student.phone || 'Tiada nombor'}`;
+        document.getElementById('detail-avatar').src = student.avatar || '/semsira.png';
+        document.getElementById('detail-avatar').onerror = function() { this.src = '/semsira.png'; };
+        
+        document.getElementById('userDetailPanel').classList.add('active');
+    };
+    
+    // 关闭用户详情面板
+    window.closeUserDetail = function() {
+        document.getElementById('userDetailPanel').classList.remove('active');
+    };
+    
+    // 点击其他地方关闭详情面板
+    document.addEventListener('click', function(e) {
+        const panel = document.getElementById('userDetailPanel');
+        if (panel && panel.classList.contains('active')) {
+            // 检查点击是否在面板内部
+            if (!panel.contains(e.target)) {
+                // 但排除点击搜索相关元素
+                const searchModal = document.getElementById('searchModal');
+                if (searchModal && searchModal.contains(e.target)) {
+                    return;
+                }
+                closeUserDetail();
+            }
+        }
+    });
+    
+    // 按 ESC 关闭搜索
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSearchModal(e);
+            closeUserDetail();
+        }
+    });
+    
+    // ========== 覆盖原有的 showUserDetail 函数 ==========
+    // 如果之前有定义，用新版本替换
+    // 原来的 showUserDetail 函数已经被覆盖
+    
     function bindImageClickEvents() {
         // 只绑定公告列表中的图片
         const annList = document.getElementById('announcements-list');
