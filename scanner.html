@@ -785,7 +785,7 @@
         if (vibrationEnabled && 'vibrate' in navigator) navigator.vibrate(200);
     }
     
-    // ========== 核心扫码逻辑 (新增：若扫码结果只有11位数字，前面补0) ==========
+    // ========== 核心扫码逻辑 (修复：支持纯学号二维码，无论是否有timestamp) ==========
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         
@@ -805,7 +805,7 @@
         try {
             // 解析QR：支持两种格式
             // 格式1: IC|timestamp (14位)  例如 070108020147|20260722153000
-            // 格式2: 纯IC (无timestamp)   例如 070108020147
+            // 格式2: 纯IC (无timestamp)   例如 070108020147 或 70108020147
             let scannedIC = '';
             let qrTimeStr = '';
             let isStaticQR = false;
@@ -814,8 +814,16 @@
                 const parts = decodedText.split('|');
                 scannedIC = parts[0].trim();
                 qrTimeStr = parts[1]?.trim() || '';
+                // 如果有时间戳，验证其格式
+                if (qrTimeStr && qrTimeStr.length === 14) {
+                    // 动态二维码，有时间戳
+                    isStaticQR = false;
+                } else {
+                    // 有时间戳但格式不对，视为静态
+                    isStaticQR = true;
+                }
             } else {
-                // 静态二维码：只有IC，没有时间戳
+                // 纯学号二维码（无时间戳）
                 scannedIC = decodedText.trim();
                 isStaticQR = true;
             }
@@ -826,9 +834,8 @@
                 console.log(`[补零] IC从11位补为12位: ${scannedIC}`);
             }
             
-            // 如果没有时间戳，或者时间戳长度不为14，视为静态二维码，使用当前时间
-            if (!qrTimeStr || qrTimeStr.length !== 14) {
-                isStaticQR = true;
+            // 如果是静态二维码（没有有效时间戳），使用当前时间
+            if (isStaticQR) {
                 const now = new Date();
                 const year = now.getFullYear();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -838,10 +845,8 @@
                 const seconds = String(now.getSeconds()).padStart(2, '0');
                 qrTimeStr = `${year}${month}${day}${hours}${minutes}${seconds}`;
                 console.log(`[静态QR] 自动补全时间戳: ${qrTimeStr}`);
-            }
-            
-            // 验证时间戳是否过期 (仅对动态QR进行30秒校验，静态QR使用当前时间已通过)
-            if (!isStaticQR) {
+            } else {
+                // 动态二维码：验证时间戳是否过期（30秒内有效）
                 const qrDate = new Date(
                     parseInt(qrTimeStr.substring(0,4)),
                     parseInt(qrTimeStr.substring(4,6))-1,
