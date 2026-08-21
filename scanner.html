@@ -380,7 +380,7 @@
             text-align: center;
         }
 
-        /* 新增扫码成功弹窗 (Panel) */
+        /* 新增扫码成功弹窗 (Panel) - 1秒后自动关闭，无关闭按钮 */
         .success-panel {
             position: fixed;
             top: 0;
@@ -445,23 +445,7 @@
             width: 20px;
             color: var(--primary);
         }
-        .close-panel-btn {
-            background: var(--primary);
-            border: none;
-            padding: 14px 20px;
-            border-radius: 40px;
-            color: white;
-            font-weight: 600;
-            font-size: 17px;
-            width: 100%;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 8px;
-        }
-        .close-panel-btn:active {
-            transform: scale(0.97);
-            background: #005fc1;
-        }
+        /* 移除了 .close-panel-btn 样式，因为不再需要关闭按钮 */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -720,7 +704,6 @@
         document.body.appendChild(panel);
         lucide.createIcons({ root: panel });
         
-        // 3秒后自动关闭
         setTimeout(() => {
             if(panel && panel.parentNode) panel.remove();
         }, 3000);
@@ -728,7 +711,7 @@
         return panel;
     }
     
-    // 显示成功面板（3秒自动关闭）
+    // 显示成功面板（1秒后自动关闭，无关闭按钮）
     function showSuccessPanel(studentName, className, timestamp) {
         const existingPanel = document.querySelector('.success-panel');
         if(existingPanel) existingPanel.remove();
@@ -746,25 +729,27 @@
                     <p><i data-lucide="graduation-cap"></i> Kelas: ${escapeHtml(className)}</p>
                     <p><i data-lucide="clock"></i> Masa: ${escapeHtml(timestamp)}</p>
                 </div>
-                <button class="close-panel-btn" id="closeSuccessPanel">Tutup</button>
+                <!-- 无关闭按钮，仅1秒后自动关闭 -->
             </div>
         `;
         document.body.appendChild(panel);
         lucide.createIcons({ root: panel });
         
-        // 3秒后自动关闭
+        // 1秒后自动关闭（满足需求：打卡成功后弹出的panel显示1秒后自动关闭）
         setTimeout(() => {
             if(panel && panel.parentNode) panel.remove();
-        }, 3000);
+            // 重置扫描状态，允许继续扫码下一个人
+            isProcessing = false;
+            resetResult();
+        }, 1000);
         
-        // 手动关闭按钮
-        const closeBtn = panel.querySelector('#closeSuccessPanel');
-        closeBtn.addEventListener('click', () => {
-            if(panel && panel.parentNode) panel.remove();
-        });
-        // 点击背景也可关闭
+        // 点击背景可立即关闭（提升体验）
         panel.addEventListener('click', (e) => {
-            if(e.target === panel && panel.parentNode) panel.remove();
+            if(e.target === panel && panel.parentNode) {
+                panel.remove();
+                isProcessing = false;
+                resetResult();
+            }
         });
     }
     
@@ -800,7 +785,7 @@
         if (vibrationEnabled && 'vibrate' in navigator) navigator.vibrate(200);
     }
     
-    // ========== 核心扫码逻辑 (支持静态二维码自动补全时间戳) ==========
+    // ========== 核心扫码逻辑 (新增：若扫码结果只有11位数字，前面补0) ==========
     async function onScanSuccess(decodedText) {
         if (isProcessing) return;
         
@@ -835,11 +820,16 @@
                 isStaticQR = true;
             }
             
+            // ----- 新增逻辑：如果scannedIC只有11个数字，前面补一个0 -----
+            if (/^\d{11}$/.test(scannedIC)) {
+                scannedIC = '0' + scannedIC;
+                console.log(`[补零] IC从11位补为12位: ${scannedIC}`);
+            }
+            
             // 如果没有时间戳，或者时间戳长度不为14，视为静态二维码，使用当前时间
             if (!qrTimeStr || qrTimeStr.length !== 14) {
                 isStaticQR = true;
                 const now = new Date();
-                // 生成当前时间戳 YYYYMMDDHHmmss
                 const year = now.getFullYear();
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const day = String(now.getDate()).padStart(2, '0');
@@ -913,11 +903,10 @@
             });
             
             const formattedTime = now.toLocaleTimeString('ms-MY', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+            // 使用新的成功面板（1秒后自动关闭，无关闭按钮）
             showSuccessPanel(student.name, student.className, formattedTime);
             showResult(student.name, status === "Lewat" ? "Berjaya (Lewat)" : "Berjaya Hadir", "success", formattedTime);
-            setTimeout(() => { 
-                if(!document.querySelector('.success-panel')) resetResult(); 
-            }, 3500);
+            // 注意：在 showSuccessPanel 中已经设置 1秒后重置状态，所以这里不再重复重置
             
         } catch (err) {
             playBeepAndVibrate();
@@ -925,9 +914,11 @@
             showResult("Gagal", err.message, "error");
             setTimeout(resetResult, 2500);
         } finally {
+            // 如果面板未显示（比如出错），确保重置状态
             setTimeout(() => { 
                 if(isProcessing && !document.querySelector('.success-panel')) {
                     isProcessing = false;
+                    resetResult();
                 }
             }, 800);
         }
