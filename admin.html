@@ -637,7 +637,7 @@
             html += `
                 <div class="class-accordion" data-class="${displayName}">
                     <div class="class-header" onclick="toggleClass('${classId}')">
-                        <span>📚 ${displayName} <span style="font-size:12px; color:#8E8E93;">(${studentCount} pelajar)</span></span>
+                        <span> ${displayName} <span style="font-size:12px; color:#8E8E93;">(${studentCount} pelajar)</span></span>
                         <i data-lucide="chevron-down" class="chevron"></i>
                     </div>
                     <div id="${classId}" class="class-body">
@@ -666,14 +666,7 @@
         }
         container.innerHTML = html;
         if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-        const firstAccordion = container.querySelector('.class-accordion');
-        if (firstAccordion && !searchTerm) {
-            const firstHeader = firstAccordion.querySelector('.class-header');
-            if (firstHeader && !firstHeader.classList.contains('active')) {
-                const firstBodyId = firstAccordion.querySelector('.class-body')?.id;
-                if (firstBodyId) toggleClass(firstBodyId);
-            }
-        }
+        
     }
     
     window.toggleClass = (bodyId) => {
